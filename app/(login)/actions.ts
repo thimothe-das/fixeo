@@ -14,7 +14,11 @@ import {
   type NewTeamMember,
   type NewActivityLog,
   ActivityType,
-  invitations
+  invitations,
+  clientProfiles,
+  professionalProfiles,
+  type NewClientProfile,
+  type NewProfessionalProfile
 } from '@/lib/db/schema';
 import { comparePasswords, hashPassword, setSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
@@ -103,11 +107,60 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
 const signUpSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  inviteId: z.string().optional()
+  role: z.enum(['client', 'artisan']).optional(),
+  inviteId: z.string().optional(),
+  // Common fields
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  phone: z.string().max(20).optional(),
+  // Client-specific fields
+  address: z.string().optional(),
+  preferences: z.string().optional(),
+  // Professional-specific fields
+  serviceArea: z.string().optional(),
+  siret: z.string().max(14).optional(),
+  experience: z.string().max(20).optional(),
+  specialties: z.string().optional(), // JSON string of array
+  description: z.string().optional(),
 });
 
 export const signUp = validatedAction(signUpSchema, async (data, formData) => {
-  const { email, password, inviteId } = data;
+  const { 
+    email, 
+    password, 
+    inviteId, 
+    role,
+    firstName,
+    lastName,
+    phone,
+    address,
+    preferences,
+    serviceArea,
+    siret,
+    experience,
+    specialties,
+    description
+  } = data;
+
+  // Validation based on role
+  if (role === 'artisan') {
+    if (!firstName || !lastName || !phone || !serviceArea || !siret) {
+      return {
+        error: 'Tous les champs obligatoires doivent être remplis pour les artisans.',
+        email,
+        password
+      };
+    }
+    
+    // Validate SIRET format (basic validation)
+    if (siret && !/^\d{14}$/.test(siret.replace(/\s/g, ''))) {
+      return {
+        error: 'Le numéro SIRET doit contenir 14 chiffres.',
+        email,
+        password
+      };
+    }
+  }
 
   const existingUser = await db
     .select()
@@ -117,7 +170,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
   if (existingUser.length > 0) {
     return {
-      error: 'Failed to create user. Please try again.',
+      error: 'Un compte avec cette adresse email existe déjà.',
       email,
       password
     };
@@ -128,17 +181,45 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   const newUser: NewUser = {
     email,
     passwordHash,
-    role: 'owner' // Default role, will be overridden if there's an invitation
+    name: firstName && lastName ? `${firstName} ${lastName}` : undefined,
+    role: role === 'artisan' ? 'professional' : 'client' // Default role, will be overridden if there's an invitation
   };
 
   const [createdUser] = await db.insert(users).values(newUser).returning();
 
   if (!createdUser) {
     return {
-      error: 'Failed to create user. Please try again.',
+      error: 'Échec de la création du compte. Veuillez réessayer.',
       email,
       password
     };
+  }
+
+  // Create role-specific profile
+  if (role === 'client' && (firstName || lastName || phone || address)) {
+    const clientProfile: NewClientProfile = {
+      userId: createdUser.id,
+      firstName,
+      lastName,
+      phone,
+      address,
+      preferences: preferences || null,
+    };
+    await db.insert(clientProfiles).values(clientProfile);
+  } else if (role === 'artisan') {
+    const professionalProfile: NewProfessionalProfile = {
+      userId: createdUser.id,
+      firstName,
+      lastName,
+      phone,
+      serviceArea,
+      siret: siret?.replace(/\s/g, ''), // Remove spaces from SIRET
+      experience,
+      specialties: specialties || null,
+      description,
+      isVerified: false,
+    };
+    await db.insert(professionalProfiles).values(professionalProfile);
   }
 
   let teamId: number;
@@ -176,7 +257,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
         .where(eq(teams.id, teamId))
         .limit(1);
     } else {
-      return { error: 'Invalid or expired invitation.', email, password };
+      return { error: 'Invitation invalide ou expirée.', email, password };
     }
   } else {
     // Create a new team if there's no invitation
@@ -188,7 +269,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
     if (!createdTeam) {
       return {
-        error: 'Failed to create team. Please try again.',
+        error: 'Échec de la création de l\'équipe. Veuillez réessayer.',
         email,
         password
       };

@@ -1,6 +1,6 @@
 import { desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
+import { activityLogs, teamMembers, teams, users, serviceRequests, professionalProfiles, clientProfiles } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
@@ -127,4 +127,108 @@ export async function getTeamForUser() {
   });
 
   return result?.team || null;
+}
+
+export async function getUserWithProfiles() {
+  const user = await getUser();
+  if (!user) {
+    return null;
+  }
+
+  const userWithProfiles = await db.query.users.findFirst({
+    where: eq(users.id, user.id),
+    with: {
+      clientProfile: true,
+      professionalProfile: true,
+    },
+  });
+
+  return userWithProfiles;
+}
+
+export async function getServiceRequestsForClient(userId: number) {
+  return await db
+    .select({
+      id: serviceRequests.id,
+      serviceType: serviceRequests.serviceType,
+      urgency: serviceRequests.urgency,
+      description: serviceRequests.description,
+      location: serviceRequests.location,
+      status: serviceRequests.status,
+      estimatedPrice: serviceRequests.estimatedPrice,
+      createdAt: serviceRequests.createdAt,
+      assignedArtisan: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+    })
+    .from(serviceRequests)
+    .leftJoin(users, eq(serviceRequests.assignedArtisanId, users.id))
+    .where(eq(serviceRequests.userId, userId))
+    .orderBy(desc(serviceRequests.createdAt));
+}
+
+export async function getServiceRequestsForArtisan(userId: number) {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    with: {
+      professionalProfile: true,
+    },
+  });
+
+  if (!user?.professionalProfile) {
+    return [];
+  }
+
+  const { serviceArea, specialties } = user.professionalProfile;
+  
+  // Parse specialties if it's a JSON string
+  let userSpecialties: string[] = [];
+  if (specialties) {
+    try {
+      userSpecialties = JSON.parse(specialties);
+    } catch {
+      userSpecialties = [];
+    }
+  }
+
+  // Get requests assigned to this artisan
+  const assignedRequests = await db
+    .select()
+    .from(serviceRequests)
+    .where(eq(serviceRequests.assignedArtisanId, userId))
+    .orderBy(desc(serviceRequests.createdAt));
+
+  // Get available requests in the area and matching specialties
+  const availableRequests = await db
+    .select()
+    .from(serviceRequests)
+    .where(
+      and(
+        eq(serviceRequests.status, 'pending'),
+        isNull(serviceRequests.assignedArtisanId)
+      )
+    )
+    .orderBy(desc(serviceRequests.createdAt))
+    .limit(20);
+
+  // Filter by specialties and location (simplified)
+  const filteredAvailable = availableRequests.filter((request) => {
+    const matchesSpecialty = userSpecialties.length === 0 || 
+      userSpecialties.some(specialty => 
+        request.serviceType.toLowerCase().includes(specialty.toLowerCase())
+      );
+    
+    const matchesLocation = !serviceArea || 
+      request.location.toLowerCase().includes(serviceArea.toLowerCase());
+    
+    return matchesSpecialty && matchesLocation;
+  });
+
+  // Add the isAssigned flag after querying
+  const assignedWithFlag = assignedRequests.map(req => ({ ...req, isAssigned: true }));
+  const availableWithFlag = filteredAvailable.map(req => ({ ...req, isAssigned: false }));
+
+  return [...assignedWithFlag, ...availableWithFlag];
 }
