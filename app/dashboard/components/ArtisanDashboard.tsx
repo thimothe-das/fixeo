@@ -247,7 +247,7 @@ function ArtisanRequestsList() {
     "/api/service-requests/artisan",
     fetcher
   );
-
+  console.log(requests);
   const handleAcceptRequest = async (requestId: number) => {
     try {
       const response = await fetch("/api/service-requests/accept", {

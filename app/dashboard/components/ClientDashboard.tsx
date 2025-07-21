@@ -385,20 +385,22 @@ export function ClientDashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Mes demandes
-            </h2>
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Mes demandes
+        </h2>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Service Requests List - Takes most of the space */}
+          <div className="xl:col-span-2">
             <Suspense fallback={<ServiceRequestsListSkeleton />}>
               <ServiceRequestsList />
             </Suspense>
           </div>
-        </div>
 
-        <div className="lg:col-span-1">
-          <NewRequestForm />
+          {/* New Request Form - Takes remaining space */}
+          <div className="xl:col-span-1">
+            <NewRequestForm />
+          </div>
         </div>
       </div>
     </div>

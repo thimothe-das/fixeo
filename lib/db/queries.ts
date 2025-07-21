@@ -213,7 +213,7 @@ export async function getServiceRequestsForArtisan(userId: number) {
     .orderBy(desc(serviceRequests.createdAt))
     .limit(20);
 
-  // Filter by specialties and location (simplified)
+    // Filter by specialties and location (simplified)
   const filteredAvailable = availableRequests.filter((request) => {
     const matchesSpecialty = userSpecialties.length === 0 || 
       userSpecialties.some(specialty => 

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Loader2, Wrench, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Wrench, Users, DoorOpen } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
@@ -30,41 +30,15 @@ export function LoginComponent({
   const inviteId = searchParams.get("inviteId");
 
   return (
-    <div className="min-h-[100dvh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-[100dvh] flex flex-col justify-start py-6 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center items-center mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => setSelectedRole(null)}
-            className="mr-4 p-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center space-x-2">
-            <Wrench className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">Fixéo</span>
-          </div>
-        </div>
-
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            {selectedRole === "client" ? (
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="h-8 w-8 text-blue-600" />
-              </div>
-            ) : (
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <Wrench className="h-8 w-8 text-green-600" />
-              </div>
-            )}
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+              <DoorOpen className="h-8 w-8 text-blue-600" />
+            </div>
           </div>
-          <h2 className="text-3xl font-extrabold text-gray-900">
-            {mode === "signin"
-              ? `Connexion ${selectedRole === "client" ? "Client" : "Artisan"}`
-              : `Inscription ${
-                  selectedRole === "client" ? "Client" : "Artisan"
-                }`}
-          </h2>
+          <h2 className="text-3xl font-extrabold text-gray-900">Connexion</h2>
           <p className="mt-2 text-sm text-gray-600">
             {selectedRole === "client"
               ? "Accédez à votre espace client"
@@ -275,16 +249,13 @@ export function LoginComponent({
             <div className="mt-6">
               <Link
                 href={`${
-                  mode === "signin"
-                    ? `/sign-up/${selectedRole}`
-                    : `/sign-in/${selectedRole}`
+                  mode === "signin" ? `/sign-up/` : `/sign-in/${selectedRole}`
                 }${redirect ? `?redirect=${redirect}` : ""}${
                   priceId ? `&priceId=${priceId}` : ""
                 }`}
                 className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                {mode === "signin" ? "Créer un compte" : "Se connecter"}{" "}
-                {selectedRole === "client" ? "client" : "artisan"}
+                {mode === "signin" ? "Créer un compte" : "Se connecter"}
               </Link>
             </div>
           </div>
