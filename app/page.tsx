@@ -110,56 +110,18 @@ export default function FixeoHomePage() {
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-slate-50 to-blue-50 py-8 lg:py-12 min-h-[calc(100vh-80px)] flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-center">
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl">
+            Envoyez votre demande,
+            <span className="block text-blue-600">un artisan l'accepte</span>
+          </h1>
+          <p className="mt-4 text-lg text-gray-600 max-w-2xl">
+            Fixéo connecte automatiquement votre demande au premier artisan
+            disponible près de chez vous.
+          </p>
+          <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start mt-8">
             <div className="lg:col-span-7">
-              <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl">
-                Envoyez votre demande,
-                <span className="block text-blue-600">
-                  un artisan l'accepte
-                </span>
-              </h1>
-              <p className="mt-4 text-lg text-gray-600 max-w-2xl">
-                Fixéo connecte automatiquement votre demande au premier artisan
-                disponible près de chez vous.
-              </p>
-
-              {/* Previous Requests for Guest Users */}
-              {guestTokens.length > 0 && (
-                <div className="mt-6 max-w-xl">
-                  <Card className="shadow-lg border-0 bg-white/95 backdrop-blur">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base font-semibold text-gray-900 flex items-center">
-                        <Clock className="mr-2 h-4 w-4 text-blue-600" />
-                        Vos demandes précédentes
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {guestTokens.map((token, index) => (
-                          <a
-                            key={token}
-                            href={`/suivi/${token}`}
-                            className="block p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-900">
-                                Demande #{index + 1}
-                              </span>
-                              <ArrowRight className="h-4 w-4 text-gray-400" />
-                            </div>
-                            <span className="text-xs text-gray-600">
-                              Cliquez pour suivre votre demande
-                            </span>
-                          </a>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
               {/* Request Form */}
-              <div className="mt-6 max-w-xl">
+              <div className="max-w-2xl">
                 <Card className="shadow-xl border-0 bg-white/95 backdrop-blur">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base font-semibold text-gray-900 flex items-center">
@@ -250,7 +212,39 @@ export default function FixeoHomePage() {
                         />
                       </div>
 
-                      {/* Photo Upload Section */}
+                      {/* Email & Location Row */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-800 mb-1">
+                            📧 Email de contact *
+                          </label>
+                          <Input
+                            name="clientEmail"
+                            type="email"
+                            placeholder="votre@email.com"
+                            className="h-11 border-2 focus:border-blue-500 text-sm"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-800 mb-1">
+                            📍 Adresse d'intervention *
+                          </label>
+                          <div className="relative">
+                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-blue-600" />
+                            <Input
+                              name="location"
+                              placeholder="Adresse, ville"
+                              className="pl-10 h-11 border-2 focus:border-blue-500 text-sm"
+                              value={location}
+                              onChange={(e) => setLocation(e.target.value)}
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Photo Upload Section - Compact */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-800 mb-1">
                           📸 Photos (optionnel)
@@ -291,7 +285,7 @@ export default function FixeoHomePage() {
                               />
                               <label
                                 htmlFor="photo-upload"
-                                className="flex items-center justify-center w-full h-16 border border-dashed border-blue-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                                className="flex items-center justify-center w-full h-12 border border-dashed border-blue-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
                               >
                                 <div className="flex items-center space-x-2">
                                   <Camera className="h-4 w-4 text-blue-600" />
@@ -302,40 +296,6 @@ export default function FixeoHomePage() {
                               </label>
                             </div>
                           )}
-                        </div>
-                      </div>
-
-                      {/* Email Field */}
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-800 mb-1">
-                          📧 Email de contact *
-                        </label>
-                        <Input
-                          name="clientEmail"
-                          type="email"
-                          placeholder="votre@email.com"
-                          className="h-11 border-2 focus:border-blue-500 text-sm"
-                          required
-                        />
-                      </div>
-
-                      {/* Location & Budget */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="sm:col-span-2">
-                          <label className="block text-sm font-semibold text-gray-800 mb-1">
-                            📍 Adresse d'intervention *
-                          </label>
-                          <div className="relative">
-                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-blue-600" />
-                            <Input
-                              name="location"
-                              placeholder="Adresse, ville, code postal"
-                              className="pl-10 h-11 border-2 focus:border-blue-500 text-sm"
-                              value={location}
-                              onChange={(e) => setLocation(e.target.value)}
-                              required
-                            />
-                          </div>
                         </div>
                       </div>
 
@@ -390,29 +350,65 @@ export default function FixeoHomePage() {
                 </Card>
 
                 {/* Quick Stats */}
-                <div className="mt-4 grid grid-cols-3 gap-3">
-                  <div className="text-center bg-white/70 backdrop-blur rounded-lg p-2 border border-white/50">
-                    <div className="text-lg font-bold text-blue-600">5000+</div>
-                    <div className="text-xs text-gray-700">Artisans</div>
+                <div className="mt-6 grid grid-cols-3 gap-4">
+                  <div className="text-center bg-white/70 backdrop-blur rounded-lg p-3 border border-white/50">
+                    <div className="text-xl font-bold text-blue-600">5000+</div>
+                    <div className="text-sm text-gray-700">Artisans</div>
                   </div>
-                  <div className="text-center bg-white/70 backdrop-blur rounded-lg p-2 border border-white/50">
-                    <div className="text-lg font-bold text-blue-600">8min</div>
-                    <div className="text-xs text-gray-700">Réponse</div>
+                  <div className="text-center bg-white/70 backdrop-blur rounded-lg p-3 border border-white/50">
+                    <div className="text-xl font-bold text-blue-600">8min</div>
+                    <div className="text-sm text-gray-700">Réponse</div>
                   </div>
-                  <div className="text-center bg-white/70 backdrop-blur rounded-lg p-2 border border-white/50">
-                    <div className="text-lg font-bold text-blue-600">96%</div>
-                    <div className="text-xs text-gray-700">Accepté</div>
+                  <div className="text-center bg-white/70 backdrop-blur rounded-lg p-3 border border-white/50">
+                    <div className="text-xl font-bold text-blue-600">96%</div>
+                    <div className="text-sm text-gray-700">Accepté</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 lg:mt-0 lg:col-span-5">
-              <div className="relative hidden lg:block">
+            {/* Right Column - Image & Previous Requests */}
+            <div className="mt-12 lg:mt-0 lg:col-span-5 space-y-6">
+              {/* Previous Requests for Guest Users */}
+              {guestTokens.length > 0 && (
+                <div>
+                  <Card className="shadow-lg border-0 bg-white/95 backdrop-blur">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base font-semibold text-gray-900 flex items-center">
+                        <Clock className="mr-2 h-4 w-4 text-blue-600" />
+                        Vos demandes précédentes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {guestTokens.map((token, index) => (
+                          <a
+                            key={token}
+                            href={`/suivi/${token}`}
+                            className="block p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900">
+                                Demande #{index + 1}
+                              </span>
+                              <ArrowRight className="h-4 w-4 text-gray-400" />
+                            </div>
+                            <span className="text-xs text-gray-600">
+                              Cliquez pour suivre votre demande
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+              {/* Artisan Image - Smaller */}
+              <div className="relative">
                 <img
-                  src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                  src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
                   alt="Artisan au travail"
-                  className="rounded-2xl shadow-xl"
+                  className="rounded-2xl shadow-xl w-full max-w-md mx-auto lg:max-w-full"
                 />
                 <div className="absolute -bottom-4 -left-4 bg-white p-3 rounded-xl shadow-lg">
                   <div className="flex items-center space-x-3">
