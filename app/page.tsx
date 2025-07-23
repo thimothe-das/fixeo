@@ -45,6 +45,12 @@ import {
   AddressAutocomplete,
   AddressData,
 } from "@/components/ui/address-autocomplete";
+import {
+  useFormState,
+  getFormValue,
+  FormState,
+  ServiceRequestFormFields,
+} from "@/lib/auth/form-utils";
 
 export default function FixeoHomePage() {
   const [location, setLocation] = useState("");
@@ -55,9 +61,20 @@ export default function FixeoHomePage() {
   const [urgency, setUrgency] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [guestTokens, setGuestTokens] = useState<string[]>([]);
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(
-    createServiceRequest,
-    { error: "" }
+  const [state, formAction, pending] = useActionState<
+    FormState<ServiceRequestFormFields>,
+    FormData
+  >(createServiceRequest, { error: "" });
+
+  // Use the form state hook for automatic controlled input updates
+  useFormState(
+    state,
+    { serviceType, urgency, location },
+    {
+      serviceType: setServiceType,
+      urgency: setUrgency,
+      location: setLocation,
+    }
   );
 
   // Load guest tokens from localStorage on component mount
@@ -223,6 +240,7 @@ export default function FixeoHomePage() {
                           name="description"
                           placeholder="Ex: Robinet de cuisine qui fuit au niveau du joint, remplacer le joint..."
                           className="min-h-[70px] border-2 focus:border-blue-500 resize-none text-sm"
+                          defaultValue={getFormValue(state, "description")}
                           required
                         />
                       </div>
@@ -238,6 +256,7 @@ export default function FixeoHomePage() {
                             type="email"
                             placeholder="votre@email.com"
                             className="h-11 focus:border-blue-500 text-sm"
+                            defaultValue={getFormValue(state, "clientEmail")}
                             required
                           />
                         </div>

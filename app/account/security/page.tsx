@@ -1,12 +1,17 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Lock, Trash2, Loader2 } from 'lucide-react';
-import { useActionState } from 'react';
-import { updatePassword, deleteAccount } from '@/app/(login)/actions';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Lock, Trash2, Loader2 } from "lucide-react";
+import { useActionState } from "react";
+import { updatePassword, deleteAccount } from "@/app/(login)/actions";
+import {
+  FormState,
+  PasswordFormFields,
+  getFormValue,
+} from "@/lib/auth/form-utils";
 
 type PasswordState = {
   currentPassword?: string;
@@ -24,7 +29,7 @@ type DeleteState = {
 
 export default function SecurityPage() {
   const [passwordState, passwordAction, isPasswordPending] = useActionState<
-    PasswordState,
+    FormState<PasswordFormFields>,
     FormData
   >(updatePassword, {});
 
@@ -56,7 +61,7 @@ export default function SecurityPage() {
                 required
                 minLength={8}
                 maxLength={100}
-                defaultValue={passwordState.currentPassword}
+                defaultValue={getFormValue(passwordState, "currentPassword")}
               />
             </div>
             <div>
@@ -71,7 +76,7 @@ export default function SecurityPage() {
                 required
                 minLength={8}
                 maxLength={100}
-                defaultValue={passwordState.newPassword}
+                defaultValue={passwordState?.newPassword || ""}
               />
             </div>
             <div>
@@ -85,7 +90,7 @@ export default function SecurityPage() {
                 required
                 minLength={8}
                 maxLength={100}
-                defaultValue={passwordState.confirmPassword}
+                defaultValue={passwordState?.confirmPassword || ""}
               />
             </div>
             {passwordState.error && (
@@ -135,7 +140,7 @@ export default function SecurityPage() {
                 required
                 minLength={8}
                 maxLength={100}
-                defaultValue={deleteState.password}
+                defaultValue={deleteState?.password || ""}
               />
             </div>
             {deleteState.error && (

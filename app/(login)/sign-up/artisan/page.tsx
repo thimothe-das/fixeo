@@ -32,7 +32,7 @@ import {
   Loader2,
 } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { signUp } from "../../actions";
 import { ActionState } from "@/lib/auth/middleware";
@@ -40,6 +40,12 @@ import {
   AddressAutocomplete,
   AddressData,
 } from "@/components/ui/address-autocomplete";
+import {
+  useFormState,
+  getFormValue,
+  FormState,
+  SignUpFormFields,
+} from "@/lib/auth/form-utils";
 
 const specialties = [
   "Plomberie",
@@ -59,9 +65,24 @@ export default function SignUpArtisanPage() {
   const [serviceArea, setServiceArea] = useState("");
   const [selectedServiceAddress, setSelectedServiceAddress] =
     useState<AddressData | null>(null);
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(
-    signUp,
-    { error: "" }
+  const [state, formAction, pending] = useActionState<
+    FormState<SignUpFormFields>,
+    FormData
+  >(signUp, { error: "" });
+
+  // Use the form state hook for automatic controlled input updates
+  useFormState(
+    state,
+    {
+      specialties: JSON.stringify(selectedSpecialties),
+      experience: selectedExperience,
+      serviceArea,
+    },
+    {
+      specialties: setSelectedSpecialties,
+      experience: setSelectedExperience,
+      serviceArea: setServiceArea,
+    }
   );
 
   const handleServiceAreaChange = (
@@ -138,7 +159,7 @@ export default function SignUpArtisanPage() {
                       name="firstName"
                       placeholder="Prénom"
                       className="pl-10"
-                      defaultValue={state.firstName}
+                      defaultValue={getFormValue(state, "firstName")}
                       required
                     />
                   </div>
@@ -152,7 +173,7 @@ export default function SignUpArtisanPage() {
                       name="lastName"
                       placeholder="Nom"
                       className="pl-10"
-                      defaultValue={state.lastName}
+                      defaultValue={state?.lastName || ""}
                       required
                     />
                   </div>
@@ -168,7 +189,7 @@ export default function SignUpArtisanPage() {
                     name="phone"
                     placeholder="06 12 34 56 78"
                     className="pl-10"
-                    defaultValue={state.phone}
+                    defaultValue={state?.phone || ""}
                     required
                   />
                 </div>
@@ -194,7 +215,7 @@ export default function SignUpArtisanPage() {
                     name="siret"
                     placeholder="Numéro SIRET (14 chiffres)"
                     className="pl-10"
-                    defaultValue={state.siret}
+                    defaultValue={state?.siret || ""}
                     maxLength={14}
                     required
                   />
@@ -248,7 +269,7 @@ export default function SignUpArtisanPage() {
                   name="description"
                   placeholder="Décrivez votre expérience, vos compétences et votre approche du service client..."
                   rows={3}
-                  defaultValue={state.description}
+                  defaultValue={state?.description || ""}
                 />
               </div>
 
@@ -262,7 +283,7 @@ export default function SignUpArtisanPage() {
                     type="email"
                     placeholder="votre@email.com"
                     className="pl-10"
-                    defaultValue={state.email}
+                    defaultValue={state?.email || ""}
                     required
                   />
                 </div>
@@ -278,7 +299,7 @@ export default function SignUpArtisanPage() {
                     type="password"
                     placeholder="••••••••"
                     className="pl-10"
-                    defaultValue={state.password}
+                    defaultValue={state?.password || ""}
                     minLength={8}
                     required
                   />

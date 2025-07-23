@@ -70,8 +70,6 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
   if (userWithTeam.length === 0) {
     return {
       error: 'Invalid email or password. Please try again.',
-      email,
-      password
     };
   }
 
@@ -85,8 +83,6 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
   if (!isPasswordValid) {
     return {
       error: 'Invalid email or password. Please try again.',
-      email,
-      password
     };
   }
 
@@ -179,8 +175,6 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     if (!firstName || !lastName || !phone || !serviceArea || !siret) {
       return {
         error: 'Tous les champs obligatoires doivent être remplis pour les artisans.',
-        email,
-        password
       };
     }
     
@@ -188,8 +182,6 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     if (siret && !/^\d{14}$/.test(siret.replace(/\s/g, ''))) {
       return {
         error: 'Le numéro SIRET doit contenir 14 chiffres.',
-        email,
-        password
       };
     }
   }
@@ -203,8 +195,6 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   if (existingUser.length > 0) {
     return {
       error: 'Un compte avec cette adresse email existe déjà.',
-      email,
-      password
     };
   }
 
@@ -222,8 +212,6 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   if (!createdUser) {
     return {
       error: 'Échec de la création du compte. Veuillez réessayer.',
-      email,
-      password
     };
   }
 
@@ -305,7 +293,9 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
         .where(eq(teams.id, teamId))
         .limit(1);
     } else {
-      return { error: 'Invitation invalide ou expirée.', email, password };
+      return { 
+        error: 'Invitation invalide ou expirée.', 
+      };
     }
   } else {
     // Create a new team if there's no invitation
@@ -318,8 +308,6 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     if (!createdTeam) {
       return {
         error: 'Échec de la création de l\'équipe. Veuillez réessayer.',
-        email,
-        password
       };
     }
 
@@ -429,7 +417,6 @@ export const deleteAccount = validatedActionWithUser(
     const isPasswordValid = await comparePasswords(password, user.passwordHash);
     if (!isPasswordValid) {
       return {
-        password,
         error: 'Incorrect password. Account deletion failed.'
       };
     }

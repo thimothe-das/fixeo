@@ -9,6 +9,11 @@ import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
 import { signIn, signUp } from "./actions";
 import { ActionState } from "@/lib/auth/middleware";
+import {
+  getFormValue,
+  FormState,
+  SignUpFormFields,
+} from "@/lib/auth/form-utils";
 
 type UserRole = "client" | "artisan" | null;
 
@@ -21,10 +26,10 @@ export function LoginComponent({
 }) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(role);
   const searchParams = useSearchParams();
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(
-    mode === "signin" ? signIn : signUp,
-    { error: "" }
-  );
+  const [state, formAction, pending] = useActionState<
+    FormState<SignUpFormFields>,
+    FormData
+  >(mode === "signin" ? signIn : signUp, { error: "" });
   const redirect = searchParams.get("redirect");
   const priceId = searchParams.get("priceId");
   const inviteId = searchParams.get("inviteId");
@@ -72,7 +77,7 @@ export function LoginComponent({
                         name="firstName"
                         type="text"
                         autoComplete="given-name"
-                        defaultValue={state.firstName}
+                        defaultValue={getFormValue(state, "firstName")}
                         required={selectedRole === "artisan"}
                         maxLength={100}
                         className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
@@ -94,7 +99,7 @@ export function LoginComponent({
                         name="lastName"
                         type="text"
                         autoComplete="family-name"
-                        defaultValue={state.lastName}
+                        defaultValue={state?.lastName || ""}
                         required={selectedRole === "artisan"}
                         maxLength={100}
                         className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
@@ -117,7 +122,7 @@ export function LoginComponent({
                       name="phone"
                       type="tel"
                       autoComplete="tel"
-                      defaultValue={state.phone}
+                      defaultValue={state?.phone || ""}
                       required={selectedRole === "artisan"}
                       maxLength={20}
                       className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
@@ -139,7 +144,7 @@ export function LoginComponent({
                         id="address"
                         name="address"
                         type="text"
-                        defaultValue={state.address}
+                        defaultValue={state?.address || ""}
                         className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                         placeholder="Votre adresse"
                       />
@@ -162,7 +167,7 @@ export function LoginComponent({
                   name="email"
                   type="email"
                   autoComplete="email"
-                  defaultValue={state.email}
+                  defaultValue={getFormValue(state, "email")}
                   required
                   maxLength={50}
                   className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
@@ -186,7 +191,7 @@ export function LoginComponent({
                   autoComplete={
                     mode === "signin" ? "current-password" : "new-password"
                   }
-                  defaultValue={state.password}
+                  defaultValue={state?.password || ""}
                   required
                   minLength={8}
                   maxLength={100}
