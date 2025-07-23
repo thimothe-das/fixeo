@@ -36,6 +36,10 @@ import { useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { signUp } from "../../actions";
 import { ActionState } from "@/lib/auth/middleware";
+import {
+  AddressAutocomplete,
+  AddressData,
+} from "@/components/ui/address-autocomplete";
 
 const specialties = [
   "Plomberie",
@@ -52,10 +56,21 @@ export default function SignUpArtisanPage() {
   const searchParams = useSearchParams();
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [selectedExperience, setSelectedExperience] = useState<string>("");
+  const [serviceArea, setServiceArea] = useState("");
+  const [selectedServiceAddress, setSelectedServiceAddress] =
+    useState<AddressData | null>(null);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     signUp,
     { error: "" }
   );
+
+  const handleServiceAreaChange = (
+    address: AddressData | null,
+    rawValue: string
+  ) => {
+    setSelectedServiceAddress(address);
+    setServiceArea(rawValue);
+  };
   const redirect = searchParams.get("redirect");
   const priceId = searchParams.get("priceId");
   const inviteId = searchParams.get("inviteId");
@@ -160,18 +175,14 @@ export default function SignUpArtisanPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="serviceArea">Zone d'intervention *</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="serviceArea"
-                    name="serviceArea"
-                    placeholder="Ville, département"
-                    className="pl-10"
-                    defaultValue={state.serviceArea}
-                    required
-                  />
-                </div>
+                <AddressAutocomplete
+                  label="Zone d'intervention"
+                  placeholder="Ville, département..."
+                  name="serviceArea"
+                  value={serviceArea}
+                  onChange={handleServiceAreaChange}
+                  required
+                />
               </div>
 
               <div className="space-y-2">

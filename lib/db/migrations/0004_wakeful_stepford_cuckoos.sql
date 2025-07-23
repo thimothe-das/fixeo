@@ -1,0 +1,24 @@
+ALTER TABLE "client_profiles" ADD COLUMN "address_housenumber" varchar(10);--> statement-breakpoint
+ALTER TABLE "client_profiles" ADD COLUMN "address_street" varchar(255);--> statement-breakpoint
+ALTER TABLE "client_profiles" ADD COLUMN "address_postcode" varchar(10);--> statement-breakpoint
+ALTER TABLE "client_profiles" ADD COLUMN "address_city" varchar(100);--> statement-breakpoint
+ALTER TABLE "client_profiles" ADD COLUMN "address_citycode" varchar(10);--> statement-breakpoint
+ALTER TABLE "client_profiles" ADD COLUMN "address_district" varchar(100);--> statement-breakpoint
+ALTER TABLE "client_profiles" ADD COLUMN "address_coordinates" varchar(50);--> statement-breakpoint
+ALTER TABLE "client_profiles" ADD COLUMN "address_context" text;--> statement-breakpoint
+ALTER TABLE "professional_profiles" ADD COLUMN "service_area_housenumber" varchar(10);--> statement-breakpoint
+ALTER TABLE "professional_profiles" ADD COLUMN "service_area_street" varchar(255);--> statement-breakpoint
+ALTER TABLE "professional_profiles" ADD COLUMN "service_area_postcode" varchar(10);--> statement-breakpoint
+ALTER TABLE "professional_profiles" ADD COLUMN "service_area_city" varchar(100);--> statement-breakpoint
+ALTER TABLE "professional_profiles" ADD COLUMN "service_area_citycode" varchar(10);--> statement-breakpoint
+ALTER TABLE "professional_profiles" ADD COLUMN "service_area_district" varchar(100);--> statement-breakpoint
+ALTER TABLE "professional_profiles" ADD COLUMN "service_area_coordinates" varchar(50);--> statement-breakpoint
+ALTER TABLE "professional_profiles" ADD COLUMN "service_area_context" text;--> statement-breakpoint
+ALTER TABLE "service_requests" ADD COLUMN "location_housenumber" varchar(10);--> statement-breakpoint
+ALTER TABLE "service_requests" ADD COLUMN "location_street" varchar(255);--> statement-breakpoint
+ALTER TABLE "service_requests" ADD COLUMN "location_postcode" varchar(10);--> statement-breakpoint
+ALTER TABLE "service_requests" ADD COLUMN "location_city" varchar(100);--> statement-breakpoint
+ALTER TABLE "service_requests" ADD COLUMN "location_citycode" varchar(10);--> statement-breakpoint
+ALTER TABLE "service_requests" ADD COLUMN "location_district" varchar(100);--> statement-breakpoint
+ALTER TABLE "service_requests" ADD COLUMN "location_coordinates" varchar(50);--> statement-breakpoint
+ALTER TABLE "service_requests" ADD COLUMN "location_context" text;

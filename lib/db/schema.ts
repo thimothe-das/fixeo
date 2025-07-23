@@ -80,6 +80,15 @@ export const clientProfiles = pgTable('client_profiles', {
   lastName: varchar('last_name', { length: 100 }),
   phone: varchar('phone', { length: 20 }),
   address: text('address'),
+  // Structured address fields
+  addressHousenumber: varchar('address_housenumber', { length: 10 }),
+  addressStreet: varchar('address_street', { length: 255 }),
+  addressPostcode: varchar('address_postcode', { length: 10 }),
+  addressCity: varchar('address_city', { length: 100 }),
+  addressCitycode: varchar('address_citycode', { length: 10 }),
+  addressDistrict: varchar('address_district', { length: 100 }),
+  addressCoordinates: varchar('address_coordinates', { length: 50 }), // "lat,lng"
+  addressContext: text('address_context'),
   preferences: text('preferences'), // JSON string for client preferences
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -95,6 +104,15 @@ export const professionalProfiles = pgTable('professional_profiles', {
   lastName: varchar('last_name', { length: 100 }),
   phone: varchar('phone', { length: 20 }),
   serviceArea: text('service_area'), // Zone d'intervention
+  // Structured service area fields
+  serviceAreaHousenumber: varchar('service_area_housenumber', { length: 10 }),
+  serviceAreaStreet: varchar('service_area_street', { length: 255 }),
+  serviceAreaPostcode: varchar('service_area_postcode', { length: 10 }),
+  serviceAreaCity: varchar('service_area_city', { length: 100 }),
+  serviceAreaCitycode: varchar('service_area_citycode', { length: 10 }),
+  serviceAreaDistrict: varchar('service_area_district', { length: 100 }),
+  serviceAreaCoordinates: varchar('service_area_coordinates', { length: 50 }), // "lat,lng"
+  serviceAreaContext: text('service_area_context'),
   siret: varchar('siret', { length: 14 }),
   experience: varchar('experience', { length: 20 }), // e.g., "3-5", "10+"
   specialties: text('specialties'), // JSON array of specialties
@@ -182,6 +200,15 @@ export const serviceRequests = pgTable('service_requests', {
   urgency: varchar('urgency', { length: 20 }).notNull(),
   description: text('description').notNull(),
   location: text('location').notNull(),
+  // Structured address fields for intervention location
+  locationHousenumber: varchar('location_housenumber', { length: 10 }),
+  locationStreet: varchar('location_street', { length: 255 }),
+  locationPostcode: varchar('location_postcode', { length: 10 }),
+  locationCity: varchar('location_city', { length: 100 }),
+  locationCitycode: varchar('location_citycode', { length: 10 }),
+  locationDistrict: varchar('location_district', { length: 100 }),
+  locationCoordinates: varchar('location_coordinates', { length: 50 }), // "lat,lng"
+  locationContext: text('location_context'),
   photos: text('photos'), // JSON array of photo URLs
   clientEmail: varchar('client_email', { length: 255 }),
   clientPhone: varchar('client_phone', { length: 20 }),

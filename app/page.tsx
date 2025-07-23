@@ -41,9 +41,16 @@ import {
 import { useState, useActionState, useEffect } from "react";
 import { createServiceRequest } from "./(dashboard)/actions";
 import { ActionState } from "@/lib/auth/middleware";
+import {
+  AddressAutocomplete,
+  AddressData,
+} from "@/components/ui/address-autocomplete";
 
 export default function FixeoHomePage() {
   const [location, setLocation] = useState("");
+  const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(
+    null
+  );
   const [serviceType, setServiceType] = useState("");
   const [urgency, setUrgency] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
@@ -86,6 +93,14 @@ export default function FixeoHomePage() {
 
   const removePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddressChange = (
+    address: AddressData | null,
+    rawValue: string
+  ) => {
+    setSelectedAddress(address);
+    setLocation(rawValue);
   };
 
   const services = [
@@ -222,25 +237,20 @@ export default function FixeoHomePage() {
                             name="clientEmail"
                             type="email"
                             placeholder="votre@email.com"
-                            className="h-11 border-2 focus:border-blue-500 text-sm"
+                            className="h-11 focus:border-blue-500 text-sm"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-800 mb-1">
-                            📍 Adresse d'intervention *
-                          </label>
-                          <div className="relative">
-                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-blue-600" />
-                            <Input
-                              name="location"
-                              placeholder="Adresse, ville"
-                              className="pl-10 h-11 border-2 focus:border-blue-500 text-sm"
-                              value={location}
-                              onChange={(e) => setLocation(e.target.value)}
-                              required
-                            />
-                          </div>
+                          <AddressAutocomplete
+                            label="📍 Adresse d'intervention"
+                            placeholder="Tapez votre adresse complète..."
+                            name="location"
+                            value={location}
+                            onChange={handleAddressChange}
+                            required
+                            className="h-11 focus:border-blue-500 text-sm"
+                          />
                         </div>
                       </div>
 

@@ -24,6 +24,10 @@ import {
   Eye,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  AddressAutocomplete,
+  AddressData,
+} from "@/components/ui/address-autocomplete";
 import { createServiceRequest } from "../actions";
 import { ActionState } from "@/lib/auth/middleware";
 import useSWR from "swr";
@@ -222,10 +226,22 @@ function NewRequestForm() {
   const [showForm, setShowForm] = useState(false);
   const [serviceType, setServiceType] = useState("");
   const [urgency, setUrgency] = useState("");
+  const [location, setLocation] = useState("");
+  const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(
+    null
+  );
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     createServiceRequest,
     { error: "" }
   );
+
+  const handleAddressChange = (
+    address: AddressData | null,
+    rawValue: string
+  ) => {
+    setSelectedAddress(address);
+    setLocation(rawValue);
+  };
 
   return (
     <Card>
@@ -314,18 +330,14 @@ function NewRequestForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Adresse d'intervention *
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  name="location"
-                  placeholder="Adresse complète"
-                  className="pl-10"
-                  required
-                />
-              </div>
+              <AddressAutocomplete
+                label="Adresse d'intervention"
+                placeholder="Tapez votre adresse complète..."
+                name="location"
+                value={location}
+                onChange={handleAddressChange}
+                required
+              />
             </div>
 
             {state?.error && (
