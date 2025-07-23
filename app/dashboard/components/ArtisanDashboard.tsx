@@ -16,6 +16,8 @@ import {
   Wrench,
   User,
   Badge as BadgeIcon,
+  Image as ImageIcon,
+  ZoomIn,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import useSWR from "swr";
@@ -34,8 +36,75 @@ type ServiceRequestForArtisan = {
   clientEmail?: string;
   clientName?: string;
   clientPhone?: string;
+  photos?: string;
   isAssigned: boolean;
 };
+
+function PhotoGallery({ photos }: { photos: string[] }) {
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+
+  if (photos.length === 0) return null;
+
+  return (
+    <>
+      <div className="mt-4">
+        <h4 className="text-sm font-medium text-gray-800 mb-3 flex items-center">
+          <ImageIcon className="h-4 w-4 mr-2" />
+          Photos ({photos.length})
+        </h4>
+        <div className="grid grid-cols-3 gap-2">
+          {photos.slice(0, 6).map((photoUrl, index) => (
+            <div key={index} className="relative aspect-square">
+              <img
+                src={photoUrl}
+                alt={`Photo ${index + 1}`}
+                className="w-full h-full object-cover rounded-md border cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => setSelectedPhoto(photoUrl)}
+              />
+              {photos.length > 6 && index === 5 && (
+                <div
+                  className="absolute inset-0 bg-black bg-opacity-50 rounded-md flex items-center justify-center cursor-pointer"
+                  onClick={() => setSelectedPhoto(photoUrl)}
+                >
+                  <span className="text-white text-sm font-medium">
+                    +{photos.length - 6}
+                  </span>
+                </div>
+              )}
+              <div className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-md p-1">
+                <ZoomIn className="h-3 w-3 text-white" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Photo Modal */}
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <img
+              src={selectedPhoto}
+              alt="Photo agrandie"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <Button
+              variant="secondary"
+              className="absolute top-4 right-4"
+              onClick={() => setSelectedPhoto(null)}
+            >
+              ✕
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 function RequestCard({
   request,
@@ -97,6 +166,8 @@ function RequestCard({
     });
   };
 
+  const photos = request.photos ? JSON.parse(request.photos) : [];
+
   return (
     <Card
       className={`hover:shadow-md transition-shadow ${
@@ -154,6 +225,9 @@ function RequestCard({
             <MapPin className="h-4 w-4 mr-2 text-blue-600" />
             {request.location}
           </div>
+
+          {/* Photo Gallery */}
+          <PhotoGallery photos={photos} />
 
           {request.isAssigned && (
             <div className="bg-white p-4 rounded-lg border border-green-200">

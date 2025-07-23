@@ -37,6 +37,7 @@ import {
   X,
   Image,
   Loader2,
+  Upload,
 } from "lucide-react";
 import { useState, useActionState, useEffect } from "react";
 import { createServiceRequest } from "./(dashboard)/actions";
@@ -51,6 +52,13 @@ import {
   FormState,
   ServiceRequestFormFields,
 } from "@/lib/auth/form-utils";
+import { Badge } from "@/components/ui/badge";
+
+type GuestToken = {
+  token: string;
+  clientEmail: string;
+  createdAt: string;
+};
 
 export default function FixeoHomePage() {
   const [location, setLocation] = useState("");
@@ -60,7 +68,8 @@ export default function FixeoHomePage() {
   const [serviceType, setServiceType] = useState("");
   const [urgency, setUrgency] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
-  const [guestTokens, setGuestTokens] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [guestTokens, setGuestTokens] = useState<GuestToken[]>([]);
   const [state, formAction, pending] = useActionState<
     FormState<ServiceRequestFormFields>,
     FormData
@@ -92,11 +101,17 @@ export default function FixeoHomePage() {
     }
   }, []);
 
-  // Store guest token when redirected (this won't execute due to redirect, but good practice)
+  // Handle successful form submission with guest token
   useEffect(() => {
     if (state?.success && state?.guestToken) {
+      const newToken: GuestToken = {
+        token: state.guestToken,
+        clientEmail: state.clientEmail || "",
+        createdAt: new Date().toISOString(),
+      };
+
       if (typeof window !== "undefined") {
-        const newTokens = [...guestTokens, state.guestToken];
+        const newTokens = [newToken, ...guestTokens.slice(0, 4)]; // Keep max 5 tokens
         setGuestTokens(newTokens);
         localStorage.setItem("fixeo_guest_tokens", JSON.stringify(newTokens));
       }
@@ -105,6 +120,10 @@ export default function FixeoHomePage() {
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    if (files.length + photos.length > 5) {
+      alert("Maximum 5 photos allowed");
+      return;
+    }
     setPhotos((prev) => [...prev, ...files].slice(0, 5)); // Max 5 photos
   };
 
@@ -118,6 +137,63 @@ export default function FixeoHomePage() {
   ) => {
     setSelectedAddress(address);
     setLocation(rawValue);
+  };
+
+  const uploadPhotos = async (): Promise<string[]> => {
+    if (photos.length === 0) return [];
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      photos.forEach((file) => {
+        formData.append("photos", file);
+      });
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Upload failed");
+      }
+
+      const result = await response.json();
+      return result.photos;
+    } catch (error) {
+      console.error("Upload error:", error);
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSubmit = async (formData: FormData) => {
+    try {
+      // Upload photos first if any are selected
+      let photoUrls: string[] = [];
+      if (photos.length > 0) {
+        photoUrls = await uploadPhotos();
+      }
+
+      // Add photo URLs to form data
+      formData.set("photos", JSON.stringify(photoUrls));
+
+      // Call the original form action
+      await formAction(formData);
+
+      // Reset form if successful
+      if (!state?.error) {
+        setPhotos([]);
+        setServiceType("");
+        setUrgency("");
+        setLocation("");
+        setSelectedAddress(null);
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
+    }
   };
 
   const services = [
@@ -165,7 +241,7 @@ export default function FixeoHomePage() {
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <form action={formAction} className="space-y-4">
+                    <form action={handleSubmit} className="space-y-4">
                       {/* Service Type & Urgency */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -311,15 +387,16 @@ export default function FixeoHomePage() {
                                 accept="image/*"
                                 onChange={handlePhotoUpload}
                                 className="hidden"
+                                disabled={photos.length >= 5}
                               />
                               <label
                                 htmlFor="photo-upload"
                                 className="flex items-center justify-center w-full h-12 border border-dashed border-blue-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
                               >
                                 <div className="flex items-center space-x-2">
-                                  <Camera className="h-4 w-4 text-blue-600" />
+                                  <Upload className="h-4 w-4 text-blue-600" />
                                   <span className="text-sm text-gray-700">
-                                    Ajouter photo
+                                    Ajouter photo (max 5)
                                   </span>
                                 </div>
                               </label>
@@ -327,15 +404,6 @@ export default function FixeoHomePage() {
                           )}
                         </div>
                       </div>
-
-                      {/* Hidden field for photos */}
-                      <input
-                        type="hidden"
-                        name="photos"
-                        value={JSON.stringify(
-                          photos.map((photo) => photo.name)
-                        )}
-                      />
 
                       {/* Error Display */}
                       {state?.error && (
@@ -355,13 +423,15 @@ export default function FixeoHomePage() {
                       <div className="pt-2">
                         <Button
                           type="submit"
-                          disabled={pending}
+                          disabled={pending || isUploading}
                           className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                         >
-                          {pending ? (
+                          {pending || isUploading ? (
                             <>
                               <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                              Envoi en cours...
+                              {isUploading
+                                ? "Upload des photos..."
+                                : "Envoi en cours..."}
                             </>
                           ) : (
                             <>
@@ -412,8 +482,8 @@ export default function FixeoHomePage() {
                       <div className="space-y-2">
                         {guestTokens.map((token, index) => (
                           <a
-                            key={token}
-                            href={`/suivi/${token}`}
+                            key={token.token}
+                            href={`/suivi/${token.token}`}
                             className="block p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
                           >
                             <div className="flex items-center justify-between">

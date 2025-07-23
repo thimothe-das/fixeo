@@ -156,6 +156,7 @@ export async function getServiceRequestsForClient(userId: number) {
       location: serviceRequests.location,
       status: serviceRequests.status,
       estimatedPrice: serviceRequests.estimatedPrice,
+      photos: serviceRequests.photos,
       createdAt: serviceRequests.createdAt,
       assignedArtisan: {
         id: users.id,
