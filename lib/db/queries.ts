@@ -220,11 +220,11 @@ export async function getServiceRequestsForArtisan(userId: number) {
       userSpecialties.some(specialty => 
         request.serviceType.toLowerCase().includes(specialty.toLowerCase())
       );
+    // TODO: Add location filter
+    // const matchesLocation = !serviceArea || 
+    //   request.location.toLowerCase().includes(serviceArea.toLowerCase());
     
-    const matchesLocation = !serviceArea || 
-      request.location.toLowerCase().includes(serviceArea.toLowerCase());
-    
-    return matchesSpecialty && matchesLocation;
+    return matchesSpecialty
   });
 
   // Add the isAssigned flag after querying
