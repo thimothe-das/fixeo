@@ -6,8 +6,32 @@ import {
   timestamp,
   integer,
   boolean,
+  pgEnum,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+
+// Service Request Status Enum - following the workflow
+export const serviceRequestStatusEnum = pgEnum('service_request_status', [
+  'awaiting_estimate',     // Initial state when request is created
+  'awaiting_assignation',  // After estimate is added (replaces "pending")
+  'in_progress',          // When work begins
+  'client_validated',     // Client has validated the work
+  'artisan_validated',    // Artisan has validated the work
+  'completed',           // Both parties validated or resolved dispute
+  'disputed_by_client',  // Client disputes the work
+  'disputed_by_artisan', // Artisan disputes the work  
+  'disputed_by_both',    // Both parties dispute
+  'resolved',           // Dispute has been resolved
+  'cancelled'           // Request was cancelled
+]);
+
+// Billing Estimate Status Enum
+export const billingEstimateStatusEnum = pgEnum('billing_estimate_status', [
+  'pending',    // Waiting for client response
+  'accepted',   // Client accepted the estimate
+  'rejected',   // Client rejected the estimate
+  'expired'     // Estimate validity period has expired
+]);
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -196,6 +220,7 @@ export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
 // Service requests table for handling client service requests
 export const serviceRequests = pgTable('service_requests', {
   id: serial('id').primaryKey(),
+  title: varchar('title', { length: 100 }),
   serviceType: varchar('service_type', { length: 50 }).notNull(),
   urgency: varchar('urgency', { length: 20 }).notNull(),
   description: text('description').notNull(),
@@ -215,20 +240,51 @@ export const serviceRequests = pgTable('service_requests', {
   clientName: varchar('client_name', { length: 100 }),
   userId: integer('user_id').references(() => users.id), // If user is logged in
   guestToken: varchar('guest_token', { length: 36 }).unique(), // UUID v4 for guest tracking
-  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  status: serviceRequestStatusEnum('status').notNull().default('awaiting_estimate'),
   assignedArtisanId: integer('assigned_artisan_id').references(() => users.id),
   estimatedPrice: integer('estimated_price'), // In cents
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const serviceRequestsRelations = relations(serviceRequests, ({ one }) => ({
+// Billing estimates table for admin-created estimates
+export const billingEstimates = pgTable('billing_estimates', {
+  id: serial('id').primaryKey(),
+  serviceRequestId: integer('service_request_id')
+    .notNull()
+    .references(() => serviceRequests.id),
+  adminId: integer('admin_id')
+    .notNull()
+    .references(() => users.id),
+  estimatedPrice: integer('estimated_price').notNull(), // In cents
+  description: text('description').notNull(),
+  breakdown: text('breakdown'), // JSON array of cost breakdown items
+  validUntil: timestamp('valid_until'),
+  status: billingEstimateStatusEnum('status').notNull().default('pending'),
+  clientResponse: text('client_response'), // Client's message when accepting/rejecting
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const serviceRequestsRelations = relations(serviceRequests, ({ one, many }) => ({
   user: one(users, {
     fields: [serviceRequests.userId],
     references: [users.id],
   }),
   assignedArtisan: one(users, {
     fields: [serviceRequests.assignedArtisanId],
+    references: [users.id],
+  }),
+  billingEstimates: many(billingEstimates),
+}));
+
+export const billingEstimatesRelations = relations(billingEstimates, ({ one }) => ({
+  serviceRequest: one(serviceRequests, {
+    fields: [billingEstimates.serviceRequestId],
+    references: [serviceRequests.id],
+  }),
+  admin: one(users, {
+    fields: [billingEstimates.adminId],
     references: [users.id],
   }),
 }));
@@ -249,6 +305,8 @@ export type ProfessionalProfile = typeof professionalProfiles.$inferSelect;
 export type NewProfessionalProfile = typeof professionalProfiles.$inferInsert;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type NewServiceRequest = typeof serviceRequests.$inferInsert;
+export type BillingEstimate = typeof billingEstimates.$inferSelect;
+export type NewBillingEstimate = typeof billingEstimates.$inferInsert;
 export type TeamDataWithMembers = Team & {
   teamMembers: (TeamMember & {
     user: Pick<User, 'id' | 'name' | 'email'>;
@@ -275,4 +333,26 @@ export enum ActivityType {
   REMOVE_TEAM_MEMBER = 'REMOVE_TEAM_MEMBER',
   INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
   ACCEPT_INVITATION = 'ACCEPT_INVITATION',
+}
+
+// TypeScript enums that match the database enums
+export enum ServiceRequestStatus {
+  AWAITING_ESTIMATE = 'awaiting_estimate',
+  AWAITING_ASSIGNATION = 'awaiting_assignation',
+  IN_PROGRESS = 'in_progress',
+  CLIENT_VALIDATED = 'client_validated',
+  ARTISAN_VALIDATED = 'artisan_validated',
+  COMPLETED = 'completed',
+  DISPUTED_BY_CLIENT = 'disputed_by_client',
+  DISPUTED_BY_ARTISAN = 'disputed_by_artisan',
+  DISPUTED_BY_BOTH = 'disputed_by_both',
+  RESOLVED = 'resolved',
+  CANCELLED = 'cancelled'
+}
+
+export enum BillingEstimateStatus {
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  REJECTED = 'rejected',
+  EXPIRED = 'expired'
 }

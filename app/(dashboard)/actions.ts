@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { db } from '@/lib/db/drizzle';
-import { serviceRequests, type NewServiceRequest } from '@/lib/db/schema';
+import { serviceRequests, type NewServiceRequest, ServiceRequestStatus } from '@/lib/db/schema';
 import { validatedAction } from '@/lib/auth/middleware';
 import { redirect } from 'next/navigation';
 import { randomUUID } from 'crypto';
@@ -81,7 +81,7 @@ export const createServiceRequest = validatedAction(
         photos,
         userId: currentUser?.id || null,
         guestToken,
-        status: 'pending',
+        status: ServiceRequestStatus.AWAITING_ESTIMATE,
       };
 
       const [createdRequest] = await db

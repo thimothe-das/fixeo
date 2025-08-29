@@ -7,13 +7,14 @@ import {
   MessageSquare,
   Settings,
   User,
-  Wrench,
+  Shield,
   Bell,
   FileText,
   CreditCard,
   BarChart3,
   MoreHorizontal,
   Power,
+  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -40,25 +41,23 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import useSWR from "swr";
-import { OverviewComponent } from "./OverviewComponent";
-import { JobsComponent } from "./JobsComponent";
-import { RequestsComponent } from "./RequestsComponent";
-import { QuotesComponent } from "./QuotesComponent";
-import { MessagesComponent } from "./MessagesComponent";
-import { StatsComponent } from "./StatsComponent";
-import { AccountComponent } from "./AccountComponent";
-import { SubscriptionComponent } from "./SubscriptionComponent";
+
+// Import the admin components
+import { AdminOverviewComponent } from "./AdminOverviewComponent";
+import { AdminRequestsComponent } from "./AdminRequestsComponent";
+import { AdminUsersComponent } from "./AdminUsersComponent";
+import { AdminStatsComponent } from "./AdminStatsComponent";
+import { AccountComponent } from "../components/AccountComponent";
+import { SubscriptionComponent } from "../components/SubscriptionComponent";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-import type { ServiceRequestForArtisan, ArtisanStats } from "./types";
+import type { ServiceRequestForAdmin, AdminStats } from "../components/types";
 
 const sidebarItems = [
   { title: "Vue d'ensemble", icon: Home, id: "overview" },
-  { title: "Missions", icon: Wrench, id: "jobs" },
-  { title: "Demandes", icon: Bell, id: "requests" },
-  { title: "Devis", icon: FileText, id: "quotes" },
-  { title: "Messages", icon: MessageSquare, id: "messages" },
+  { title: "Demandes", icon: FileText, id: "requests" },
+  { title: "Utilisateurs", icon: Users, id: "users" },
   { title: "Statistiques", icon: BarChart3, id: "stats" },
   { title: "Mon compte", icon: User, id: "account" },
   { title: "Abonnement", icon: CreditCard, id: "subscription" },
@@ -74,7 +73,7 @@ function ServiceRequestsListSkeleton() {
   );
 }
 
-export function ArtisanDashboard() {
+export function AdminDashboard() {
   const [activeSection, setActiveSection] = React.useState("overview");
   const [isActive, setIsActive] = React.useState(true);
 
@@ -83,62 +82,30 @@ export function ArtisanDashboard() {
     data: requests,
     error: requestsError,
     mutate: mutateRequests,
-  } = useSWR<ServiceRequestForArtisan[]>(
-    "/api/service-requests/artisan",
-    fetcher
-  );
-  const { data: stats } = useSWR<ArtisanStats>("/api/artisan/stats", fetcher);
-
-  const handleAcceptRequest = async (requestId: number) => {
-    try {
-      const response = await fetch("/api/service-requests/accept", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ requestId }),
-      });
-
-      if (response.ok) {
-        // Refresh the data
-        mutateRequests();
-      } else {
-        console.error("Failed to accept request");
-      }
-    } catch (error) {
-      console.error("Error accepting request:", error);
-    }
-  };
-
-  const assignedRequests = requests?.filter((req) => req.isAssigned) || [];
-  const availableRequests = requests?.filter((req) => !req.isAssigned) || [];
+  } = useSWR<ServiceRequestForAdmin[]>("/api/admin/service-requests", fetcher);
+  const { data: stats } = useSWR<AdminStats>("/api/admin/stats", fetcher);
 
   const renderContent = () => {
     switch (activeSection) {
       case "overview":
         return (
-          <OverviewComponent
+          <AdminOverviewComponent
             stats={stats}
-            assignedRequests={assignedRequests}
-            availableRequests={availableRequests}
+            recentRequests={requests || []}
             onNavigateToSection={setActiveSection}
           />
         );
-      case "jobs":
-        return <JobsComponent assignedRequests={assignedRequests} />;
       case "requests":
         return (
-          <RequestsComponent
-            requests={availableRequests}
-            onAcceptRequest={handleAcceptRequest}
+          <AdminRequestsComponent
+            requests={requests || []}
+            onRequestsUpdate={mutateRequests}
           />
         );
-      case "quotes":
-        return <QuotesComponent />;
-      case "messages":
-        return <MessagesComponent />;
+      case "users":
+        return <AdminUsersComponent />;
       case "stats":
-        return <StatsComponent stats={stats} />;
+        return <AdminStatsComponent stats={stats} />;
       case "account":
         return (
           <AccountComponent isActive={isActive} setIsActive={setIsActive} />
@@ -147,10 +114,9 @@ export function ArtisanDashboard() {
         return <SubscriptionComponent />;
       default:
         return (
-          <OverviewComponent
+          <AdminOverviewComponent
             stats={stats}
-            assignedRequests={assignedRequests}
-            availableRequests={availableRequests}
+            recentRequests={requests || []}
             onNavigateToSection={setActiveSection}
           />
         );
@@ -163,12 +129,12 @@ export function ArtisanDashboard() {
         <Sidebar className="border-r border-gray-200">
           <SidebarHeader className="border-b border-gray-200 p-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Wrench className="h-6 w-6 text-white" />
+              <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
+                <Shield className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-lg text-blue-600">Fixéo</h2>
-                <p className="text-sm text-gray-600">Tableau de bord</p>
+                <h2 className="font-bold text-lg text-red-600">Fixéo</h2>
+                <p className="text-sm text-gray-600">Administration</p>
               </div>
             </div>
           </SidebarHeader>
@@ -198,11 +164,11 @@ export function ArtisanDashboard() {
             <div className="flex items-center gap-3">
               <Avatar>
                 <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback>PD</AvatarFallback>
+                <AvatarFallback>AD</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">Pierre Dupont</p>
-                <p className="text-sm text-gray-600 truncate">Plombier Pro</p>
+                <p className="font-medium truncate">Administrateur</p>
+                <p className="text-sm text-gray-600 truncate">Admin</p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

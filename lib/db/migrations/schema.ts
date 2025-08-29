@@ -150,6 +150,31 @@ export const clientProfiles = pgTable("client_profiles", {
 	unique("client_profiles_user_id_unique").on(table.userId),
 ]);
 
+export const billingEstimates = pgTable("billing_estimates", {
+	id: serial().primaryKey().notNull(),
+	serviceRequestId: integer("service_request_id").notNull(),
+	adminId: integer("admin_id").notNull(),
+	estimatedPrice: integer("estimated_price").notNull(),
+	description: text().notNull(),
+	breakdown: text(),
+	validUntil: timestamp("valid_until", { mode: 'string' }),
+	status: varchar({ length: 20 }).default('pending').notNull(),
+	clientResponse: text("client_response"),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.serviceRequestId],
+			foreignColumns: [serviceRequests.id],
+			name: "billing_estimates_service_request_id_service_requests_id_fk"
+		}),
+	foreignKey({
+			columns: [table.adminId],
+			foreignColumns: [users.id],
+			name: "billing_estimates_admin_id_users_id_fk"
+		}),
+]);
+
 export const serviceRequests = pgTable("service_requests", {
 	id: serial().primaryKey().notNull(),
 	serviceType: varchar("service_type", { length: 50 }).notNull(),
@@ -161,7 +186,7 @@ export const serviceRequests = pgTable("service_requests", {
 	clientPhone: varchar("client_phone", { length: 20 }),
 	clientName: varchar("client_name", { length: 100 }),
 	userId: integer("user_id"),
-	status: varchar({ length: 20 }).default('pending').notNull(),
+	status: varchar({ length: 20 }).default('awaiting_estimate').notNull(),
 	assignedArtisanId: integer("assigned_artisan_id"),
 	estimatedPrice: integer("estimated_price"),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),

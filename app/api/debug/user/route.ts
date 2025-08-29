@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { serviceRequests } from '@/lib/db/schema';
+import { serviceRequests, type ServiceRequest } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET() {
@@ -12,7 +12,7 @@ export async function GET() {
     const allRequests = await db.select().from(serviceRequests);
     
     // Get requests for this user if logged in
-    let userRequests = [];
+    let userRequests: ServiceRequest[] = [];
     if (user) {
       userRequests = await db
         .select()
@@ -41,7 +41,7 @@ export async function GET() {
   } catch (error) {
     console.error('Debug error:', error);
     return NextResponse.json({
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       user: null,
       totalRequestsInDb: 0,
       userRequestsCount: 0

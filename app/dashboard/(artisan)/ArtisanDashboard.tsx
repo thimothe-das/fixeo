@@ -7,14 +7,13 @@ import {
   MessageSquare,
   Settings,
   User,
-  Plus,
+  Wrench,
   Bell,
   FileText,
   CreditCard,
   BarChart3,
   MoreHorizontal,
   Power,
-  Search,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -41,39 +40,27 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import useSWR from "swr";
-
-// Import the separate components
-import { ClientOverviewComponent } from "./ClientOverviewComponent";
-import { ClientRequestsListComponent } from "./ClientRequestsListComponent";
-import { ClientNewRequestComponent } from "./ClientNewRequestComponent";
-import { ClientMessagesComponent } from "./ClientMessagesComponent";
-import { ClientStatsComponent } from "./ClientStatsComponent";
-import { AccountComponent } from "./AccountComponent";
-import { SubscriptionComponent } from "./SubscriptionComponent";
+import { OverviewComponent } from "./OverviewComponent";
+import { JobsComponent } from "./JobsComponent";
+import { RequestsComponent } from "./RequestsComponent";
+import { QuotesComponent } from "./QuotesComponent";
+import { MessagesComponent } from "./MessagesComponent";
+import { StatsComponent } from "./StatsComponent";
+import { AccountComponent } from "../components/AccountComponent";
+import { SubscriptionComponent } from "../components/SubscriptionComponent";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-type ServiceRequest = {
-  id: number;
-  serviceType: string;
-  urgency: string;
-  description: string;
-  location: string;
-  status: string;
-  estimatedPrice?: number;
-  createdAt: string;
-  photos?: string;
-  assignedArtisan?: {
-    id: number;
-    name: string;
-    email: string;
-  };
-};
+import type {
+  ServiceRequestForArtisan,
+  ArtisanStats,
+} from "../components/types";
 
 const sidebarItems = [
   { title: "Vue d'ensemble", icon: Home, id: "overview" },
-  { title: "Mes demandes", icon: FileText, id: "requests" },
-  { title: "Nouvelle demande", icon: Plus, id: "new-request" },
+  { title: "Missions", icon: Wrench, id: "jobs" },
+  { title: "Demandes", icon: Bell, id: "requests" },
+  { title: "Devis", icon: FileText, id: "quotes" },
   { title: "Messages", icon: MessageSquare, id: "messages" },
   { title: "Statistiques", icon: BarChart3, id: "stats" },
   { title: "Mon compte", icon: User, id: "account" },
@@ -90,7 +77,7 @@ function ServiceRequestsListSkeleton() {
   );
 }
 
-export function ClientDashboard() {
+export function ArtisanDashboard() {
   const [activeSection, setActiveSection] = React.useState("overview");
   const [isActive, setIsActive] = React.useState(true);
 
@@ -99,45 +86,62 @@ export function ClientDashboard() {
     data: requests,
     error: requestsError,
     mutate: mutateRequests,
-  } = useSWR<ServiceRequest[]>("/api/service-requests/client", fetcher);
+  } = useSWR<ServiceRequestForArtisan[]>(
+    "/api/service-requests/artisan",
+    fetcher
+  );
+  const { data: stats } = useSWR<ArtisanStats>("/api/artisan/stats", fetcher);
 
-  const pendingRequests =
-    requests?.filter((req) => req.status === "pending") || [];
-  const activeRequests =
-    requests?.filter((req) =>
-      ["accepted", "in_progress"].includes(req.status)
-    ) || [];
-  const completedRequests =
-    requests?.filter((req) => req.status === "completed") || [];
+  const handleAcceptRequest = async (requestId: number) => {
+    try {
+      const response = await fetch("/api/service-requests/accept", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ requestId }),
+      });
+
+      if (response.ok) {
+        // Refresh the data
+        mutateRequests();
+      } else {
+        console.error("Failed to accept request");
+      }
+    } catch (error) {
+      console.error("Error accepting request:", error);
+    }
+  };
+
+  const assignedRequests = requests?.filter((req) => req.isAssigned) || [];
+  const availableRequests = requests?.filter((req) => !req.isAssigned) || [];
 
   const renderContent = () => {
     switch (activeSection) {
       case "overview":
         return (
-          <ClientOverviewComponent
-            totalRequests={requests?.length || 0}
-            pendingRequests={pendingRequests.length}
-            activeRequests={activeRequests.length}
-            completedRequests={completedRequests.length}
-            recentRequests={requests?.slice(0, 3) || []}
+          <OverviewComponent
+            stats={stats}
+            assignedRequests={assignedRequests}
+            availableRequests={availableRequests}
             onNavigateToSection={setActiveSection}
           />
         );
+      case "jobs":
+        return <JobsComponent assignedRequests={assignedRequests} />;
       case "requests":
-        return <ClientRequestsListComponent requests={requests || []} />;
-      case "new-request":
         return (
-          <ClientNewRequestComponent
-            onRequestCreated={() => {
-              mutateRequests();
-              setActiveSection("requests");
-            }}
+          <RequestsComponent
+            requests={availableRequests}
+            onAcceptRequest={handleAcceptRequest}
           />
         );
+      case "quotes":
+        return <QuotesComponent />;
       case "messages":
-        return <ClientMessagesComponent />;
+        return <MessagesComponent />;
       case "stats":
-        return <ClientStatsComponent requests={requests || []} />;
+        return <StatsComponent stats={stats} />;
       case "account":
         return (
           <AccountComponent isActive={isActive} setIsActive={setIsActive} />
@@ -146,12 +150,10 @@ export function ClientDashboard() {
         return <SubscriptionComponent />;
       default:
         return (
-          <ClientOverviewComponent
-            totalRequests={requests?.length || 0}
-            pendingRequests={pendingRequests.length}
-            activeRequests={activeRequests.length}
-            completedRequests={completedRequests.length}
-            recentRequests={requests?.slice(0, 3) || []}
+          <OverviewComponent
+            stats={stats}
+            assignedRequests={assignedRequests}
+            availableRequests={availableRequests}
             onNavigateToSection={setActiveSection}
           />
         );
@@ -165,11 +167,11 @@ export function ClientDashboard() {
           <SidebarHeader className="border-b border-gray-200 p-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Search className="h-6 w-6 text-white" />
+                <Wrench className="h-6 w-6 text-white" />
               </div>
               <div>
                 <h2 className="font-bold text-lg text-blue-600">Fixéo</h2>
-                <p className="text-sm text-gray-600">Espace client</p>
+                <p className="text-sm text-gray-600">Tableau de bord</p>
               </div>
             </div>
           </SidebarHeader>
@@ -199,11 +201,11 @@ export function ClientDashboard() {
             <div className="flex items-center gap-3">
               <Avatar>
                 <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback>MD</AvatarFallback>
+                <AvatarFallback>PD</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">Marie Dubois</p>
-                <p className="text-sm text-gray-600 truncate">Client</p>
+                <p className="font-medium truncate">Pierre Dupont</p>
+                <p className="text-sm text-gray-600 truncate">Plombier Pro</p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

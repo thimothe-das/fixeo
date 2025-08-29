@@ -1,8 +1,9 @@
 "use client";
 
 import { Suspense } from "react";
-import { ClientDashboard } from "./components/ClientDashboard";
-import { ArtisanDashboard } from "./components/ArtisanDashboard";
+import { ClientDashboard } from "./(client)/ClientDashboard";
+import { ArtisanDashboard } from "./(artisan)/ArtisanDashboard";
+import { AdminDashboard } from "./(admin)/AdminDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User } from "@/lib/db/schema";
 import useSWR from "swr";
@@ -58,6 +59,8 @@ function DashboardContent() {
   // Show role-based dashboard for authenticated users
   if (user.role === "professional") {
     return <ArtisanDashboard />;
+  } else if (user.role === "admin") {
+    return <AdminDashboard />;
   } else {
     return <ClientDashboard />;
   }

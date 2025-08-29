@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { teams, activityLogs, users, invitations, teamMembers, professionalProfiles, clientProfiles, serviceRequests } from "./schema";
+import { teams, activityLogs, users, invitations, teamMembers, professionalProfiles, clientProfiles, serviceRequests, billingEstimates } from "./schema";
 
 export const activityLogsRelations = relations(activityLogs, ({one}) => ({
 	team: one(teams, {
@@ -24,6 +24,7 @@ export const usersRelations = relations(users, ({many}) => ({
 	teamMembers: many(teamMembers),
 	professionalProfiles: many(professionalProfiles),
 	clientProfiles: many(clientProfiles),
+	billingEstimates: many(billingEstimates),
 	serviceRequests_userId: many(serviceRequests, {
 		relationName: "serviceRequests_userId_users_id"
 	}),
@@ -68,7 +69,19 @@ export const clientProfilesRelations = relations(clientProfiles, ({one}) => ({
 	}),
 }));
 
-export const serviceRequestsRelations = relations(serviceRequests, ({one}) => ({
+export const billingEstimatesRelations = relations(billingEstimates, ({one}) => ({
+	serviceRequest: one(serviceRequests, {
+		fields: [billingEstimates.serviceRequestId],
+		references: [serviceRequests.id]
+	}),
+	user: one(users, {
+		fields: [billingEstimates.adminId],
+		references: [users.id]
+	}),
+}));
+
+export const serviceRequestsRelations = relations(serviceRequests, ({one, many}) => ({
+	billingEstimates: many(billingEstimates),
 	user_userId: one(users, {
 		fields: [serviceRequests.userId],
 		references: [users.id],

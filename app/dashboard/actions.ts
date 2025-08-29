@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 import { getUser } from '@/lib/db/queries';
 
 const createServiceRequestSchema = z.object({
+  title: z.string().min(1, 'Titre requis').max(100, 'Le titre ne peut pas dépasser 100 caractères'),
   serviceType: z.string().min(1, 'Type de service requis'),
   urgency: z.string().min(1, 'Niveau d\'urgence requis'),
   description: z.string().min(10, 'Description doit contenir au moins 10 caractères'),
@@ -23,7 +24,7 @@ const createServiceRequestSchema = z.object({
   location_coordinates: z.string().optional(),
   location_context: z.string().optional(),
   clientName: z.string().min(1, 'Nom requis').optional(),
-  clientEmail: z.string().email('Email invalide'),
+  clientEmail: z.string().email('Email invalide').optional(),
   clientPhone: z.string().min(10, 'Numéro de téléphone requis').optional(),
   photos: z.string().optional(), // JSON string array of photo URLs
 });
@@ -31,7 +32,9 @@ const createServiceRequestSchema = z.object({
 export const createServiceRequest = validatedAction(
   createServiceRequestSchema,
   async (data, formData) => {
+    console.log('createServiceRequest called with data:', data);
     const {
+      title,
       serviceType,
       urgency,
       description,
@@ -54,15 +57,19 @@ export const createServiceRequest = validatedAction(
     let currentUser;
     try {
       currentUser = await getUser();
+      console.log('Current user:', currentUser?.id, currentUser?.email);
     } catch {
       currentUser = null;
+      console.log('No user logged in');
     }
 
     // Generate guest token if not logged in
     const guestToken = currentUser ? null : randomUUID();
+    console.log('Guest token:', guestToken);
 
     try {
       const newServiceRequest: NewServiceRequest = {
+        title,
         serviceType,
         urgency,
         description,
@@ -76,18 +83,22 @@ export const createServiceRequest = validatedAction(
         locationCoordinates: location_coordinates || null,
         locationContext: location_context || null,
         clientName,
-        clientEmail,
+        clientEmail: clientEmail || currentUser?.email || null,
         clientPhone,
         photos,
         userId: currentUser?.id || null,
         guestToken,
-        status: 'pending',
+        status: 'awaiting_estimate',
       };
 
+      console.log('About to insert service request:', newServiceRequest);
+      
       const [createdRequest] = await db
         .insert(serviceRequests)
         .values(newServiceRequest)
         .returning();
+
+      console.log('Created request:', createdRequest);
 
       if (!createdRequest) {
         return {
@@ -104,21 +115,23 @@ export const createServiceRequest = validatedAction(
       // TODO: Send notifications to nearby artisans
       // TODO: Log the activity
 
+      // For guest users, redirect to tracking page
+      if (guestToken) {
+        redirect(`/suivi/${guestToken}`);
+      }
+
+      // Return success for logged-in users
+      console.log('Returning success for logged-in user');
+      return {
+        success: true,
+        message: 'Votre demande a été envoyée avec succès ! Les artisans de votre secteur vont être notifiés.',
+      };
+
     } catch (error) {
       console.error('Error creating service request:', error);
       return {
         error: 'Une erreur s\'est produite lors de l\'envoi de votre demande. Veuillez réessayer.',
       };
     }
-
-    // For guest users, redirect to tracking page (outside try-catch to avoid catching redirect error)
-    if (guestToken) {
-      redirect(`/suivi/${guestToken}`);
-    }
-
-    return {
-      success: true,
-      message: 'Votre demande a été envoyée avec succès ! Les artisans de votre secteur vont être notifiés.',
-    };
   }
 ); 

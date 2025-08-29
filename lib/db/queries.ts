@@ -1,6 +1,6 @@
 import { desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users, serviceRequests, professionalProfiles, clientProfiles } from './schema';
+import { activityLogs, teamMembers, teams, users, serviceRequests, professionalProfiles, clientProfiles, billingEstimates, ServiceRequestStatus } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
@@ -147,9 +147,11 @@ export async function getUserWithProfiles() {
 }
 
 export async function getServiceRequestsForClient(userId: number) {
-  return await db
+  // Get service requests
+  const requests = await db
     .select({
       id: serviceRequests.id,
+      title: serviceRequests.title,
       serviceType: serviceRequests.serviceType,
       urgency: serviceRequests.urgency,
       description: serviceRequests.description,
@@ -168,6 +170,30 @@ export async function getServiceRequestsForClient(userId: number) {
     .leftJoin(users, eq(serviceRequests.assignedArtisanId, users.id))
     .where(eq(serviceRequests.userId, userId))
     .orderBy(desc(serviceRequests.createdAt));
+
+  // Get billing estimates for each request
+  const requestsWithEstimates = await Promise.all(
+    requests.map(async (request) => {
+      const estimates = await db
+        .select({
+          id: billingEstimates.id,
+          estimatedPrice: billingEstimates.estimatedPrice,
+          status: billingEstimates.status,
+          validUntil: billingEstimates.validUntil,
+          createdAt: billingEstimates.createdAt,
+        })
+        .from(billingEstimates)
+        .where(eq(billingEstimates.serviceRequestId, request.id))
+        .orderBy(desc(billingEstimates.createdAt));
+
+      return {
+        ...request,
+        billingEstimates: estimates,
+      };
+    })
+  );
+
+  return requestsWithEstimates;
 }
 
 export async function getServiceRequestsForArtisan(userId: number) {
@@ -207,7 +233,7 @@ export async function getServiceRequestsForArtisan(userId: number) {
     .from(serviceRequests)
     .where(
       and(
-        eq(serviceRequests.status, 'pending'),
+        eq(serviceRequests.status, ServiceRequestStatus.AWAITING_ASSIGNATION),
         isNull(serviceRequests.assignedArtisanId)
       )
     )
@@ -232,4 +258,256 @@ export async function getServiceRequestsForArtisan(userId: number) {
   const availableWithFlag = filteredAvailable.map(req => ({ ...req, isAssigned: false }));
 
   return [...assignedWithFlag, ...availableWithFlag];
+}
+
+// Admin functions for getting all service requests and users
+export async function getAllServiceRequests() {
+  return await db
+    .select({
+      id: serviceRequests.id,
+      serviceType: serviceRequests.serviceType,
+      urgency: serviceRequests.urgency,
+      description: serviceRequests.description,
+      location: serviceRequests.location,
+      status: serviceRequests.status,
+      estimatedPrice: serviceRequests.estimatedPrice,
+      photos: serviceRequests.photos,
+      clientEmail: serviceRequests.clientEmail,
+      clientPhone: serviceRequests.clientPhone,
+      clientName: serviceRequests.clientName,
+      createdAt: serviceRequests.createdAt,
+      updatedAt: serviceRequests.updatedAt,
+    })
+    .from(serviceRequests)
+    .orderBy(desc(serviceRequests.createdAt));
+}
+
+export async function getAdminStats() {
+  // Count total service requests
+  const totalRequestsResult = await db.select().from(serviceRequests);
+  const totalRequests = totalRequestsResult.length;
+
+  // Count requests by status
+  const pendingRequestsResult = await db
+    .select()
+    .from(serviceRequests)
+    .where(eq(serviceRequests.status, ServiceRequestStatus.AWAITING_ASSIGNATION));
+  const pendingRequests = pendingRequestsResult.length;
+
+  const awaitingEstimateRequestsResult = await db
+    .select()
+    .from(serviceRequests)
+    .where(eq(serviceRequests.status, 'awaiting_estimate'));
+  const awaitingEstimateRequests = awaitingEstimateRequestsResult.length;
+
+  const activeRequestsResult = await db
+    .select()
+    .from(serviceRequests)
+    .where(eq(serviceRequests.status, ServiceRequestStatus.IN_PROGRESS));
+  const activeRequests = activeRequestsResult.length;
+
+  const completedRequestsResult = await db
+    .select()
+    .from(serviceRequests)
+    .where(eq(serviceRequests.status, 'completed'));
+  const completedRequests = completedRequestsResult.length;
+
+  // Count pending billing estimates
+  const pendingEstimatesResult = await db
+    .select()
+    .from(billingEstimates)
+    .where(eq(billingEstimates.status, 'pending'));
+  const pendingEstimates = pendingEstimatesResult.length;
+
+  // Count users by role
+  const totalUsersResult = await db
+    .select()
+    .from(users)
+    .where(isNull(users.deletedAt));
+  const totalUsers = totalUsersResult.length;
+
+  const totalArtisansResult = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.role, 'professional'), isNull(users.deletedAt)));
+  const totalArtisans = totalArtisansResult.length;
+
+  const totalClientsResult = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.role, 'client'), isNull(users.deletedAt)));
+  const totalClients = totalClientsResult.length;
+
+  return {
+    totalRequests,
+    pendingRequests,
+    activeRequests,
+    completedRequests,
+    totalUsers,
+    totalArtisans,
+    totalClients,
+    awaitingEstimateRequests,
+    pendingEstimates,
+  };
+}
+
+// Billing estimate functions
+export async function createBillingEstimate(estimateData: {
+  serviceRequestId: number;
+  adminId: number;
+  estimatedPrice: number;
+  description: string;
+  breakdown?: string;
+  validUntil?: Date;
+}) {
+  const [estimate] = await db
+    .insert(billingEstimates)
+    .values(estimateData)
+    .returning();
+
+  // Update service request status to 'pending' (awaiting client response)
+  await db
+    .update(serviceRequests)
+    .set({ 
+      status: ServiceRequestStatus.AWAITING_ASSIGNATION,
+      estimatedPrice: estimateData.estimatedPrice,
+      updatedAt: new Date()
+    })
+    .where(eq(serviceRequests.id, estimateData.serviceRequestId));
+
+  return estimate;
+}
+
+export async function getBillingEstimatesByRequestId(serviceRequestId: number) {
+  return await db
+    .select({
+      id: billingEstimates.id,
+      serviceRequestId: billingEstimates.serviceRequestId,
+      adminId: billingEstimates.adminId,
+      estimatedPrice: billingEstimates.estimatedPrice,
+      description: billingEstimates.description,
+      breakdown: billingEstimates.breakdown,
+      validUntil: billingEstimates.validUntil,
+      status: billingEstimates.status,
+      clientResponse: billingEstimates.clientResponse,
+      createdAt: billingEstimates.createdAt,
+      updatedAt: billingEstimates.updatedAt,
+      admin: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+    })
+    .from(billingEstimates)
+    .leftJoin(users, eq(billingEstimates.adminId, users.id))
+    .where(eq(billingEstimates.serviceRequestId, serviceRequestId))
+    .orderBy(desc(billingEstimates.createdAt));
+}
+
+export async function getAllBillingEstimates() {
+  return await db
+    .select({
+      id: billingEstimates.id,
+      serviceRequestId: billingEstimates.serviceRequestId,
+      adminId: billingEstimates.adminId,
+      estimatedPrice: billingEstimates.estimatedPrice,
+      description: billingEstimates.description,
+      breakdown: billingEstimates.breakdown,
+      validUntil: billingEstimates.validUntil,
+      status: billingEstimates.status,
+      clientResponse: billingEstimates.clientResponse,
+      createdAt: billingEstimates.createdAt,
+      updatedAt: billingEstimates.updatedAt,
+      admin: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+    })
+    .from(billingEstimates)
+    .leftJoin(users, eq(billingEstimates.adminId, users.id))
+    .orderBy(desc(billingEstimates.createdAt));
+}
+
+export async function updateBillingEstimateStatus(
+  estimateId: number, 
+  status: 'accepted' | 'rejected' | 'expired',
+  clientResponse?: string
+) {
+  const [estimate] = await db
+    .update(billingEstimates)
+    .set({ 
+      status,
+      clientResponse,
+      updatedAt: new Date()
+    })
+    .where(eq(billingEstimates.id, estimateId))
+    .returning();
+
+  // If accepted, update the service request status
+  if (status === 'accepted' && estimate) {
+    await db
+      .update(serviceRequests)
+      .set({ 
+        status: ServiceRequestStatus.AWAITING_ASSIGNATION, // Ready for artisan assignment
+        updatedAt: new Date()
+      })
+      .where(eq(serviceRequests.id, estimate.serviceRequestId));
+  }
+
+  return estimate;
+}
+
+export async function updateServiceRequestStatus(
+  requestId: number,
+  status: ServiceRequestStatus,
+  additionalData?: {
+    disputeReason?: string;
+    disputeDetails?: string;
+    completionNotes?: string;
+    completionPhotos?: string;
+    issueType?: string;
+  }
+) {
+  const [updatedRequest] = await db
+    .update(serviceRequests)
+    .set({ 
+      status,
+      updatedAt: new Date()
+    })
+    .where(eq(serviceRequests.id, requestId))
+    .returning();
+
+  // If it's a dispute, we might want to log this separately
+  // For now, we'll just store the dispute details in a separate table if needed
+  
+  return updatedRequest;
+}
+
+export async function getServiceRequestById(requestId: number) {
+  const result = await db
+    .select()
+    .from(serviceRequests)
+    .where(eq(serviceRequests.id, requestId))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getServiceRequestWithUser(requestId: number) {
+  const result = await db
+    .select({
+      request: serviceRequests,
+      client: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      }
+    })
+    .from(serviceRequests)
+    .leftJoin(users, eq(serviceRequests.userId, users.id))
+    .where(eq(serviceRequests.id, requestId))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
 }

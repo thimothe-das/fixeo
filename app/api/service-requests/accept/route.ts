@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { serviceRequests } from '@/lib/db/schema';
+import { serviceRequests, ServiceRequestStatus } from '@/lib/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(serviceRequests.id, requestId),
-          eq(serviceRequests.status, 'pending'),
+          eq(serviceRequests.status, ServiceRequestStatus.AWAITING_ASSIGNATION),
           isNull(serviceRequests.assignedArtisanId)
         )
       )
@@ -42,12 +42,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Assign the request to the artisan
+    // Assign the request to the artisan and move to in-progress
     await db
       .update(serviceRequests)
       .set({
         assignedArtisanId: user.id,
-        status: 'accepted',
+        status: ServiceRequestStatus.IN_PROGRESS,
         updatedAt: new Date(),
       })
       .where(eq(serviceRequests.id, requestId));

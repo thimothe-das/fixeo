@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db/drizzle";
-import { serviceRequests } from "@/lib/db/schema";
+import { serviceRequests, ServiceRequestStatus } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import {
   Clock,
@@ -286,7 +286,7 @@ export default async function TrackingPage({
                 </div>
               </div>
 
-              {request.status === "accepted" && (
+              {request.status === ServiceRequestStatus.IN_PROGRESS && (
                 <div className="flex items-center space-x-3">
                   <div className="flex-shrink-0">
                     <CheckCircle className="h-6 w-6 text-green-500" />
@@ -302,7 +302,7 @@ export default async function TrackingPage({
                 </div>
               )}
 
-              {request.status === "pending" && (
+              {request.status === ServiceRequestStatus.AWAITING_ASSIGNATION && (
                 <div className="flex items-center space-x-3">
                   <div className="flex-shrink-0">
                     <Clock className="h-6 w-6 text-yellow-500" />
@@ -318,7 +318,7 @@ export default async function TrackingPage({
                 </div>
               )}
 
-              {request.status === "completed" && (
+              {request.status === ServiceRequestStatus.COMPLETED && (
                 <div className="flex items-center space-x-3">
                   <div className="flex-shrink-0">
                     <CheckCircle className="h-6 w-6 text-blue-500" />

@@ -1,15 +1,23 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+// Charts component - remove if recharts is not available
 import {
-  BarChart3,
   Clock,
   CheckCircle,
-  DollarSign,
+  X,
+  AlertCircle,
+  Euro,
+  BarChart3,
   Calendar,
+  DollarSign,
   TrendingUp,
 } from "lucide-react";
+import { ServiceRequestStatus } from "@/lib/db/schema";
 
-type ServiceRequest = {
+interface ServiceRequest {
   id: number;
+  title?: string;
   serviceType: string;
   urgency: string;
   description: string;
@@ -23,27 +31,39 @@ type ServiceRequest = {
     name: string;
     email: string;
   };
-};
+}
 
 interface ClientStatsComponentProps {
   requests: ServiceRequest[];
 }
 
-export function ClientStatsComponent({ requests }: ClientStatsComponentProps) {
+export default function ClientStatsComponent({
+  requests,
+}: ClientStatsComponentProps) {
   // Calculate statistics
   const totalRequests = requests.length;
   const pendingRequests = requests.filter(
-    (req) => req.status === "pending"
+    (req) =>
+      req.status === ServiceRequestStatus.AWAITING_ASSIGNATION ||
+      req.status === "pending" // Legacy support
   ).length;
   const completedRequests = requests.filter(
-    (req) => req.status === "completed"
+    (req) => req.status === ServiceRequestStatus.COMPLETED
   ).length;
   const cancelledRequests = requests.filter(
-    (req) => req.status === "cancelled"
+    (req) => req.status === ServiceRequestStatus.CANCELLED
   ).length;
+  const inProgressRequests = requests.filter(
+    (req) =>
+      req.status === ServiceRequestStatus.IN_PROGRESS ||
+      req.status === "accepted" // Legacy support
+  );
 
   const totalSpent = requests
-    .filter((req) => req.estimatedPrice && req.status === "completed")
+    .filter(
+      (req) =>
+        req.estimatedPrice && req.status === ServiceRequestStatus.COMPLETED
+    )
     .reduce((sum, req) => sum + (req.estimatedPrice || 0), 0);
 
   const averagePrice =
