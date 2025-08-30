@@ -65,6 +65,8 @@ export async function GET(request: Request) {
             description: serviceRequests.description,
             location: serviceRequests.location,
             status: serviceRequests.status,
+            createdAt: serviceRequests.createdAt,
+            title: serviceRequests.title,
           },
         })
         .from(billingEstimates)

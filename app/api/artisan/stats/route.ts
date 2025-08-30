@@ -1,20 +1,22 @@
 import { NextResponse } from 'next/server';
-import { getUser } from '@/lib/db/queries';
+import { validateUserRole, ROLES } from '@/lib/auth/roles';
 import { db } from '@/lib/db/drizzle';
 import { serviceRequests } from '@/lib/db/schema';
 import { eq, count } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    const user = await getUser();
+    // Validate user has professional role
+    const validation = await validateUserRole([ROLES.PROFESSIONAL]);
     
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!validation.hasAccess) {
+      return NextResponse.json(
+        { error: validation.error || 'Access denied' }, 
+        { status: validation.user ? 403 : 401 }
+      );
     }
 
-    if (user.role !== 'professional') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const user = validation.user;
 
     // Get total requests assigned to this artisan
     const [totalResult] = await db

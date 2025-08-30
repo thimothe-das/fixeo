@@ -1,31 +1,30 @@
 "use client";
 
-import * as React from "react";
-import { Suspense, useState } from "react";
 import {
+  BarChart3,
+  Bell,
+  CreditCard,
+  FileText,
   Home,
   MessageSquare,
-  Settings,
-  User,
-  Shield,
-  Bell,
-  FileText,
-  CreditCard,
-  BarChart3,
   MoreHorizontal,
   Power,
-  Users,
+  Settings,
+  User,
+  Wrench,
 } from "lucide-react";
+import * as React from "react";
+import { Suspense } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
@@ -40,27 +39,23 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import useSWR from "swr";
 
-// Import the admin components
-import { AdminOverviewComponent } from "./AdminOverviewComponent";
-import { AdminRequestsComponent } from "./AdminRequestsComponent";
-import { AdminUsersComponent } from "./AdminUsersComponent";
-import { AdminStatsComponent } from "./AdminStatsComponent";
-import { AccountComponent } from "../components/AccountComponent";
-import { SubscriptionComponent } from "../components/SubscriptionComponent";
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
-import type { ServiceRequestForAdmin, AdminStats } from "../components/types";
+import { useRouter } from "next/navigation";
 
 const sidebarItems = [
-  { title: "Vue d'ensemble", icon: Home, id: "overview" },
-  { title: "Demandes", icon: FileText, id: "requests" },
-  { title: "Utilisateurs", icon: Users, id: "users" },
-  { title: "Statistiques", icon: BarChart3, id: "stats" },
-  { title: "Mon compte", icon: User, id: "account" },
-  { title: "Abonnement", icon: CreditCard, id: "subscription" },
+  { title: "Vue d'ensemble", icon: Home, id: "dashboard", route: "dashboard" },
+  { title: "Missions", icon: Wrench, id: "jobs", route: "jobs" },
+  { title: "Demandes", icon: Bell, id: "requests", route: "missions" },
+  { title: "Devis", icon: FileText, id: "quotes", route: "devis" },
+  { title: "Messages", icon: MessageSquare, id: "messages", route: "messages" },
+  { title: "Statistiques", icon: BarChart3, id: "stats", route: "stats" },
+  { title: "Mon compte", icon: User, id: "account", route: "compte" },
+  {
+    title: "Abonnement",
+    icon: CreditCard,
+    id: "subscription",
+    route: "abonnement",
+  },
 ];
 
 function ServiceRequestsListSkeleton() {
@@ -73,55 +68,9 @@ function ServiceRequestsListSkeleton() {
   );
 }
 
-export function AdminDashboard() {
-  const [activeSection, setActiveSection] = React.useState("overview");
-  const [isActive, setIsActive] = React.useState(true);
-
-  // Real API calls
-  const {
-    data: requests,
-    error: requestsError,
-    mutate: mutateRequests,
-  } = useSWR<ServiceRequestForAdmin[]>("/api/admin/service-requests", fetcher);
-  const { data: stats } = useSWR<AdminStats>("/api/admin/stats", fetcher);
-
-  const renderContent = () => {
-    switch (activeSection) {
-      case "overview":
-        return (
-          <AdminOverviewComponent
-            stats={stats}
-            recentRequests={requests || []}
-            onNavigateToSection={setActiveSection}
-          />
-        );
-      case "requests":
-        return (
-          <AdminRequestsComponent
-            requests={requests || []}
-            onRequestsUpdate={mutateRequests}
-          />
-        );
-      case "users":
-        return <AdminUsersComponent />;
-      case "stats":
-        return <AdminStatsComponent stats={stats} />;
-      case "account":
-        return (
-          <AccountComponent isActive={isActive} setIsActive={setIsActive} />
-        );
-      case "subscription":
-        return <SubscriptionComponent />;
-      default:
-        return (
-          <AdminOverviewComponent
-            stats={stats}
-            recentRequests={requests || []}
-            onNavigateToSection={setActiveSection}
-          />
-        );
-    }
-  };
+export function ArtisanLayout({ children }: { children: React.ReactNode }) {
+  const [activeSection, setActiveSection] = React.useState("dashboard");
+  const router = useRouter();
 
   return (
     <SidebarProvider>
@@ -129,12 +78,12 @@ export function AdminDashboard() {
         <Sidebar className="border-r border-gray-200">
           <SidebarHeader className="border-b border-gray-200 p-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-                <Shield className="h-6 w-6 text-white" />
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Wrench className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-lg text-red-600">Fixéo</h2>
-                <p className="text-sm text-gray-600">Administration</p>
+                <h2 className="font-bold text-lg text-blue-600">Fixéo</h2>
+                <p className="text-sm text-gray-600">Tableau de bord</p>
               </div>
             </div>
           </SidebarHeader>
@@ -146,7 +95,7 @@ export function AdminDashboard() {
                   {sidebarItems.map((item) => (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
-                        onClick={() => setActiveSection(item.id)}
+                        onClick={() => router.push(`/workspace/${item.route}`)}
                         isActive={activeSection === item.id}
                         className="w-full justify-start"
                       >
@@ -164,11 +113,11 @@ export function AdminDashboard() {
             <div className="flex items-center gap-3">
               <Avatar>
                 <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback>AD</AvatarFallback>
+                <AvatarFallback>PD</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">Administrateur</p>
-                <p className="text-sm text-gray-600 truncate">Admin</p>
+                <p className="font-medium truncate">Pierre Dupont</p>
+                <p className="text-sm text-gray-600 truncate">Plombier Pro</p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -219,7 +168,7 @@ export function AdminDashboard() {
 
           <main className="flex-1 p-6 overflow-auto">
             <Suspense fallback={<ServiceRequestsListSkeleton />}>
-              {renderContent()}
+              {children}
             </Suspense>
           </main>
         </SidebarInset>

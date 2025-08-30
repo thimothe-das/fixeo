@@ -12,11 +12,11 @@ type ArtisanStats = {
   totalJobs: number;
 };
 
-interface StatsComponentProps {
+interface StatsProps {
   stats?: ArtisanStats;
 }
 
-export function StatsComponent({ stats }: StatsComponentProps) {
+export function Stats({ stats }: StatsProps) {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900">Statistiques</h1>

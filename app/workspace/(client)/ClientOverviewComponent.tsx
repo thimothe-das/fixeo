@@ -14,7 +14,10 @@ import {
   Zap,
   Paperclip,
   ChevronRight,
+  TriangleAlert,
 } from "lucide-react";
+import moment from "moment";
+import { ServiceRequestStatus } from "@/lib/db/schema";
 
 type ServiceRequest = {
   id: number;
@@ -39,8 +42,10 @@ interface ClientOverviewComponentProps {
   activeRequests: number;
   completedRequests: number;
   recentRequests: ServiceRequest[];
+  disputedRequests: number;
   onNavigateToSection: (section: string) => void;
   onViewRequestDetails?: (requestId: number) => void;
+  openNewRequestModal?: () => void;
 }
 
 export function ClientOverviewComponent({
@@ -49,8 +54,10 @@ export function ClientOverviewComponent({
   activeRequests,
   completedRequests,
   recentRequests,
+  disputedRequests,
   onNavigateToSection,
   onViewRequestDetails,
+  openNewRequestModal,
 }: ClientOverviewComponentProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -84,14 +91,29 @@ export function ClientOverviewComponent({
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "pending":
+      case ServiceRequestStatus.AWAITING_ESTIMATE:
         return "En attente";
-      case "accepted":
+      case ServiceRequestStatus.AWAITING_ASSIGNATION:
         return "Acceptée";
-      case "completed":
+      case ServiceRequestStatus.COMPLETED:
         return "Terminée";
-      case "cancelled":
+      case ServiceRequestStatus.CANCELLED:
         return "Annulée";
+      case ServiceRequestStatus.DISPUTED_BY_CLIENT:
+        return "En litige (client)";
+      case ServiceRequestStatus.DISPUTED_BY_ARTISAN:
+        return "En litique (artisan)";
+      case ServiceRequestStatus.DISPUTED_BY_BOTH:
+        return "En litige (client et artisan)";
+      case ServiceRequestStatus.RESOLVED:
+        return "Résolue";
+      case ServiceRequestStatus.IN_PROGRESS:
+        return "En cours";
+      case ServiceRequestStatus.CLIENT_VALIDATED:
+        return "Validée (client)";
+      case ServiceRequestStatus.ARTISAN_VALIDATED:
+        return "Validée (artisan)";
+
       default:
         return status;
     }
@@ -131,17 +153,16 @@ export function ClientOverviewComponent({
         return "Normal";
       case "low":
         return "Faible";
+      case "week":
+        return "Cette semaine";
+
       default:
         return urgency;
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    return moment(dateString).format("DD/MM/YYYY");
   };
 
   const getAttachmentCount = (photos?: string) => {
@@ -165,7 +186,7 @@ export function ClientOverviewComponent({
           Gérez facilement vos demandes de service et suivez leur progression
         </p>
         <Button
-          onClick={() => onNavigateToSection("new-request")}
+          onClick={openNewRequestModal}
           className="bg-white text-blue-600 hover:bg-gray-100"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -174,7 +195,7 @@ export function ClientOverviewComponent({
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => onNavigateToSection("requests")}
@@ -213,26 +234,40 @@ export function ClientOverviewComponent({
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">En cours</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-blue-600">
               {activeRequests}
             </div>
             <p className="text-xs text-muted-foreground">prises en charge</p>
           </CardContent>
         </Card>
-
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => onNavigateToSection("requests")}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">En litige</CardTitle>
+            <TriangleAlert className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {disputedRequests}
+            </div>
+            <p className="text-xs text-muted-foreground">demandes en litige</p>
+          </CardContent>
+        </Card>
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => onNavigateToSection("requests")}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Terminées</CardTitle>
-            <CheckCircle className="h-4 w-4 text-blue-600" />
+            <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-green-600">
               {completedRequests}
             </div>
             <p className="text-xs text-muted-foreground">demandes finalisées</p>
@@ -282,7 +317,7 @@ export function ClientOverviewComponent({
                   <div
                     key={request.id}
                     onClick={() => onViewRequestDetails?.(request.id)}
-                    className="group hover:bg-gray-50 rounded-lg p-4 transition-all duration-200 border-l-4 border-l-blue-200 hover:border-l-blue-400 hover:shadow-sm cursor-pointer"
+                    className="group hover:bg-gray-50  p-4 transition-all duration-200 border-l-4 border-l-blue-200 hover:border-l-blue-400 hover:shadow-sm cursor-pointer"
                   >
                     {/* Header with category and badges */}
                     <div className="flex items-start justify-between mb-3">

@@ -44,15 +44,12 @@ type ServiceRequestForArtisan = {
   requirements?: string[];
 };
 
-interface RequestsComponentProps {
+interface RequestsProps {
   requests?: ServiceRequestForArtisan[];
   onAcceptRequest: (requestId: number) => void;
 }
 
-export function RequestsComponent({
-  requests = [],
-  onAcceptRequest,
-}: RequestsComponentProps) {
+export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
   const [requestSelectedJob, setRequestSelectedJob] =
     useState<ServiceRequestForArtisan | null>(null);
   const [requestShowFilters, setRequestShowFilters] = useState(false);

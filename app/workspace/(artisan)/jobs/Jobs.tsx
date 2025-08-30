@@ -55,13 +55,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import moment from "moment";
-import { ServiceRequestForArtisan } from "./types";
+import { ServiceRequestForArtisan } from "../../components/types";
 
-interface JobsComponentProps {
+interface JobsProps {
   assignedRequests: ServiceRequestForArtisan[];
 }
 
-export function JobsComponent({ assignedRequests }: JobsComponentProps) {
+export default function Jobs({ assignedRequests }: JobsProps) {
   const [filterStatus, setFilterStatus] = useState("all");
   const [missionsSortBy, setMissionsSortBy] = useState("date");
   const [selectedMission, setSelectedMission] =

@@ -69,7 +69,7 @@ export async function sendEstimateCreatedNotification(
           <p>Vous pouvez consulter les détails complets de votre devis et y répondre en vous connectant à votre espace client.</p>
           
           <div style="text-align: center;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard" class="button">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/workspace" class="button">
               Voir mon devis
             </a>
           </div>
@@ -94,7 +94,7 @@ export async function sendEstimateCreatedNotification(
     Montant du devis : ${(estimateAmount / 100).toFixed(2)} €
     
     Vous pouvez consulter les détails complets en vous connectant à votre espace client :
-    ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard
+    ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/workspace
     
     Ce devis nécessite votre validation pour que nous puissions procéder à l'assignation d'un artisan.
     
@@ -167,7 +167,7 @@ export async function sendEstimateResponseNotification(
           </p>
           
           <div style="text-align: center;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard" class="button">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/workspace" class="button">
               Voir dans l'admin
             </a>
           </div>
@@ -197,7 +197,7 @@ export async function sendEstimateResponseNotification(
       : 'Le client a refusé le devis. La demande a été annulée.'
     }
     
-    Voir dans l'admin : ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard
+    Voir dans l'admin : ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/workspace
     
     L'équipe Fixéo
   `;
@@ -267,7 +267,7 @@ export async function sendValidationNotification(
           </p>
           
           <div style="text-align: center;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard" class="button">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/workspace" class="button">
               ${action === 'approve' ? 'Traiter le paiement' : 'Gérer le litige'}
             </a>
           </div>
@@ -300,7 +300,7 @@ export async function sendValidationNotification(
       : 'Le client a contesté la mission. Un litige a été créé et nécessite votre intervention immédiate.'
     }
     
-    Voir dans l'admin : ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard
+    Voir dans l'admin : ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/workspace
     
     L'équipe Fixéo
   `;

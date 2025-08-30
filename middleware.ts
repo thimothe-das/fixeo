@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { signToken, verifyToken } from '@/lib/auth/session';
 
-const protectedRoutes = ['/dashboard', '/account'];
+// Route protection configuration
+const protectedRoutes = ['/workspace', '/account'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get('session');
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
+  // Basic authentication check
   if (isProtectedRoute && !sessionCookie) {
     return NextResponse.redirect(new URL('/sign-in', request.url));
   }
@@ -17,6 +19,7 @@ export async function middleware(request: NextRequest) {
 
   if (sessionCookie && request.method === 'GET') {
     try {
+      // Refresh session token
       const parsed = await verifyToken(sessionCookie.value);
       const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
 

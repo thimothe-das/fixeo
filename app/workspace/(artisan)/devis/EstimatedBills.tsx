@@ -26,7 +26,7 @@ const mockQuotes = [
   },
 ];
 
-export function QuotesComponent() {
+export function EstimatedBills() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

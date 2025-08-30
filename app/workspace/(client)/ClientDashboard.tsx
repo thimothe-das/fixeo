@@ -60,6 +60,7 @@ import ClientStatsComponent from "./ClientStatsComponent";
 import { ClientEstimatesComponent } from "./ClientEstimatesComponent";
 import { AccountComponent } from "../components/AccountComponent";
 import { SubscriptionComponent } from "../components/SubscriptionComponent";
+import { ServiceRequestStatus } from "@/lib/db/schema";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -81,7 +82,7 @@ type ServiceRequest = {
 };
 
 const sidebarItems = [
-  { title: "Vue d'ensemble", icon: Home, id: "overview" },
+  { title: "Vue d'ensemble", icon: Home, id: "dashboard" },
   { title: "Mes demandes", icon: FileText, id: "requests" },
   { title: "Mes devis", icon: Calculator, id: "estimates" },
   { title: "Messages", icon: MessageSquare, id: "messages" },
@@ -101,7 +102,7 @@ function ServiceRequestsListSkeleton() {
 }
 
 export function ClientDashboard() {
-  const [activeSection, setActiveSection] = React.useState("overview");
+  const [activeSection, setActiveSection] = React.useState("dashboard");
   const [isActive, setIsActive] = React.useState(true);
   const [isNewRequestModalOpen, setIsNewRequestModalOpen] =
     React.useState(false);
@@ -115,26 +116,40 @@ export function ClientDashboard() {
 
   const pendingRequests =
     requests?.filter(
-      (req) => req.status === "awaiting_assignation" || req.status === "pending"
+      (req) =>
+        req.status === ServiceRequestStatus.AWAITING_ASSIGNATION ||
+        req.status === ServiceRequestStatus.AWAITING_ESTIMATE
     ) || [];
   const activeRequests =
     requests?.filter((req) =>
-      ["accepted", "in_progress"].includes(req.status)
+      [ServiceRequestStatus.IN_PROGRESS].includes(
+        req.status as ServiceRequestStatus
+      )
     ) || [];
   const completedRequests =
-    requests?.filter((req) => req.status === "completed") || [];
-
+    requests?.filter((req) => req.status === ServiceRequestStatus.COMPLETED) ||
+    [];
+  const disputedRequests =
+    requests?.filter((req) =>
+      [
+        ServiceRequestStatus.DISPUTED_BY_CLIENT,
+        ServiceRequestStatus.DISPUTED_BY_ARTISAN,
+        ServiceRequestStatus.DISPUTED_BY_BOTH,
+      ].includes(req.status as ServiceRequestStatus)
+    ) || [];
   const renderContent = () => {
     switch (activeSection) {
-      case "overview":
+      case "dashboard":
         return (
           <ClientOverviewComponent
             totalRequests={requests?.length || 0}
+            disputedRequests={disputedRequests.length}
             pendingRequests={pendingRequests.length}
             activeRequests={activeRequests.length}
             completedRequests={completedRequests.length}
             recentRequests={requests?.slice(0, 3) || []}
             onNavigateToSection={setActiveSection}
+            openNewRequestModal={() => setIsNewRequestModalOpen(true)}
             onViewRequestDetails={(requestId) => {
               // Navigate to requests section and potentially highlight the specific request
               setActiveSection("requests");
@@ -177,11 +192,13 @@ export function ClientDashboard() {
         return (
           <ClientOverviewComponent
             totalRequests={requests?.length || 0}
+            disputedRequests={disputedRequests.length}
             pendingRequests={pendingRequests.length}
             activeRequests={activeRequests.length}
             completedRequests={completedRequests.length}
             recentRequests={requests?.slice(0, 3) || []}
             onNavigateToSection={setActiveSection}
+            openNewRequestModal={() => setIsNewRequestModalOpen(true)}
             onViewRequestDetails={(requestId) => {
               // Navigate to requests section and potentially highlight the specific request
               setActiveSection("requests");
@@ -323,7 +340,7 @@ export function ClientDashboard() {
             </div>
           </header>
 
-          <main className="flex-1 p-6 overflow-auto bg-gray-50">
+          <main className="flex-1 p-6 overflow-auto bg-gray-50 relative">
             <Suspense fallback={<ServiceRequestsListSkeleton />}>
               {renderContent()}
             </Suspense>

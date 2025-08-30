@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -408,6 +409,7 @@ function RequestCard({
   onRequestUpdate?: () => void;
   priorityStyle?: "dot" | "topBar";
 }) {
+  const router = useRouter();
   const [descriptionExpanded, setDescriptionExpanded] = React.useState(false);
   const [showAcceptDialog, setShowAcceptDialog] = React.useState(false);
   const [showRejectDialog, setShowRejectDialog] = React.useState(false);
@@ -876,8 +878,26 @@ function RequestCard({
     setDisputeDetails("");
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on buttons or interactive elements
+    const target = e.target as HTMLElement;
+    if (
+      target.closest("button") ||
+      target.closest('[role="button"]') ||
+      target.closest("a") ||
+      target.closest(".dialog-trigger")
+    ) {
+      return;
+    }
+
+    router.push(`/workspace/demande/${request.id}`);
+  };
+
   return (
-    <Card className="block group rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden !p-0">
+    <Card
+      className="block group rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden !p-0 cursor-pointer"
+      onClick={handleCardClick}
+    >
       <div className={`h-1 ${priorityConfig.topBarColor}`} />
 
       {(request.status === ServiceRequestStatus.DISPUTED_BY_CLIENT ||
@@ -1135,7 +1155,7 @@ function RequestCard({
             </div>
 
             {/* Right Panel - Conditional based on status */}
-            <div className="space-y-1">
+            <div className="space-y-1 h-full">
               {/* Special statuses Panel - for non-dispute issues */}
               {(request.status === "completed_with_issues" ||
                 request.status === "could_not_complete") && (
@@ -1168,7 +1188,7 @@ function RequestCard({
 
               {/* Standard Devis Panel - for non-dispute statuses */}
               {relevantEstimate && (
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-lg border border-slate-200 p-2 relative">
+                <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-lg border border-slate-200 p-2 relative h-full flex flex-col justify-between">
                   {/* Accepted Check Icon */}
                   {relevantEstimate.status === "accepted" && (
                     <TooltipProvider>
@@ -1487,6 +1507,8 @@ export function ClientRequestsListComponent({
   onViewEstimate,
   onRequestUpdate,
 }: ClientRequestsListComponentProps) {
+  const router = useRouter();
+
   if (requests.length === 0) {
     return (
       <Card className="rounded-2xl p-5 shadow-sm">
@@ -1556,7 +1578,7 @@ export function ClientRequestsListComponent({
   return (
     <div className="space-y-6">
       {/* Summary Counters */}
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
         {/* En attente de devis */}
         <div className="bg-white rounded-lg p-4 border border-slate-200 hover:border-amber-300 transition-colors shadow-sm">
           <div className="flex items-center justify-between">
@@ -1602,21 +1624,6 @@ export function ClientRequestsListComponent({
             </div>
             <div className="p-2 bg-purple-100 rounded-lg">
               <ThumbsUp className="h-5 w-5 text-purple-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Problèmes */}
-        <div className="bg-white rounded-lg p-4 border border-slate-200 hover:border-red-300 transition-colors shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-bold text-red-600">
-                {issueRequests.length}
-              </p>
-              <p className="text-sm font-medium text-slate-600">Problèmes</p>
-            </div>
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
             </div>
           </div>
         </div>
@@ -1738,25 +1745,6 @@ export function ClientRequestsListComponent({
             <AccordionContent className="pt-4">
               <RequestGrid
                 requests={awaitingValidationRequests}
-                onViewEstimate={onViewEstimate}
-                onRequestUpdate={onRequestUpdate}
-              />
-            </AccordionContent>
-          </AccordionItem>
-        )}
-
-        {/* Issue Requests */}
-        {issueRequests.length > 0 && (
-          <AccordionItem value="issues">
-            <AccordionTrigger className="text-lg font-semibold text-slate-900 hover:no-underline">
-              <div className="flex items-center">
-                <AlertTriangle className="h-5 w-5 mr-2 text-red-600" />
-                Problèmes signalés ({issueRequests.length})
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="pt-4">
-              <RequestGrid
-                requests={issueRequests}
                 onViewEstimate={onViewEstimate}
                 onRequestUpdate={onRequestUpdate}
               />

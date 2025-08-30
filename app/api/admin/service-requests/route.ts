@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
-import { getUser, getAllServiceRequests } from '@/lib/db/queries';
+import { getAllServiceRequests } from '@/lib/db/queries';
+import { validateUserRole, ROLES } from '@/lib/auth/roles';
 
 export async function GET() {
   try {
-    const user = await getUser();
+    // Validate user has admin role
+    const validation = await validateUserRole([ROLES.ADMIN]);
     
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin (assuming admin role exists)
-    if (user.role !== 'admin' && user.role !== 'member') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!validation.hasAccess) {
+      return NextResponse.json(
+        { error: validation.error || 'Access denied' }, 
+        { status: validation.user ? 403 : 401 }
+      );
     }
 
     const requests = await getAllServiceRequests();

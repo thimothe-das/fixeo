@@ -13,6 +13,7 @@ export type ServiceRequestForArtisan = {
   photos?: string;
   isAssigned: boolean;
   category?: string;
+  title?: string;
   date?: string;
   time?: string;
   notes?: string;
@@ -103,6 +104,8 @@ export type BillingEstimateForClient = {
     description: string;
     location: string;
     status: string;
+    createdAt: string;
+    title: string;
   };
 };
 

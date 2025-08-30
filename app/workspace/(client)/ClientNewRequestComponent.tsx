@@ -155,7 +155,7 @@ export function ClientNewRequestComponent({
             onValueChange={setServiceType}
             required
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Choisir..." />
             </SelectTrigger>
             <SelectContent>
@@ -178,7 +178,7 @@ export function ClientNewRequestComponent({
             onValueChange={setUrgency}
             required
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Quand ?" />
             </SelectTrigger>
             <SelectContent>
@@ -203,9 +203,6 @@ export function ClientNewRequestComponent({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Adresse *
-        </label>
         <AddressAutocomplete
           name="location"
           placeholder="Entrez votre adresse..."
