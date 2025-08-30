@@ -40,21 +40,41 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 const sidebarItems = [
   { title: "Vue d'ensemble", icon: Home, id: "dashboard", route: "dashboard" },
   { title: "Missions", icon: Wrench, id: "jobs", route: "jobs" },
   { title: "Demandes", icon: Bell, id: "requests", route: "missions" },
   { title: "Devis", icon: FileText, id: "quotes", route: "devis" },
-  { title: "Messages", icon: MessageSquare, id: "messages", route: "messages" },
-  { title: "Statistiques", icon: BarChart3, id: "stats", route: "stats" },
-  { title: "Mon compte", icon: User, id: "account", route: "compte" },
+  {
+    title: "Messages",
+    icon: MessageSquare,
+    id: "messages",
+    route: "messages",
+    disabled: true,
+  },
+  {
+    title: "Statistiques",
+    icon: BarChart3,
+    id: "stats",
+    route: "stats",
+    disabled: true,
+  },
+  {
+    title: "Mon compte",
+    icon: User,
+    id: "account",
+    route: "compte",
+    disabled: true,
+  },
   {
     title: "Abonnement",
     icon: CreditCard,
     id: "subscription",
     route: "abonnement",
+    disabled: true,
   },
 ];
 
@@ -70,6 +90,7 @@ function ServiceRequestsListSkeleton() {
 
 export function ArtisanLayout({ children }: { children: React.ReactNode }) {
   const [activeSection, setActiveSection] = React.useState("dashboard");
+  const pathname = usePathname();
   const router = useRouter();
 
   return (
@@ -93,11 +114,14 @@ export function ArtisanLayout({ children }: { children: React.ReactNode }) {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {sidebarItems.map((item) => (
-                    <SidebarMenuItem key={item.id}>
+                    <SidebarMenuItem
+                      key={item.id}
+                      onClick={() => router.push(`/workspace/${item.route}`)}
+                    >
                       <SidebarMenuButton
-                        onClick={() => router.push(`/workspace/${item.route}`)}
-                        isActive={activeSection === item.id}
-                        className="w-full justify-start"
+                        isActive={pathname === `/workspace/${item.route}`}
+                        className="w-full justify-start cursor-pointer"
+                        disabled={item.disabled}
                       >
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
@@ -166,7 +190,7 @@ export function ArtisanLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 p-6 overflow-auto">
+          <main className="flex-1 p-6 overflow-auto bg-gray-50">
             <Suspense fallback={<ServiceRequestsListSkeleton />}>
               {children}
             </Suspense>
