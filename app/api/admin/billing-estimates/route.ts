@@ -67,7 +67,6 @@ export async function POST(request: Request) {
       .select({
         serviceType: serviceRequests.serviceType,
         clientEmail: serviceRequests.clientEmail,
-        clientName: serviceRequests.clientName,
       })
       .from(serviceRequests)
       .where(eq(serviceRequests.id, estimateData.serviceRequestId))

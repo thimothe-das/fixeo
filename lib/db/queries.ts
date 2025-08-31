@@ -261,26 +261,6 @@ export async function getServiceRequestsForArtisan(userId: number) {
 }
 
 // Admin functions for getting all service requests and users
-export async function getAllServiceRequests() {
-  return await db
-    .select({
-      id: serviceRequests.id,
-      serviceType: serviceRequests.serviceType,
-      urgency: serviceRequests.urgency,
-      description: serviceRequests.description,
-      location: serviceRequests.location,
-      status: serviceRequests.status,
-      estimatedPrice: serviceRequests.estimatedPrice,
-      photos: serviceRequests.photos,
-      clientEmail: serviceRequests.clientEmail,
-      clientPhone: serviceRequests.clientPhone,
-      clientName: serviceRequests.clientName,
-      createdAt: serviceRequests.createdAt,
-      updatedAt: serviceRequests.updatedAt,
-    })
-    .from(serviceRequests)
-    .orderBy(desc(serviceRequests.createdAt));
-}
 
 export async function getAllServiceRequestsPaginated(page: number = 1, pageSize: number = 10) {
   const offset = (page - 1) * pageSize;
@@ -292,8 +272,8 @@ export async function getAllServiceRequestsPaginated(page: number = 1, pageSize:
   
   const totalCount = totalCountResult[0]?.count || 0;
   
-  // Get the paginated requests
-  const requests = await db
+  // Get the paginated requests with client data
+  const results = await db
     .select({
       id: serviceRequests.id,
       serviceType: serviceRequests.serviceType,
@@ -304,15 +284,80 @@ export async function getAllServiceRequestsPaginated(page: number = 1, pageSize:
       estimatedPrice: serviceRequests.estimatedPrice,
       photos: serviceRequests.photos,
       clientEmail: serviceRequests.clientEmail,
-      clientPhone: serviceRequests.clientPhone,
-      clientName: serviceRequests.clientName,
       createdAt: serviceRequests.createdAt,
       updatedAt: serviceRequests.updatedAt,
+      // User fields
+      userId: users.id,
+      userName: users.name,
+      userEmail: users.email,
+      userRole: users.role,
+      userCreatedAt: users.createdAt,
+      userUpdatedAt: users.updatedAt,
+      // Profile fields
+      profileId: clientProfiles.id,
+      firstName: clientProfiles.firstName,
+      lastName: clientProfiles.lastName,
+      phone: clientProfiles.phone,
+      address: clientProfiles.address,
+      addressHousenumber: clientProfiles.addressHousenumber,
+      addressStreet: clientProfiles.addressStreet,
+      addressPostcode: clientProfiles.addressPostcode,
+      addressCity: clientProfiles.addressCity,
+      addressCitycode: clientProfiles.addressCitycode,
+      addressDistrict: clientProfiles.addressDistrict,
+      addressCoordinates: clientProfiles.addressCoordinates,
+      addressContext: clientProfiles.addressContext,
+      preferences: clientProfiles.preferences,
+      profileCreatedAt: clientProfiles.createdAt,
+      profileUpdatedAt: clientProfiles.updatedAt,
     })
     .from(serviceRequests)
+    .leftJoin(users, and(eq(serviceRequests.userId, users.id), isNull(users.deletedAt)))
+    .leftJoin(clientProfiles, eq(users.id, clientProfiles.userId))
     .orderBy(desc(serviceRequests.createdAt))
     .limit(pageSize)
     .offset(offset);
+
+  // Transform the flat result into the desired structure
+  const requests = results.map(result => {
+    const { 
+      userId, userName, userEmail, userRole, userCreatedAt, userUpdatedAt,
+      profileId, firstName, lastName, phone, address, addressHousenumber,
+      addressStreet, addressPostcode, addressCity, addressCitycode,
+      addressDistrict, addressCoordinates, addressContext, preferences,
+      profileCreatedAt, profileUpdatedAt,
+      ...serviceRequest 
+    } = result;
+
+    return {
+      ...serviceRequest,
+      client: userId ? {
+        id: userId,
+        name: userName,
+        email: userEmail,
+        role: userRole,
+        createdAt: userCreatedAt,
+        updatedAt: userUpdatedAt,
+        // Flatten client profile fields into the same level
+        profileId,
+        firstName,
+        lastName,
+        phone,
+        address,
+        addressHousenumber,
+        addressStreet,
+        addressPostcode,
+        addressCity,
+        addressCitycode,
+        addressDistrict,
+        addressCoordinates,
+        addressContext,
+        preferences,
+        profileCreatedAt,
+        profileUpdatedAt,
+      } : null
+    };
+  });
 
   const totalPages = Math.ceil(totalCount / pageSize);
   
@@ -1036,8 +1081,6 @@ export async function getServiceRequestByIdForAdmin(requestId: number) {
       locationContext: serviceRequests.locationContext,
       photos: serviceRequests.photos,
       clientEmail: serviceRequests.clientEmail,
-      clientPhone: serviceRequests.clientPhone,
-      clientName: serviceRequests.clientName,
       status: serviceRequests.status,
       estimatedPrice: serviceRequests.estimatedPrice,
       createdAt: serviceRequests.createdAt,
@@ -1151,8 +1194,6 @@ export async function updateServiceRequest(requestId: number, updateData: Partia
   locationCoordinates: string;
   locationContext: string;
   clientEmail: string;
-  clientPhone: string;
-  clientName: string;
   status: ServiceRequestStatus;
   assignedArtisanId: number;
 }>) {
@@ -1166,4 +1207,51 @@ export async function updateServiceRequest(requestId: number, updateData: Partia
     .returning();
 
   return updatedRequest;
+}
+
+export async function getClientByUserId(userId: number) {
+  const result = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      clientProfile: {
+        id: clientProfiles.id,
+        firstName: clientProfiles.firstName,
+        lastName: clientProfiles.lastName,
+        phone: clientProfiles.phone,
+        address: clientProfiles.address,
+        addressHousenumber: clientProfiles.addressHousenumber,
+        addressStreet: clientProfiles.addressStreet,
+        addressPostcode: clientProfiles.addressPostcode,
+        addressCity: clientProfiles.addressCity,
+        addressCitycode: clientProfiles.addressCitycode,
+        addressDistrict: clientProfiles.addressDistrict,
+        addressCoordinates: clientProfiles.addressCoordinates,
+        addressContext: clientProfiles.addressContext,
+        preferences: clientProfiles.preferences,
+        createdAt: clientProfiles.createdAt,
+        updatedAt: clientProfiles.updatedAt,
+      }
+    })
+    .from(users)
+    .leftJoin(clientProfiles, eq(users.id, clientProfiles.userId))
+    .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+    .limit(1);
+
+  if (result.length === 0) {
+    return null;
+  }
+
+  const user = result[0];
+  
+  // Return null if user exists but doesn't have client role
+  if (user.role !== 'client') {
+    return null;
+  }
+
+  return user;
 }

@@ -90,7 +90,6 @@ async function sendEstimateResponseNotification(
     const serviceRequest = await db
       .select({
         serviceType: serviceRequests.serviceType,
-        clientName: serviceRequests.clientName,
       })
       .from(serviceRequests)
       .where(eq(serviceRequests.id, serviceRequestId))

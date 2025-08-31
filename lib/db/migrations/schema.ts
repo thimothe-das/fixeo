@@ -183,8 +183,6 @@ export const serviceRequests = pgTable("service_requests", {
 	location: text().notNull(),
 	photos: text(),
 	clientEmail: varchar("client_email", { length: 255 }),
-	clientPhone: varchar("client_phone", { length: 20 }),
-	clientName: varchar("client_name", { length: 100 }),
 	userId: integer("user_id"),
 	status: varchar({ length: 20 }).default('awaiting_estimate').notNull(),
 	assignedArtisanId: integer("assigned_artisan_id"),

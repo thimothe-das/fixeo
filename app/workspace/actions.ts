@@ -23,9 +23,7 @@ const createServiceRequestSchema = z.object({
   location_district: z.string().optional(),
   location_coordinates: z.string().optional(),
   location_context: z.string().optional(),
-  clientName: z.string().min(1, 'Nom requis').optional(),
   clientEmail: z.string().email('Email invalide').optional(),
-  clientPhone: z.string().min(10, 'Numéro de téléphone requis').optional(),
   photos: z.string().optional(), // JSON string array of photo URLs
 });
 

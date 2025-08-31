@@ -31,6 +31,7 @@ import {
   getPriorityConfig,
 } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import moment from "moment";
 
 interface ServiceRequest {
   id: number;
@@ -41,10 +42,32 @@ interface ServiceRequest {
   status: string;
   estimatedPrice: number | null;
   clientEmail: string | null;
-  clientPhone: string | null;
-  clientName: string | null;
   createdAt: string;
   updatedAt: string;
+  client: {
+    id: number;
+    name: string | null;
+    email: string;
+    role: string;
+    createdAt: string;
+    updatedAt: string;
+    profileId: number | null;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    address: string | null;
+    addressHousenumber: string | null;
+    addressStreet: string | null;
+    addressPostcode: string | null;
+    addressCity: string | null;
+    addressCitycode: string | null;
+    addressDistrict: string | null;
+    addressCoordinates: string | null;
+    addressContext: string | null;
+    preferences: string | null;
+    profileCreatedAt: string | null;
+    profileUpdatedAt: string | null;
+  } | null;
 }
 
 interface PaginationInfo {
@@ -61,11 +84,6 @@ interface ServiceRequestsResponse {
   pagination: PaginationInfo;
 }
 
-const formatStatus = (status: string) => {
-  const config = getStatusConfig(status, "");
-  return config.label;
-};
-
 const formatCurrency = (amount: number | null) => {
   if (!amount) return "—";
   return new Intl.NumberFormat("fr-FR", {
@@ -74,23 +92,16 @@ const formatCurrency = (amount: number | null) => {
   }).format(amount / 100);
 };
 
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
-
 const truncateText = (text: string, maxLength: number = 50) => {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + "...";
 };
 
-export function Requests() {
+export function Requests({
+  setUserId,
+}: {
+  setUserId: (userId: string | null) => void;
+}) {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
     currentPage: 1,
@@ -124,8 +135,8 @@ export function Requests() {
       setRequests(data.requests);
       setPagination(data.pagination);
     } catch (err) {
-      console.error("Error fetching requests:", err);
-      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error("Erreur lors de la récupération des requêtes:", err);
+      setError(err instanceof Error ? err.message : "Une erreur est survenue");
     } finally {
       setLoading(false);
     }
@@ -234,10 +245,10 @@ export function Requests() {
 
                     <TableCell>
                       <div className="space-y-1">
-                        {request.clientName && (
+                        {request.client?.name && (
                           <div className="flex items-center gap-1 text-sm">
                             <User className="h-3 w-3 text-gray-400" />
-                            <span>{request.clientName}</span>
+                            <span>{request.client.name}</span>
                           </div>
                         )}
                         {request.clientEmail && (
@@ -246,10 +257,10 @@ export function Requests() {
                             <span>{request.clientEmail}</span>
                           </div>
                         )}
-                        {request.clientPhone && (
+                        {request.client?.phone && (
                           <div className="flex items-center gap-1 text-xs text-gray-600">
                             <Phone className="h-3 w-3 text-gray-400" />
-                            <span>{request.clientPhone}</span>
+                            <span>{request.client.phone}</span>
                           </div>
                         )}
                       </div>
@@ -310,7 +321,9 @@ export function Requests() {
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm text-gray-600">
                         <Calendar className="h-3 w-3 text-gray-400" />
-                        <span>{formatDate(request.createdAt)}</span>
+                        <span>
+                          {moment(request.createdAt).format("DD/MM/YYYY")}
+                        </span>
                       </div>
                     </TableCell>
 

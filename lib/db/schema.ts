@@ -173,8 +173,6 @@ export const serviceRequests = pgTable('service_requests', {
   locationContext: text('location_context'),
   photos: text('photos'), // JSON array of photo URLs
   clientEmail: varchar('client_email', { length: 255 }),
-  clientPhone: varchar('client_phone', { length: 20 }),
-  clientName: varchar('client_name', { length: 100 }),
   userId: integer('user_id').references(() => users.id), // If user is logged in
   guestToken: varchar('guest_token', { length: 36 }).unique(), // UUID v4 for guest tracking
   status: serviceRequestStatusEnum('status').notNull().default('awaiting_estimate'),
