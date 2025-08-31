@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllServiceRequestsPaginated } from '@/lib/db/queries';
+import { getAllUsersPaginated } from '@/lib/db/queries';
 import { validateUserRole, ROLES } from '@/lib/auth/roles';
 
 export async function GET(request: Request) {
@@ -27,11 +27,11 @@ export async function GET(request: Request) {
       );
     }
 
-    const result = await getAllServiceRequestsPaginated(page, pageSize);
+    const result = await getAllUsersPaginated(page, pageSize);
     
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error fetching admin service requests:', error);
+    console.error('Error fetching admin users:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

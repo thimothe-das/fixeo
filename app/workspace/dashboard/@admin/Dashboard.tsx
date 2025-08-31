@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import {
   Card,
   CardContent,
@@ -18,12 +19,38 @@ import {
   Wrench,
   UserCheck,
   BarChart3,
+  Euro,
 } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type {
   AdminStats,
   ServiceRequestForAdmin,
 } from "../../components/types";
 import { useRouter } from "next/navigation";
+
+const chartConfig = {
+  requests: {
+    label: "Demandes",
+    color: "var(--chart-1)",
+  },
+  earnings: {
+    label: "Revenus",
+    color: "var(--chart-2)",
+  },
+} satisfies ChartConfig;
 
 interface DashboardProps {
   stats?: AdminStats;
@@ -32,42 +59,46 @@ interface DashboardProps {
 
 export function Dashboard({ stats, recentRequests }: DashboardProps) {
   const router = useRouter();
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "accepted":
-        return "bg-blue-100 text-blue-800";
-      case "in_progress":
-        return "bg-orange-100 text-orange-800";
-      case "completed":
-        return "bg-green-100 text-green-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  const [timeRange, setTimeRange] = React.useState("30d");
 
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case "urgent":
-        return "bg-red-100 text-red-800";
-      case "high":
-        return "bg-orange-100 text-orange-800";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800";
-      case "low":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const filteredData = React.useMemo(() => {
+    if (!stats?.requestsTimeSeriesData || !stats?.earningsTimeSeriesData)
+      return [];
+
+    // Combine requests and earnings data by date
+    const requestsMap = new Map(
+      stats.requestsTimeSeriesData.map((item) => [item.date, item.count])
+    );
+    const earningsMap = new Map(
+      stats.earningsTimeSeriesData.map((item) => [item.date, item.earnings])
+    );
+
+    // Get all unique dates and combine data
+    const allDates = Array.from(
+      new Set([
+        ...stats.requestsTimeSeriesData.map((item) => item.date),
+        ...stats.earningsTimeSeriesData.map((item) => item.date),
+      ])
+    ).sort();
+
+    const data = allDates.map((date) => ({
+      date,
+      count: requestsMap.get(date) || 0,
+      earnings: (earningsMap.get(date) || 0) / 100, // Convert from cents to euros
+    }));
+
+    if (timeRange === "7d") {
+      return data.slice(-7);
+    } else if (timeRange === "14d") {
+      return data.slice(-14);
     }
-  };
+    return data; // 30d - return all data
+  }, [stats?.requestsTimeSeriesData, stats?.earningsTimeSeriesData, timeRange]);
 
   return (
-    <div className="space-y-6">
+    <div className="p-3 space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -97,7 +128,7 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
               {stats?.awaitingEstimateRequests || 0}
             </div>
             <p className="text-xs text-muted-foreground">
-              Demandes nécessitant un devis
+              Demandes nécessitant un devis admin
             </p>
           </CardContent>
         </Card>
@@ -105,7 +136,7 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Devis en attente
+              En attente d'acceptation du devis
             </CardTitle>
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -129,6 +160,40 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
               {stats?.completedRequests || 0}
             </div>
             <p className="text-xs text-muted-foreground">Demandes terminées</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">En litige</CardTitle>
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {stats?.disputedRequests || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Demandes en conflit</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total des revenus
+            </CardTitle>
+            <Euro className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">
+              {stats?.totalEarnings
+                ? `€${(stats.totalEarnings / 100).toLocaleString("fr-FR", {
+                    minimumFractionDigits: 2,
+                  })}`
+                : "€0.00"}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Revenus des devis acceptés
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -179,105 +244,152 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Button
-          onClick={() => router.push("/workspace/requests")}
-          className="h-16 flex flex-col gap-1"
-        >
-          <FileText className="h-5 w-5" />
-          <span>Gérer les demandes</span>
-        </Button>
-        <Button
-          onClick={() => router.push("/workspace/users")}
-          variant="outline"
-          className="h-16 flex flex-col gap-1"
-        >
-          <Users className="h-5 w-5" />
-          <span>Gérer les utilisateurs</span>
-        </Button>
-        <Button
-          onClick={() => router.push("/workspace/stats")}
-          variant="outline"
-          className="h-16 flex flex-col gap-1"
-        >
-          <BarChart3 className="h-5 w-5" />
-          <span>Voir les statistiques</span>
-        </Button>
-      </div>
-
-      {/* Recent Requests */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Demandes récentes</CardTitle>
-          <CardDescription>
-            Les dernières demandes de service reçues
-          </CardDescription>
+      {/* Requests Timeline Chart */}
+      <Card className="w-full">
+        <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+          <div className="grid flex-1 gap-1">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Demandes et revenus au fil du temps
+            </CardTitle>
+            <CardDescription>
+              Évolution du nombre de demandes et des revenus
+            </CardDescription>
+          </div>
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger
+              className="w-[160px] rounded-lg sm:ml-auto"
+              aria-label="Sélectionner une période"
+            >
+              <SelectValue placeholder="30 derniers jours" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="30d" className="rounded-lg">
+                30 derniers jours
+              </SelectItem>
+              <SelectItem value="14d" className="rounded-lg">
+                14 derniers jours
+              </SelectItem>
+              <SelectItem value="7d" className="rounded-lg">
+                7 derniers jours
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </CardHeader>
-        <CardContent>
-          {recentRequests.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">
-              Aucune demande récente
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {recentRequests.slice(0, 5).map((request) => (
-                <div
-                  key={request.id}
-                  className={`flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 ${
-                    request.status === "awaiting_estimate"
-                      ? "border-purple-200 bg-purple-50"
-                      : ""
-                  }`}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-medium">{request.serviceType}</h4>
-                      <Badge className={getStatusColor(request.status)}>
-                        {request.status}
-                      </Badge>
-                      <Badge className={getUrgencyColor(request.urgency)}>
-                        {request.urgency}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      {request.description.length > 100
-                        ? `${request.description.substring(0, 100)}...`
-                        : request.description}
-                    </p>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <span>📍 {request.location}</span>
-                      <span>
-                        👤 {request.clientName || request.clientEmail}
-                      </span>
-                      <span>
-                        📅{" "}
-                        {new Date(request.createdAt).toLocaleDateString(
-                          "fr-FR"
-                        )}
-                      </span>
-                      {request.assignedArtisan && (
-                        <span>🔧 {request.assignedArtisan.name}</span>
-                      )}
-                    </div>
-                  </div>
-                  {request.estimatedPrice && (
-                    <div className="text-lg font-semibold text-green-600">
-                      {(request.estimatedPrice / 100).toFixed(2)} €
-                    </div>
-                  )}
-                </div>
-              ))}
-              {recentRequests.length > 5 && (
-                <Button
-                  onClick={() => router.push("/workspace/requests")}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Voir toutes les demandes ({recentRequests.length})
-                </Button>
-              )}
+        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+          {filteredData.length === 0 ? (
+            <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+              <div className="text-center">
+                <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Aucune donnée disponible pour cette période</p>
+              </div>
             </div>
+          ) : (
+            <ChartContainer
+              config={chartConfig}
+              className="aspect-auto h-[250px] w-full"
+            >
+              <AreaChart data={filteredData}>
+                <defs>
+                  <linearGradient id="fillRequests" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="5%"
+                      stopColor="var(--color-requests)"
+                      stopOpacity={0.8}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor="var(--color-requests)"
+                      stopOpacity={0.1}
+                    />
+                  </linearGradient>
+                  <linearGradient id="fillEarnings" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="5%"
+                      stopColor="var(--color-earnings)"
+                      stopOpacity={0.8}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor="var(--color-earnings)"
+                      stopOpacity={0.1}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  minTickGap={32}
+                  tickFormatter={(value) => {
+                    const date = new Date(value);
+                    const day = date.getDate().toString().padStart(2, "0");
+                    const month = (date.getMonth() + 1)
+                      .toString()
+                      .padStart(2, "0");
+                    return `${day}/${month}`;
+                  }}
+                />
+                <YAxis
+                  yAxisId="left"
+                  orientation="left"
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `${value}`}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `€${value}`}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(value) => {
+                        const date = new Date(value);
+                        return date.toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        });
+                      }}
+                      formatter={(value, name) => {
+                        if (name === "earnings") {
+                          return [
+                            `${Number(value).toLocaleString("fr-FR", {
+                              minimumFractionDigits: 2,
+                            })}€`,
+                          ];
+                        }
+                        return [value, " Demandes"];
+                      }}
+                      indicator="dot"
+                    />
+                  }
+                />
+                <Area
+                  dataKey="count"
+                  type="natural"
+                  fill="url(#fillRequests)"
+                  stroke="var(--color-requests)"
+                  strokeWidth={2}
+                  yAxisId="left"
+                />
+                <Area
+                  dataKey="earnings"
+                  type="natural"
+                  fill="url(#fillEarnings)"
+                  stroke="var(--color-earnings)"
+                  strokeWidth={2}
+                  yAxisId="right"
+                />
+              </AreaChart>
+            </ChartContainer>
           )}
         </CardContent>
       </Card>

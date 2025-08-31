@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+
+I'm building a saas where client create requests for something they need to be done (electricity, plumbing etc...)
+They fill a form with pictures, description, title, category, urgency, localisation
+
+ After a client created a request, a estimated bill is created by an administrator which also contains details with a description and budget lines
+
+After an estimated bill has been added to a request, it is available for artisan
+The first artisan to accept the request is assigned to it
+When accepting the request, he can validate when i has done the job, he can dispute if a problem appears, he can talk to the customer
+Both parties can dispute or validate the request

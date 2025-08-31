@@ -1,6 +1,6 @@
-import { desc, and, eq, isNull } from 'drizzle-orm';
+import { desc, and, eq, isNull, sql, or } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users, serviceRequests, professionalProfiles, clientProfiles, billingEstimates, ServiceRequestStatus } from './schema';
+import { activityLogs, teamMembers, teams, users, serviceRequests, professionalProfiles, clientProfiles, billingEstimates, conversations, ServiceRequestStatus } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
@@ -282,6 +282,392 @@ export async function getAllServiceRequests() {
     .orderBy(desc(serviceRequests.createdAt));
 }
 
+export async function getAllServiceRequestsPaginated(page: number = 1, pageSize: number = 10) {
+  const offset = (page - 1) * pageSize;
+  
+  // Get the total count
+  const totalCountResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(serviceRequests);
+  
+  const totalCount = totalCountResult[0]?.count || 0;
+  
+  // Get the paginated requests
+  const requests = await db
+    .select({
+      id: serviceRequests.id,
+      serviceType: serviceRequests.serviceType,
+      urgency: serviceRequests.urgency,
+      description: serviceRequests.description,
+      location: serviceRequests.location,
+      status: serviceRequests.status,
+      estimatedPrice: serviceRequests.estimatedPrice,
+      photos: serviceRequests.photos,
+      clientEmail: serviceRequests.clientEmail,
+      clientPhone: serviceRequests.clientPhone,
+      clientName: serviceRequests.clientName,
+      createdAt: serviceRequests.createdAt,
+      updatedAt: serviceRequests.updatedAt,
+    })
+    .from(serviceRequests)
+    .orderBy(desc(serviceRequests.createdAt))
+    .limit(pageSize)
+    .offset(offset);
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+  
+  return {
+    requests,
+    pagination: {
+      currentPage: page,
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    }
+  };
+}
+
+export async function getAllUsersPaginated(page: number = 1, pageSize: number = 10) {
+  const offset = (page - 1) * pageSize;
+  
+  // Get the total count (excluding deleted users)
+  const totalCountResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users)
+    .where(isNull(users.deletedAt));
+  
+  const totalCount = totalCountResult[0]?.count || 0;
+  
+  // Get the paginated users with their profiles
+  const usersData = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      deletedAt: users.deletedAt,
+      clientProfile: {
+        firstName: clientProfiles.firstName,
+        lastName: clientProfiles.lastName,
+        phone: clientProfiles.phone,
+        address: clientProfiles.address,
+      },
+      professionalProfile: {
+        firstName: professionalProfiles.firstName,
+        lastName: professionalProfiles.lastName,
+        phone: professionalProfiles.phone,
+        siret: professionalProfiles.siret,
+        serviceArea: professionalProfiles.serviceArea,
+        specialties: professionalProfiles.specialties,
+        isVerified: professionalProfiles.isVerified,
+        experience: professionalProfiles.experience,
+        description: professionalProfiles.description,
+      }
+    })
+    .from(users)
+    .leftJoin(clientProfiles, eq(users.id, clientProfiles.userId))
+    .leftJoin(professionalProfiles, eq(users.id, professionalProfiles.userId))
+    .where(isNull(users.deletedAt))
+    .orderBy(desc(users.createdAt))
+    .limit(pageSize)
+    .offset(offset);
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+  
+  return {
+    users: usersData,
+    pagination: {
+      currentPage: page,
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    }
+  };
+}
+
+export async function getUserByIdWithProfiles(userId: number) {
+  const result = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      deletedAt: users.deletedAt,
+      clientProfile: {
+        firstName: clientProfiles.firstName,
+        lastName: clientProfiles.lastName,
+        phone: clientProfiles.phone,
+        address: clientProfiles.address,
+      },
+      professionalProfile: {
+        firstName: professionalProfiles.firstName,
+        lastName: professionalProfiles.lastName,
+        phone: professionalProfiles.phone,
+        siret: professionalProfiles.siret,
+        serviceArea: professionalProfiles.serviceArea,
+        specialties: professionalProfiles.specialties,
+        isVerified: professionalProfiles.isVerified,
+        experience: professionalProfiles.experience,
+        description: professionalProfiles.description,
+      }
+    })
+    .from(users)
+    .leftJoin(clientProfiles, eq(users.id, clientProfiles.userId))
+    .leftJoin(professionalProfiles, eq(users.id, professionalProfiles.userId))
+    .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateUserWithProfiles(userId: number, updateData: {
+  name?: string;
+  email?: string;
+  role?: string;
+  oldRole?: string;
+  clientProfile?: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    address?: string;
+  };
+  professionalProfile?: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    siret?: string;
+    serviceArea?: string;
+    specialties?: string;
+    experience?: string;
+    description?: string;
+    isVerified?: boolean;
+  };
+}) {
+  // Start transaction to update user and profiles
+  const result = await db.transaction(async (tx) => {
+    // Check if email already exists for another user
+    if (updateData.email) {
+      const existingUser = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.email, updateData.email), sql`id != ${userId}`))
+        .limit(1);
+      
+      if (existingUser.length > 0) {
+        throw new Error("Cet email est déjà utilisé par un autre utilisateur");
+      }
+    }
+
+    // Update main user table
+    const userUpdateData: any = {};
+    if (updateData.name !== undefined) userUpdateData.name = updateData.name;
+    if (updateData.email !== undefined) userUpdateData.email = updateData.email;
+    if (updateData.role !== undefined) userUpdateData.role = updateData.role;
+    
+    if (Object.keys(userUpdateData).length > 0) {
+      userUpdateData.updatedAt = new Date();
+      await tx
+        .update(users)
+        .set(userUpdateData)
+        .where(eq(users.id, userId));
+    }
+
+    // Handle role changes - clean up old profiles if role changed
+    if (updateData.role && updateData.oldRole && updateData.role !== updateData.oldRole) {
+      // Delete old profile based on previous role
+      if (updateData.oldRole === "client") {
+        await tx
+          .delete(clientProfiles)
+          .where(eq(clientProfiles.userId, userId));
+      } else if (updateData.oldRole === "professional") {
+        await tx
+          .delete(professionalProfiles)
+          .where(eq(professionalProfiles.userId, userId));
+      }
+    }
+
+    // Update client profile if provided
+    if (updateData.clientProfile) {
+      const clientUpdateData = {
+        ...updateData.clientProfile,
+        updatedAt: new Date(),
+      };
+      
+      // Remove null/undefined values
+      Object.keys(clientUpdateData).forEach(key => {
+        if (clientUpdateData[key as keyof typeof clientUpdateData] === null || 
+            clientUpdateData[key as keyof typeof clientUpdateData] === undefined ||
+            clientUpdateData[key as keyof typeof clientUpdateData] === '') {
+          delete clientUpdateData[key as keyof typeof clientUpdateData];
+        }
+      });
+      
+      // Check if client profile exists
+      const existingClientProfile = await tx
+        .select({ id: clientProfiles.id })
+        .from(clientProfiles)
+        .where(eq(clientProfiles.userId, userId))
+        .limit(1);
+
+      if (existingClientProfile.length > 0) {
+        await tx
+          .update(clientProfiles)
+          .set(clientUpdateData)
+          .where(eq(clientProfiles.userId, userId));
+      } else {
+        await tx
+          .insert(clientProfiles)
+          .values({
+            userId,
+            ...clientUpdateData,
+            createdAt: new Date(),
+          });
+      }
+    }
+
+    // Update professional profile if provided
+    if (updateData.professionalProfile) {
+      const professionalUpdateData = {
+        ...updateData.professionalProfile,
+        updatedAt: new Date(),
+      };
+      
+      // Remove null/undefined values
+      Object.keys(professionalUpdateData).forEach(key => {
+        if (professionalUpdateData[key as keyof typeof professionalUpdateData] === null || 
+            professionalUpdateData[key as keyof typeof professionalUpdateData] === undefined ||
+            professionalUpdateData[key as keyof typeof professionalUpdateData] === '') {
+          delete professionalUpdateData[key as keyof typeof professionalUpdateData];
+        }
+      });
+
+      // Validate specialties JSON
+      if (professionalUpdateData.specialties) {
+        try {
+          const parsed = JSON.parse(professionalUpdateData.specialties);
+          if (!Array.isArray(parsed)) {
+            throw new Error("Specialties must be an array");
+          }
+        } catch (error) {
+          throw new Error("Format des spécialités invalide");
+        }
+      }
+      
+      // Check if professional profile exists
+      const existingProfessionalProfile = await tx
+        .select({ id: professionalProfiles.id })
+        .from(professionalProfiles)
+        .where(eq(professionalProfiles.userId, userId))
+        .limit(1);
+
+      if (existingProfessionalProfile.length > 0) {
+        await tx
+          .update(professionalProfiles)
+          .set(professionalUpdateData)
+          .where(eq(professionalProfiles.userId, userId));
+      } else {
+        await tx
+          .insert(professionalProfiles)
+          .values({
+            userId,
+            ...professionalUpdateData,
+            createdAt: new Date(),
+          });
+      }
+    }
+
+    // Return updated user with profiles
+    return await getUserByIdWithProfiles(userId);
+  });
+
+  return result;
+}
+
+export async function getRequestsTimeSeriesData(days: number = 30) {
+  const result = await db.execute(sql`
+    SELECT 
+      DATE(created_at) as date,
+      COUNT(*) as count
+    FROM service_requests
+    WHERE created_at >= CURRENT_DATE - INTERVAL '${sql.raw(days.toString())} days'
+    GROUP BY DATE(created_at)
+    ORDER BY DATE(created_at) ASC
+  `);
+
+  // Fill in missing dates with 0 count
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  const dateMap = new Map();
+  result.forEach((row: any) => {
+    // Convert the date to string format if it's a Date object
+    const dateStr = row.date instanceof Date ? row.date.toISOString().split('T')[0] : row.date;
+    dateMap.set(dateStr, parseInt(row.count));
+  });
+
+  const timeSeriesData = [];
+  for (let i = 0; i < days; i++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + i);
+    const dateStr = currentDate.toISOString().split('T')[0];
+    
+    timeSeriesData.push({
+      date: dateStr,
+      count: dateMap.get(dateStr) || 0,
+    });
+  }
+
+  return timeSeriesData;
+}
+
+export async function getEarningsTimeSeriesData(days: number = 30) {
+  const result = await db.execute(sql`
+    SELECT 
+      DATE(be.created_at) as date,
+      COALESCE(SUM(be.estimated_price), 0) as earnings
+    FROM billing_estimates be
+    WHERE be.status = 'accepted' 
+      AND be.created_at >= CURRENT_DATE - INTERVAL '${sql.raw(days.toString())} days'
+    GROUP BY DATE(be.created_at)
+    ORDER BY DATE(be.created_at) ASC
+  `);
+
+  // Fill in missing dates with 0 earnings
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  const dateMap = new Map();
+  result.forEach((row: any) => {
+    // Convert the date to string format if it's a Date object
+    const dateStr = row.date instanceof Date ? row.date.toISOString().split('T')[0] : row.date;
+    dateMap.set(dateStr, parseInt(row.earnings) || 0);
+  });
+
+  const timeSeriesData = [];
+  for (let i = 0; i < days; i++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + i);
+    const dateStr = currentDate.toISOString().split('T')[0];
+    
+    timeSeriesData.push({
+      date: dateStr,
+      earnings: dateMap.get(dateStr) || 0,
+    });
+  }
+
+  return timeSeriesData;
+}
+
 export async function getAdminStats() {
   // Count total service requests
   const totalRequestsResult = await db.select().from(serviceRequests);
@@ -312,6 +698,19 @@ export async function getAdminStats() {
     .where(eq(serviceRequests.status, 'completed'));
   const completedRequests = completedRequestsResult.length;
 
+  // Count disputed requests (all dispute statuses)
+  const disputedRequestsResult = await db
+    .select()
+    .from(serviceRequests)
+    .where(
+      or(
+        eq(serviceRequests.status, 'disputed_by_client'),
+        eq(serviceRequests.status, 'disputed_by_artisan'),
+        eq(serviceRequests.status, 'disputed_by_both')
+      )
+    );
+  const disputedRequests = disputedRequestsResult.length;
+
   // Count pending billing estimates
   const pendingEstimatesResult = await db
     .select()
@@ -338,16 +737,34 @@ export async function getAdminStats() {
     .where(and(eq(users.role, 'client'), isNull(users.deletedAt)));
   const totalClients = totalClientsResult.length;
 
+  // Calculate total earnings from accepted billing estimates
+  const totalEarningsResult = await db.execute(sql`
+    SELECT COALESCE(SUM(estimated_price), 0) as total_earnings
+    FROM billing_estimates
+    WHERE status = 'accepted'
+  `);
+  const totalEarnings = parseInt(String(totalEarningsResult[0]?.total_earnings)) || 0;
+
+  // Get time series data for requests created over the last 30 days
+  const requestsTimeSeriesData = await getRequestsTimeSeriesData(30);
+  
+  // Get time series data for earnings over the last 30 days
+  const earningsTimeSeriesData = await getEarningsTimeSeriesData(30);
+
   return {
     totalRequests,
     pendingRequests,
     activeRequests,
     completedRequests,
+    disputedRequests,
     totalUsers,
     totalArtisans,
     totalClients,
     awaitingEstimateRequests,
     pendingEstimates,
+    totalEarnings,
+    requestsTimeSeriesData,
+    earningsTimeSeriesData,
   };
 }
 
@@ -598,4 +1015,155 @@ export async function getBillingEstimatesForArtisan(artisanId: number) {
     .leftJoin(serviceRequests, eq(billingEstimates.serviceRequestId, serviceRequests.id))
     .where(eq(serviceRequests.assignedArtisanId, artisanId))
     .orderBy(desc(billingEstimates.createdAt));
+}
+
+export async function getServiceRequestByIdForAdmin(requestId: number) {
+  const result = await db
+    .select({
+      id: serviceRequests.id,
+      title: serviceRequests.title,
+      serviceType: serviceRequests.serviceType,
+      urgency: serviceRequests.urgency,
+      description: serviceRequests.description,
+      location: serviceRequests.location,
+      locationHousenumber: serviceRequests.locationHousenumber,
+      locationStreet: serviceRequests.locationStreet,
+      locationPostcode: serviceRequests.locationPostcode,
+      locationCity: serviceRequests.locationCity,
+      locationCitycode: serviceRequests.locationCitycode,
+      locationDistrict: serviceRequests.locationDistrict,
+      locationCoordinates: serviceRequests.locationCoordinates,
+      locationContext: serviceRequests.locationContext,
+      photos: serviceRequests.photos,
+      clientEmail: serviceRequests.clientEmail,
+      clientPhone: serviceRequests.clientPhone,
+      clientName: serviceRequests.clientName,
+      status: serviceRequests.status,
+      estimatedPrice: serviceRequests.estimatedPrice,
+      createdAt: serviceRequests.createdAt,
+      updatedAt: serviceRequests.updatedAt,
+      userId: serviceRequests.userId,
+      assignedArtisanId: serviceRequests.assignedArtisanId,
+    })
+    .from(serviceRequests)
+    .where(eq(serviceRequests.id, requestId))
+    .limit(1);
+
+  if (result.length === 0) {
+    return null;
+  }
+
+  const request = result[0];
+
+  // Get client info if userId exists
+  let client = null;
+  if (request.userId) {
+    const clientResult = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      })
+      .from(users)
+      .where(eq(users.id, request.userId))
+      .limit(1);
+    client = clientResult.length > 0 ? clientResult[0] : null;
+  }
+
+  // Get assigned artisan info if assignedArtisanId exists
+  let assignedArtisan = null;
+  if (request.assignedArtisanId) {
+    const artisanResult = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      })
+      .from(users)
+      .where(eq(users.id, request.assignedArtisanId))
+      .limit(1);
+    assignedArtisan = artisanResult.length > 0 ? artisanResult[0] : null;
+  }
+
+  // Get billing estimates
+  const estimates = await getBillingEstimatesByRequestId(requestId);
+  
+  // Get conversations
+  const conversationsData = await getConversationsByRequestId(requestId);
+
+  return {
+    ...request,
+    client,
+    assignedArtisan,
+    billingEstimates: estimates,
+    conversations: conversationsData,
+  };
+}
+
+export async function getConversationsByRequestId(serviceRequestId: number) {
+  return await db
+    .select({
+      id: conversations.id,
+      serviceRequestId: conversations.serviceRequestId,
+      senderId: conversations.senderId,
+      senderType: conversations.senderType,
+      message: conversations.message,
+      createdAt: conversations.createdAt,
+      readAt: conversations.readAt,
+      sender: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+    })
+    .from(conversations)
+    .leftJoin(users, eq(conversations.senderId, users.id))
+    .where(eq(conversations.serviceRequestId, serviceRequestId))
+    .orderBy(conversations.createdAt);
+}
+
+export async function createConversationMessage(messageData: {
+  serviceRequestId: number;
+  senderId: number;
+  senderType: 'client' | 'artisan' | 'admin';
+  message: string;
+}) {
+  const [message] = await db
+    .insert(conversations)
+    .values(messageData)
+    .returning();
+
+  return message;
+}
+
+export async function updateServiceRequest(requestId: number, updateData: Partial<{
+  title: string;
+  serviceType: string;
+  urgency: string;
+  description: string;
+  location: string;
+  locationHousenumber: string;
+  locationStreet: string;
+  locationPostcode: string;
+  locationCity: string;
+  locationCitycode: string;
+  locationDistrict: string;
+  locationCoordinates: string;
+  locationContext: string;
+  clientEmail: string;
+  clientPhone: string;
+  clientName: string;
+  status: ServiceRequestStatus;
+  assignedArtisanId: number;
+}>) {
+  const [updatedRequest] = await db
+    .update(serviceRequests)
+    .set({
+      ...updateData,
+      updatedAt: new Date()
+    })
+    .where(eq(serviceRequests.id, requestId))
+    .returning();
+
+  return updatedRequest;
 }

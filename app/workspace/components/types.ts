@@ -121,9 +121,19 @@ export type AdminStats = {
   pendingRequests: number;
   activeRequests: number;
   completedRequests: number;
+  disputedRequests: number;
   totalUsers: number;
   totalArtisans: number;
   totalClients: number;
   awaitingEstimateRequests: number;
   pendingEstimates: number;
+  totalEarnings: number; // In cents
+  requestsTimeSeriesData: Array<{
+    date: string;
+    count: number;
+  }>;
+  earningsTimeSeriesData: Array<{
+    date: string;
+    earnings: number; // In cents
+  }>;
 }; 

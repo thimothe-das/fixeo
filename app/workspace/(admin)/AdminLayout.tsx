@@ -42,25 +42,50 @@ import {
 } from "@/components/ui/sidebar";
 import useSWR from "swr";
 
-// Import the admin components
-import { AdminOverviewComponent } from "./AdminOverviewComponent";
-import { AdminRequestsComponent } from "./AdminRequestsComponent";
-import { AdminUsersComponent } from "./AdminUsersComponent";
-import { AdminStatsComponent } from "./AdminStatsComponent";
-import { AccountComponent } from "../components/AccountComponent";
-import { SubscriptionComponent } from "../components/SubscriptionComponent";
-
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 import type { ServiceRequestForAdmin, AdminStats } from "../components/types";
+import { Dashboard } from "../dashboard/@admin/Dashboard";
+import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 const sidebarItems = [
-  { title: "Vue d'ensemble", icon: Home, id: "dashboard" },
-  { title: "Demandes", icon: FileText, id: "requests" },
-  { title: "Utilisateurs", icon: Users, id: "users" },
-  { title: "Statistiques", icon: BarChart3, id: "stats" },
-  { title: "Mon compte", icon: User, id: "account" },
-  { title: "Abonnement", icon: CreditCard, id: "subscription" },
+  {
+    title: "Vue d'ensemble",
+    icon: Home,
+    id: "dashboard",
+    route: "dashboard",
+    disabled: false,
+  },
+  {
+    title: "Demandes",
+    icon: FileText,
+    id: "requests",
+    route: "requests",
+    disabled: false,
+  },
+  { title: "Utilisateurs", icon: Users, id: "users", route: "users" },
+  {
+    title: "Statistiques",
+    icon: BarChart3,
+    id: "stats",
+    route: "stats",
+    disabled: true,
+  },
+  {
+    title: "Mon compte",
+    icon: User,
+    id: "account",
+    route: "compte",
+    disabled: true,
+  },
+  {
+    title: "Abonnement",
+    icon: CreditCard,
+    id: "subscription",
+    route: "abonnement",
+    disabled: true,
+  },
 ];
 
 function ServiceRequestsListSkeleton() {
@@ -73,55 +98,10 @@ function ServiceRequestsListSkeleton() {
   );
 }
 
-export function AdminLayout() {
+export function AdminLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [activeSection, setActiveSection] = React.useState("dashboard");
-  const [isActive, setIsActive] = React.useState(true);
-
-  // Real API calls
-  const {
-    data: requests,
-    error: requestsError,
-    mutate: mutateRequests,
-  } = useSWR<ServiceRequestForAdmin[]>("/api/admin/service-requests", fetcher);
-  const { data: stats } = useSWR<AdminStats>("/api/admin/stats", fetcher);
-
-  const renderContent = () => {
-    switch (activeSection) {
-      case "dashboard":
-        return (
-          <AdminOverviewComponent
-            stats={stats}
-            recentRequests={requests || []}
-            onNavigateToSection={setActiveSection}
-          />
-        );
-      case "requests":
-        return (
-          <AdminRequestsComponent
-            requests={requests || []}
-            onRequestsUpdate={mutateRequests}
-          />
-        );
-      case "users":
-        return <AdminUsersComponent />;
-      case "stats":
-        return <AdminStatsComponent stats={stats} />;
-      case "account":
-        return (
-          <AccountComponent isActive={isActive} setIsActive={setIsActive} />
-        );
-      case "subscription":
-        return <SubscriptionComponent />;
-      default:
-        return (
-          <AdminOverviewComponent
-            stats={stats}
-            recentRequests={requests || []}
-            onNavigateToSection={setActiveSection}
-          />
-        );
-    }
-  };
+  const pathname = usePathname();
 
   return (
     <SidebarProvider>
@@ -146,9 +126,10 @@ export function AdminLayout() {
                   {sidebarItems.map((item) => (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
-                        onClick={() => setActiveSection(item.id)}
-                        isActive={activeSection === item.id}
-                        className="w-full justify-start"
+                        disabled={item.disabled}
+                        onClick={() => router.push(`/workspace/${item.route}`)}
+                        isActive={pathname === `/workspace/${item.route}`}
+                        className="w-full justify-start cursor-pointer"
                       >
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
@@ -217,9 +198,9 @@ export function AdminLayout() {
             </div>
           </header>
 
-          <main className="flex-1 p-6 overflow-auto">
+          <main className="flex-1 overflow-auto">
             <Suspense fallback={<ServiceRequestsListSkeleton />}>
-              {renderContent()}
+              {children}
             </Suspense>
           </main>
         </SidebarInset>

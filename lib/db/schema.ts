@@ -33,6 +33,13 @@ export const billingEstimateStatusEnum = pgEnum('billing_estimate_status', [
   'expired'     // Estimate validity period has expired
 ]);
 
+// Message Sender Type Enum
+export const messageSenderTypeEnum = pgEnum('message_sender_type', [
+  'client',
+  'artisan',
+  'admin'
+]);
+
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }),
@@ -147,6 +154,70 @@ export const professionalProfiles = pgTable('professional_profiles', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+// Service requests table for handling client service requests
+export const serviceRequests = pgTable('service_requests', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 100 }),
+  serviceType: varchar('service_type', { length: 50 }).notNull(),
+  urgency: varchar('urgency', { length: 20 }).notNull(),
+  description: text('description').notNull(),
+  location: text('location').notNull(),
+  // Structured address fields for intervention location
+  locationHousenumber: varchar('location_housenumber', { length: 10 }),
+  locationStreet: varchar('location_street', { length: 255 }),
+  locationPostcode: varchar('location_postcode', { length: 10 }),
+  locationCity: varchar('location_city', { length: 100 }),
+  locationCitycode: varchar('location_citycode', { length: 10 }),
+  locationDistrict: varchar('location_district', { length: 100 }),
+  locationCoordinates: varchar('location_coordinates', { length: 50 }), // "lat,lng"
+  locationContext: text('location_context'),
+  photos: text('photos'), // JSON array of photo URLs
+  clientEmail: varchar('client_email', { length: 255 }),
+  clientPhone: varchar('client_phone', { length: 20 }),
+  clientName: varchar('client_name', { length: 100 }),
+  userId: integer('user_id').references(() => users.id), // If user is logged in
+  guestToken: varchar('guest_token', { length: 36 }).unique(), // UUID v4 for guest tracking
+  status: serviceRequestStatusEnum('status').notNull().default('awaiting_estimate'),
+  assignedArtisanId: integer('assigned_artisan_id').references(() => users.id),
+  estimatedPrice: integer('estimated_price'), // In cents
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Billing estimates table for admin-created estimates
+export const billingEstimates = pgTable('billing_estimates', {
+  id: serial('id').primaryKey(),
+  serviceRequestId: integer('service_request_id')
+    .notNull()
+    .references(() => serviceRequests.id),
+  adminId: integer('admin_id')
+    .notNull()
+    .references(() => users.id),
+  estimatedPrice: integer('estimated_price').notNull(), // In cents
+  description: text('description').notNull(),
+  breakdown: text('breakdown'), // JSON array of cost breakdown items
+  validUntil: timestamp('valid_until'),
+  status: billingEstimateStatusEnum('status').notNull().default('pending'),
+  clientResponse: text('client_response'), // Client's message when accepting/rejecting
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Conversations table for messages between clients and artisans
+export const conversations = pgTable('conversations', {
+  id: serial('id').primaryKey(),
+  serviceRequestId: integer('service_request_id')
+    .notNull()
+    .references(() => serviceRequests.id),
+  senderId: integer('sender_id')
+    .notNull()
+    .references(() => users.id),
+  senderType: messageSenderTypeEnum('sender_type').notNull(),
+  message: text('message').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  readAt: timestamp('read_at'),
+});
+
 export const teamsRelations = relations(teams, ({ many }) => ({
   teamMembers: many(teamMembers),
   activityLogs: many(activityLogs),
@@ -160,6 +231,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   assignedServiceRequests: many(serviceRequests, {
     relationName: 'assignedArtisan',
   }),
+  sentMessages: many(conversations),
   clientProfile: one(clientProfiles, {
     fields: [users.id],
     references: [clientProfiles.userId],
@@ -217,55 +289,6 @@ export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
   }),
 }));
 
-// Service requests table for handling client service requests
-export const serviceRequests = pgTable('service_requests', {
-  id: serial('id').primaryKey(),
-  title: varchar('title', { length: 100 }),
-  serviceType: varchar('service_type', { length: 50 }).notNull(),
-  urgency: varchar('urgency', { length: 20 }).notNull(),
-  description: text('description').notNull(),
-  location: text('location').notNull(),
-  // Structured address fields for intervention location
-  locationHousenumber: varchar('location_housenumber', { length: 10 }),
-  locationStreet: varchar('location_street', { length: 255 }),
-  locationPostcode: varchar('location_postcode', { length: 10 }),
-  locationCity: varchar('location_city', { length: 100 }),
-  locationCitycode: varchar('location_citycode', { length: 10 }),
-  locationDistrict: varchar('location_district', { length: 100 }),
-  locationCoordinates: varchar('location_coordinates', { length: 50 }), // "lat,lng"
-  locationContext: text('location_context'),
-  photos: text('photos'), // JSON array of photo URLs
-  clientEmail: varchar('client_email', { length: 255 }),
-  clientPhone: varchar('client_phone', { length: 20 }),
-  clientName: varchar('client_name', { length: 100 }),
-  userId: integer('user_id').references(() => users.id), // If user is logged in
-  guestToken: varchar('guest_token', { length: 36 }).unique(), // UUID v4 for guest tracking
-  status: serviceRequestStatusEnum('status').notNull().default('awaiting_estimate'),
-  assignedArtisanId: integer('assigned_artisan_id').references(() => users.id),
-  estimatedPrice: integer('estimated_price'), // In cents
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
-
-// Billing estimates table for admin-created estimates
-export const billingEstimates = pgTable('billing_estimates', {
-  id: serial('id').primaryKey(),
-  serviceRequestId: integer('service_request_id')
-    .notNull()
-    .references(() => serviceRequests.id),
-  adminId: integer('admin_id')
-    .notNull()
-    .references(() => users.id),
-  estimatedPrice: integer('estimated_price').notNull(), // In cents
-  description: text('description').notNull(),
-  breakdown: text('breakdown'), // JSON array of cost breakdown items
-  validUntil: timestamp('valid_until'),
-  status: billingEstimateStatusEnum('status').notNull().default('pending'),
-  clientResponse: text('client_response'), // Client's message when accepting/rejecting
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
-
 export const serviceRequestsRelations = relations(serviceRequests, ({ one, many }) => ({
   user: one(users, {
     fields: [serviceRequests.userId],
@@ -276,6 +299,7 @@ export const serviceRequestsRelations = relations(serviceRequests, ({ one, many 
     references: [users.id],
   }),
   billingEstimates: many(billingEstimates),
+  conversations: many(conversations),
 }));
 
 export const billingEstimatesRelations = relations(billingEstimates, ({ one }) => ({
@@ -285,6 +309,17 @@ export const billingEstimatesRelations = relations(billingEstimates, ({ one }) =
   }),
   admin: one(users, {
     fields: [billingEstimates.adminId],
+    references: [users.id],
+  }),
+}));
+
+export const conversationsRelations = relations(conversations, ({ one }) => ({
+  serviceRequest: one(serviceRequests, {
+    fields: [conversations.serviceRequestId],
+    references: [serviceRequests.id],
+  }),
+  sender: one(users, {
+    fields: [conversations.senderId],
     references: [users.id],
   }),
 }));
@@ -307,6 +342,8 @@ export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type NewServiceRequest = typeof serviceRequests.$inferInsert;
 export type BillingEstimate = typeof billingEstimates.$inferSelect;
 export type NewBillingEstimate = typeof billingEstimates.$inferInsert;
+export type Conversation = typeof conversations.$inferSelect;
+export type NewConversation = typeof conversations.$inferInsert;
 export type TeamDataWithMembers = Team & {
   teamMembers: (TeamMember & {
     user: Pick<User, 'id' | 'name' | 'email'>;
@@ -355,4 +392,10 @@ export enum BillingEstimateStatus {
   ACCEPTED = 'accepted',
   REJECTED = 'rejected',
   EXPIRED = 'expired'
+}
+
+export enum MessageSenderType {
+  CLIENT = 'client',
+  ARTISAN = 'artisan',
+  ADMIN = 'admin'
 }
