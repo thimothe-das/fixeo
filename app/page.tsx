@@ -480,6 +480,7 @@ export default function FixeoHomePage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
+                        {console.log(guestTokens)}
                         {guestTokens.map((token, index) => (
                           <a
                             key={token.token}

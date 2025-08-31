@@ -10,15 +10,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
 import { ServiceRequestStatus } from "@/lib/db/schema";
-import { getCategoryConfig, getStatusConfig } from "@/lib/utils";
+import {
+  cn,
+  getCategoryConfig,
+  getStatusConfig,
+  getPriorityConfig,
+} from "@/lib/utils";
 import {
   AlertTriangle,
   Camera,
   Euro,
   Eye,
+  FileText,
   MapPin,
+  Navigation,
   ThumbsUp,
+  ThumbsDown,
+  MessageCircle,
   User,
   Wrench,
 } from "lucide-react";
@@ -35,7 +63,16 @@ export default function Jobs({ assignedRequests }: JobsProps) {
   const router = useRouter();
   const [filterStatus, setFilterStatus] = useState("all");
   const [missionsSortBy, setMissionsSortBy] = useState("date");
-  useState<ServiceRequestForArtisan | null>(null);
+
+  // Validation and dispute states
+  const [selectedMission, setSelectedMission] =
+    useState<ServiceRequestForArtisan | null>(null);
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
+  const [showDisputeDialog, setShowDisputeDialog] = useState(false);
+  const [validationType, setValidationType] = useState<"approve" | "dispute">(
+    "approve"
+  );
+  const [isSubmittingValidation, setIsSubmittingValidation] = useState(false);
 
   const statusOptions = [
     {
@@ -49,6 +86,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
       count: assignedRequests.filter(
         (m) => m.status === ServiceRequestStatus.IN_PROGRESS
       ).length,
+      color: "bg-blue-100 text-blue-700 ring-1 ring-blue-200",
     },
     {
       value: "completed",
@@ -56,6 +94,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
       count: assignedRequests.filter(
         (m) => m.status === ServiceRequestStatus.COMPLETED
       ).length,
+      color: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
     },
     {
       value: "validation-needed",
@@ -63,6 +102,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
       count: assignedRequests.filter(
         (m) => m.status === ServiceRequestStatus.CLIENT_VALIDATED
       ).length,
+      color: "bg-orange-100 text-orange-700 ring-1 ring-orange-200",
     },
     {
       value: "disputed",
@@ -73,6 +113,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
           m.status === ServiceRequestStatus.DISPUTED_BY_ARTISAN ||
           m.status === ServiceRequestStatus.DISPUTED_BY_BOTH
       ).length,
+      color: "bg-red-100 text-red-700 ring-1 ring-red-200",
     },
   ];
 
@@ -127,56 +168,46 @@ export default function Jobs({ assignedRequests }: JobsProps) {
       }
     });
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; color: string }> = {
-      [ServiceRequestStatus.IN_PROGRESS]: {
-        label: "En cours",
-        color: "text-orange-600 border-orange-200 bg-orange-50",
-      },
-      accepted: {
-        label: "Validation mutuelle requise",
-        color: "text-purple-600 border-purple-200 bg-purple-50",
-      },
-      completed: {
-        label: "Terminée",
-        color: "text-green-600 border-green-200 bg-green-50",
-      },
-      awaiting_validation: {
-        label: "A valider",
-        color: "text-purple-600 border-purple-200 bg-purple-50",
-      },
-      client_validated: {
-        label: "À valider",
-        color: "text-cyan-600 border-cyan-200 bg-cyan-50",
-      },
-      artisan_validated: {
-        label: "Validée",
-        color: "text-indigo-600 border-indigo-200 bg-indigo-50",
-      },
-      disputed_by_client: {
-        label: "Litige client",
-        color: "text-red-600 border-red-200 bg-red-50",
-      },
-      disputed_by_artisan: {
-        label: "Litige artisan",
-        color: "text-orange-600 border-orange-200 bg-orange-50",
-      },
-      disputed_by_both: {
-        label: "Litige des deux parties",
-        color: "text-purple-600 border-purple-200 bg-purple-50",
-      },
-      completed_with_issues: {
-        label: "Terminée avec problèmes",
-        color: "text-red-600 border-red-200 bg-red-50",
-      },
-      could_not_complete: {
-        label: "Non réalisable",
-        color: "text-gray-600 border-gray-200 bg-gray-50",
-      },
-    };
+  // Validation and dispute handlers
+  const handleValidateCompletion = async () => {
+    if (!selectedMission) return;
 
-    const config = statusConfig[status] || statusConfig.scheduled;
-    return <Badge className={config.color}>{config.label}</Badge>;
+    setIsSubmittingValidation(true);
+    try {
+      const response = await fetch(
+        `/api/service-requests/${selectedMission.id}/validate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: validationType,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        setShowValidationDialog(false);
+        setShowDisputeDialog(false);
+        resetValidationForm();
+        // Refresh the page to get updated data
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        alert(`Erreur: ${error.error}`);
+      }
+    } catch (error) {
+      console.error("Error validating completion:", error);
+      alert("Erreur lors de la validation");
+    } finally {
+      setIsSubmittingValidation(false);
+    }
+  };
+
+  const resetValidationForm = () => {
+    setValidationType("approve");
+    setSelectedMission(null);
   };
 
   const MissionCard = useMemo(
@@ -185,141 +216,226 @@ export default function Jobs({ assignedRequests }: JobsProps) {
         const photos = mission.photos ? JSON.parse(mission.photos) : [];
         const categoryConfig = getCategoryConfig(
           mission.serviceType,
-          "h-5 w-5"
+          "h-5 w-5 "
         );
-        const statusConfig = getStatusConfig(mission.status);
+        const statusConfig = getStatusConfig(mission.status, "h-4 w-4");
+
+        // Mock data for unread messages and timeline progress
+        const unreadMessages = Math.floor(Math.random() * 4); // 0-3 unread messages
+        const timelineProgress = Math.floor(Math.random() * 4) + 1; // 1-4 completed steps out of 4
+        const totalSteps = 4;
+
         return (
           <Card
-            className={`${statusConfig.borderTop} rounded-none bord shadow-sm overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 border-t-4`}
+            className={cn(
+              `!h-fit rounded-none bord shadow-sm overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 border-t-4`,
+              mission.status !== ServiceRequestStatus.DISPUTED_BY_CLIENT &&
+                mission.status !== ServiceRequestStatus.DISPUTED_BY_ARTISAN &&
+                mission.status !== ServiceRequestStatus.DISPUTED_BY_BOTH
+                ? statusConfig.borderTop
+                : "border-t-0"
+            )}
             onClick={() => router.push(`/workspace/jobs/${mission.id}`)}
           >
-            <CardContent>
-              <div className="flex flex-col space-y-4">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4 ">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {mission.title}
-                      </h3>
-                    </div>
+            {/* Dispute Banner */}
+            {(mission.status === ServiceRequestStatus.DISPUTED_BY_CLIENT ||
+              mission.status === ServiceRequestStatus.DISPUTED_BY_ARTISAN ||
+              mission.status === ServiceRequestStatus.DISPUTED_BY_BOTH) && (
+              <div className="-mt-6 relative bg-gradient-to-r from-red-500 via-red-600 to-red-700 text-white px-4 py-3 shadow-2xl shadow-red-500/25 overflow-hidden">
+                {/* Animated background elements */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/8 to-transparent animate-pulse"></div>
+                <div className="absolute top-0 right-0 w-8 h-8 bg-white/10 rounded-bl-full"></div>
 
-                    <p className="text-sm text-gray-500">
-                      Créé le{" "}
-                      {moment(mission.createdAt).format("DD/MM/YYYY à HH:mm")}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end space-y-2 text-nowrap">
-                    {getStatusBadge(mission.status)}
+                <div className="relative z-10 flex items-center justify-between">
+                  {/* Left side - Enhanced alert section */}
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <AlertTriangle className="h-4 w-4 text-white drop-shadow-sm" />
+                      <div className="absolute -inset-0.5 bg-white/30 rounded-full animate-ping"></div>
+                    </div>
+                    <div>
+                      <span className="font-bold text-white text-xs tracking-wide uppercase drop-shadow-sm">
+                        Litige en cours
+                      </span>
+                      <div className="text-white/90 text-[10px] font-medium">
+                        Réponse sous 48h
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </div>
+            )}
 
-                {/* Date and Location */}
-                <div className="space-y-3 py-3">
-                  <div className={`flex items-center text-sm  w-fit`}>
-                    {categoryConfig.icon}
-                    <span className={`ml-4 font-small p-1`}>
-                      {mission.serviceType.toUpperCase()}
-                    </span>
+            <CardContent>
+              <div className="flex flex-col space-y-3">
+                {/* Compact Header with Price and Status */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Badge
+                      className={`${statusConfig.color} shrink-0 text-xs font-medium`}
+                    >
+                      {statusConfig.icon}
+                      {statusConfig.label}
+                    </Badge>
+                    {unreadMessages > 0 && (
+                      <div className="relative flex items-center shrink-0">
+                        <MessageCircle className="h-5 w-5 text-gray-600" />
+                        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg border-2 border-white">
+                          {unreadMessages}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="h-5 w-5 text-gray-500 mr-4" />
-                    <span>{mission.location}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <User className="h-5 w-5 text-gray-500 mr-4 font-bold" />
-                    <span>
-                      {mission.clientName || "Nom du client non disponible"}
-                    </span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Euro className="h-5 w-5 text-gray-500 mr-4" />
-                    <span className="font-bold">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-lg font-bold text-gray-900">
                       {mission.estimatedPrice
                         ? (mission.estimatedPrice / 100).toFixed(2)
-                        : "Prix non disponible"}
+                        : "N/A"}
                       €
                     </span>
                   </div>
                 </div>
 
-                {/* Description */}
-                <p className="text-sm text-gray-700 mb-4 line-clamp-2 leading-relaxed">
-                  {mission.description || "Aucune description"}
-                </p>
+                {/* Title and Category */}
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 leading-5 mb-1">
+                    {mission.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 flex items-center gap-1">
+                    {categoryConfig.icon} {categoryConfig.type}
+                  </p>
+                </div>
 
-                {/* Photos */}
-                <div className="flex items-center space-x-2 mb-4">
-                  {photos && photos.length > 0 ? (
-                    <>
-                      {photos
-                        .slice(0, 3)
-                        .map((photo: string, index: number) => (
-                          <img
-                            key={index}
-                            src={photo || "/placeholder.svg"}
-                            alt={`Photo ${index + 1}`}
-                            className="w-16 h-16 rounded-lg object-cover"
-                          />
-                        ))}
-                      {photos.length > 3 && (
-                        <div className="text-xs text-gray-500">
-                          +{photos.length - 3}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Camera className="h-6 w-6 text-gray-400" />
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        Aucune photo
-                      </span>
+                {/* Timeline Progress */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Progression:</span>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalSteps }).map((_, index) => (
+                      <div
+                        key={index}
+                        className={cn(
+                          "w-2 h-2 rounded-full",
+                          index < timelineProgress
+                            ? "bg-emerald-500"
+                            : "bg-gray-200"
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {timelineProgress}/{totalSteps}
+                  </span>
+                </div>
+
+                {/* Location and Client Info */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="flex items-center flex-1 min-w-0">
+                      <MapPin className="h-4 w-4 text-gray-500 mr-3 shrink-0" />
+                      <span className="truncate">{mission.location}</span>
                     </div>
-                  )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 shrink-0 ml-2 hover:bg-blue-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const encodedLocation = encodeURIComponent(
+                          mission.location
+                        );
+                        // For mobile devices, use the universal maps URL that works with most map apps
+                        const mapsUrl = `https://maps.google.com/maps?q=${encodedLocation}`;
+                        window.open(mapsUrl, "_blank");
+                      }}
+                      title="Navigate to location"
+                    >
+                      <Navigation className="h-4 w-4 text-blue-600" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <User className="h-4 w-4 text-gray-500 mr-3" />
+                    <span className="truncate">
+                      {mission.clientName || "Nom du client non disponible"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Compact Description and Photos */}
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-700 line-clamp-1 leading-relaxed">
+                    {mission.description || "Aucune description"}
+                  </p>
+
+                  {/* Compact Photos */}
+                  <div className="flex items-center gap-2">
+                    {photos && photos.length > 0 ? (
+                      <>
+                        <div className="flex -space-x-1">
+                          {photos
+                            .slice(0, 2)
+                            .map((photo: string, index: number) => (
+                              <img
+                                key={index}
+                                src={photo || "/placeholder.svg"}
+                                alt={`Photo ${index + 1}`}
+                                className="w-8 h-8 rounded border-2 border-white object-cover"
+                              />
+                            ))}
+                        </div>
+                        {photos.length > 2 && (
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            +{photos.length - 2} photos
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Camera className="h-4 w-4 text-gray-400" />
+                        <span className="text-xs text-gray-500">
+                          Aucune photo
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="flex space-x-2 w-full">
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                  <div className="flex space-x-2 w-full justify-between items-center">
                     {/* Validation buttons for specific statuses */}
-                    {(mission.status === "in-progress" ||
-                      mission.status === "client_validated") && (
-                      <div className="flex space-x-2 w-full">
+                    {mission.status === ServiceRequestStatus.IN_PROGRESS ||
+                    mission.status === ServiceRequestStatus.CLIENT_VALIDATED ? (
+                      <div className="flex gap-3 w-full">
                         <Button
-                          size="sm"
-                          className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-medium"
+                          className="flex-1 h-11 bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-sm touch-manipulation"
                           onClick={(e) => {
                             e.stopPropagation();
+                            setSelectedMission(mission);
+                            setValidationType("approve");
+                            setShowValidationDialog(true);
                           }}
                         >
-                          <ThumbsUp className="h-4 w-4 mr-1" />
+                          <ThumbsUp className="h-4 w-4 mr-2" />
                           Valider
                         </Button>
                         <Button
                           variant="outline"
-                          size="sm"
-                          className="flex-1 border-red-300 text-red-600 hover:bg-red-50 font-medium"
+                          className="flex-1 h-11 border-red-300 text-red-600 hover:bg-red-50 font-medium text-sm touch-manipulation"
                           onClick={(e) => {
                             e.stopPropagation();
-                            router.push(`/workspace/jobs/${mission.id}`);
+                            setSelectedMission(mission);
+                            setValidationType("dispute");
+                            setShowDisputeDialog(true);
                           }}
                         >
-                          <AlertTriangle className="h-4 w-4 mr-1" />
+                          <AlertTriangle className="h-4 w-4 mr-2" />
                           Contester
                         </Button>
                       </div>
-                    )}
-
-                    {/* View details button for other statuses */}
-                    {!["in-progress", "client_validated"].includes(
-                      mission.status
-                    ) && (
+                    ) : (
                       <Button
                         variant="outline"
-                        size="sm"
-                        className="w-full bg-transparent hover:bg-gray-50 border-gray-200"
+                        className="w-full h-11 bg-transparent hover:bg-gray-50 border-gray-200 font-medium text-sm touch-manipulation"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/workspace/jobs/${mission.id}`);
@@ -378,7 +494,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
             className="flex items-center gap-2"
           >
             {status.label}
-            <Badge variant="secondary" className="ml-1">
+            <Badge variant="secondary" className={`ml-1 ${status.color}`}>
               {status.count}
             </Badge>
           </Button>
@@ -387,7 +503,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
 
       {/* Missions List */}
       {filteredMissions.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {filteredMissions.map((mission) => (
             <MissionCard key={mission.id} mission={mission} />
           ))}
@@ -407,6 +523,98 @@ export default function Jobs({ assignedRequests }: JobsProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Validation Success Dialog */}
+      <Dialog
+        open={showValidationDialog}
+        onOpenChange={setShowValidationDialog}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ThumbsUp className="h-5 w-5 text-green-600" />
+              Valider la mission
+            </DialogTitle>
+            <DialogDescription>
+              Confirmez que les travaux ont été réalisés de manière
+              satisfaisante.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-700 font-medium">
+                ✓ Mission validée avec succès
+              </p>
+              <p className="text-xs text-green-600 mt-1">
+                Le client sera notifié de votre validation et le paiement sera
+                déclenché.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowValidationDialog(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleValidateCompletion}
+              disabled={isSubmittingValidation}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isSubmittingValidation
+                ? "En cours..."
+                : "Confirmer la validation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dispute Dialog */}
+      <Dialog open={showDisputeDialog} onOpenChange={setShowDisputeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ThumbsDown className="h-5 w-5 text-red-600" />
+              Contester la mission
+            </DialogTitle>
+            <DialogDescription>
+              Confirmez que vous souhaitez contester cette mission.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700 font-medium">
+                ⚠️ Litige signalé
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                Un litige sera ouvert et notre équipe examinera la situation. Le
+                paiement sera suspendu en attendant la résolution.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDisputeDialog(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleValidateCompletion}
+              disabled={isSubmittingValidation}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isSubmittingValidation ? "En cours..." : "Confirmer le litige"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

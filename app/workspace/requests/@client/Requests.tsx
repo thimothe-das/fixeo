@@ -421,8 +421,6 @@ function RequestCard({
   const [validationType, setValidationType] = React.useState<
     "approve" | "dispute"
   >("approve");
-  const [disputeReason, setDisputeReason] = React.useState("");
-  const [disputeDetails, setDisputeDetails] = React.useState("");
   const [isSubmittingValidation, setIsSubmittingValidation] =
     React.useState(false);
 
@@ -847,10 +845,6 @@ function RequestCard({
           },
           body: JSON.stringify({
             action: validationType,
-            disputeReason:
-              validationType === "dispute" ? disputeReason : undefined,
-            disputeDetails:
-              validationType === "dispute" ? disputeDetails : undefined,
           }),
         }
       );
@@ -874,8 +868,6 @@ function RequestCard({
 
   const resetValidationForm = () => {
     setValidationType("approve");
-    setDisputeReason("");
-    setDisputeDetails("");
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -1400,58 +1392,16 @@ function RequestCard({
               Contester la mission
             </DialogTitle>
             <DialogDescription>
-              Signalez un problème avec la réalisation de cette mission.
+              Confirmez que vous souhaitez contester cette mission.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Motif du litige *
-              </label>
-              <Select value={disputeReason} onValueChange={setDisputeReason}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez le motif principal" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="work_not_completed">
-                    Travail non terminé
-                  </SelectItem>
-                  <SelectItem value="poor_quality">Mauvaise qualité</SelectItem>
-                  <SelectItem value="damage_caused">Dommages causés</SelectItem>
-                  <SelectItem value="not_as_requested">
-                    Pas conforme à la demande
-                  </SelectItem>
-                  <SelectItem value="artisan_no_show">
-                    Artisan ne s'est pas présenté
-                  </SelectItem>
-                  <SelectItem value="additional_charges">
-                    Frais supplémentaires non convenus
-                  </SelectItem>
-                  <SelectItem value="unprofessional_conduct">
-                    Comportement non professionnel
-                  </SelectItem>
-                  <SelectItem value="other">Autre problème</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Description détaillée *
-              </label>
-              <Textarea
-                placeholder="Décrivez précisément le problème rencontré..."
-                value={disputeDetails}
-                onChange={(e) => setDisputeDetails(e.target.value)}
-                rows={4}
-                required
-              />
-            </div>
-
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-700 font-medium">⚠️ Attention</p>
-              <p className="text-xs text-amber-600 mt-1">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700 font-medium">
+                ⚠️ Litige signalé
+              </p>
+              <p className="text-xs text-red-600 mt-1">
                 Un litige sera ouvert et notre équipe examinera la situation. Le
                 paiement sera suspendu en attendant la résolution.
               </p>
@@ -1467,14 +1417,10 @@ function RequestCard({
             </Button>
             <Button
               onClick={handleValidateCompletion}
-              disabled={
-                isSubmittingValidation ||
-                !disputeReason ||
-                !disputeDetails.trim()
-              }
+              disabled={isSubmittingValidation}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isSubmittingValidation ? "En cours..." : "Signaler le problème"}
+              {isSubmittingValidation ? "En cours..." : "Confirmer le litige"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,22 +1,23 @@
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { ServiceRequestStatus } from "./db/schema";
 import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Cog,
+  Fence,
+  Flag,
   LucideWrench,
   PaintBucket,
+  PiIcon,
   Settings,
-  Zap,
-  Laptop,
-  Hammer,
-  Car,
-  Wifi,
-  Home,
+  UserCheck,
   Wrench,
-  AlertCircle,
-  Shield,
-  Fence,
-  Cog,
+  XCircle,
+  Zap,
 } from "lucide-react";
+import { twMerge } from "tailwind-merge";
+import { ServiceRequestStatus } from "./db/schema";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -31,79 +32,132 @@ export enum ServiceType {
   RENOVATION = "renovation",
 }
 
-export const getStatusConfig = (status: string) => {
+export const getStatusConfig = (status: string, iconClassName: string) => {
   switch (status) {
     case ServiceRequestStatus.AWAITING_ESTIMATE:
       return {
         color: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
         label: "En attente de devis",
         borderTop: "border-t-slate-200",
+        icon: (
+          <Clock className={cn("mr-2 h-5 w-5 text-gray-500", iconClassName)} />
+        ),
       };
     case ServiceRequestStatus.AWAITING_ASSIGNATION:
       return {
         color: "bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200",
         label: "En attente d'assignation",
         borderTop: "border-t-yellow-200",
+        icon: (
+          <Clock
+            className={cn("mr-2 h-5 w-5 text-yellow-500", iconClassName)}
+          />
+        ),
       };
     case ServiceRequestStatus.IN_PROGRESS:
       return {
         color: "bg-blue-100 text-blue-700 ring-1 ring-blue-200",
         label: "En cours",
         borderTop: "border-t-blue-600",
+        icon: (
+          <Clock className={cn("mr-2 h-5 w-5 text-blue-500", iconClassName)} />
+        ),
       };
     case ServiceRequestStatus.CLIENT_VALIDATED:
       return {
-        color: "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200",
-        label: "Client validé",
+        color: "bg-orange-100 text-orange-700 ring-1 ring-orange-200",
+        label: "À valider",
         borderTop: "border-t-orange-500",
+        icon: (
+          <Flag className={cn("mr-2 h-5 w-5 text-orange-500", iconClassName)} />
+        ),
       };
     case ServiceRequestStatus.ARTISAN_VALIDATED:
       return {
         color: "bg-cyan-100 text-cyan-700 ring-1 ring-cyan-200",
-        label: "Artisan validé",
+        label: "Validée",
         borderTop: "border-t-cyan-800",
+        icon: (
+          <UserCheck
+            className={cn("mr-2 h-5 w-5 text-cyan-500", iconClassName)}
+          />
+        ),
       };
     case ServiceRequestStatus.COMPLETED:
       return {
         color: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
         label: "Terminée",
         borderTop: "border-t-green-500",
+        icon: (
+          <CheckCircle
+            className={cn("mr-2 h-5 w-5 text-emerald-500", iconClassName)}
+          />
+        ),
       };
     case ServiceRequestStatus.DISPUTED_BY_CLIENT:
       return {
         color: "bg-red-100 text-red-700 ring-1 ring-red-200",
         label: "Litige client",
         borderTop: "border-t-red-500",
+        icon: (
+          <AlertTriangle
+            className={cn("mr-2  h-5 w-5 text-red-500", iconClassName)}
+          />
+        ),
       };
     case ServiceRequestStatus.DISPUTED_BY_ARTISAN:
       return {
         color: "bg-orange-100 text-orange-700 ring-1 ring-orange-200",
         label: "Litige artisan",
         borderTop: "border-t-red-500",
+        icon: (
+          <AlertCircle
+            className={cn("mr-2 h-5 w-5 text-red-500", iconClassName)}
+          />
+        ),
       };
     case ServiceRequestStatus.DISPUTED_BY_BOTH:
       return {
         color: "bg-purple-100 text-purple-700 ring-1 ring-purple-200",
         label: "Litige des deux parties",
         borderTop: "border-t-red-500",
+        icon: (
+          <AlertCircle
+            className={cn("mr-2 h-5 w-5 text-red-500", iconClassName)}
+          />
+        ),
       };
     case ServiceRequestStatus.RESOLVED:
       return {
         color: "bg-green-100 text-green-700 ring-1 ring-green-200",
         label: "Litige résolu",
         borderTop: "border-t-green-800",
+        icon: (
+          <CheckCircle
+            className={cn("mr-2 h-5 w-5 text-green-500", iconClassName)}
+          />
+        ),
       };
     case ServiceRequestStatus.CANCELLED:
       return {
         color: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
         label: "Annulée",
         borderTop: "",
+        icon: (
+          <XCircle
+            className={cn("mr-2 h-5 w-5 text-gray-500", iconClassName)}
+          />
+        ),
       };
 
     default:
       return {
         color: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
         label: status,
+        borderTop: "border-t-gray-400",
+        icon: (
+          <PiIcon className={cn("mt-2 h-5 w-5 text-gray-500", iconClassName)} />
+        ),
       };
   }
 };
@@ -161,7 +215,7 @@ export const getCategoryConfig = (
 ) => {
   if (serviceType === ServiceType.PLOMBERIE) {
     return {
-      type: ServiceType.PLOMBERIE,
+      type: "Plomberie",
       icon: <LucideWrench className={cn("text-blue-700", iconClassName)} />,
       colors: {
         color: "blue-500",
@@ -174,7 +228,7 @@ export const getCategoryConfig = (
     };
   } else if (serviceType === ServiceType.ELECTRICITE) {
     return {
-      type: ServiceType.ELECTRICITE,
+      type: "Electricité",
       icon: <Zap className={cn("text-amber-700", iconClassName)} />,
       colors: {
         color: "yellow-700",
@@ -187,7 +241,7 @@ export const getCategoryConfig = (
     };
   } else if (serviceType === ServiceType.PEINTURE) {
     return {
-      type: ServiceType.PEINTURE,
+      type: "Peinture",
       icon: <PaintBucket className={cn("text-violet-700", iconClassName)} />,
       colors: {
         color: "violet-500",
@@ -200,7 +254,7 @@ export const getCategoryConfig = (
     };
   } else if (serviceType === ServiceType.MENUISERIE) {
     return {
-      type: ServiceType.MENUISERIE,
+      type: "Menuiserie",
       icon: <Fence className={cn("text-yellow-950", iconClassName)} />,
       colors: {
         color: "yellow-950",
@@ -213,7 +267,7 @@ export const getCategoryConfig = (
     };
   } else if (serviceType === ServiceType.RENOVATION) {
     return {
-      type: ServiceType.RENOVATION,
+      type: "Rénovation",
       icon: <Settings className={cn("text-orange-700", iconClassName)} />,
       colors: {
         color: "orange-500",
@@ -226,7 +280,7 @@ export const getCategoryConfig = (
     };
   } else if (serviceType === ServiceType.DEPANNAGE) {
     return {
-      type: ServiceType.DEPANNAGE,
+      type: "Dépannage",
       icon: <Cog className={cn("text-gray-700", iconClassName)} />,
       colors: {
         color: "gray-500",
@@ -239,7 +293,7 @@ export const getCategoryConfig = (
     };
   } else {
     return {
-      type: "default",
+      type: "Autre",
       icon: <Wrench className={cn("text-slate-700", iconClassName)} />,
       colors: {
         color: "slate-500",

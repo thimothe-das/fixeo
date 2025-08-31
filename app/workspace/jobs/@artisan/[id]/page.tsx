@@ -40,12 +40,12 @@ import {
   CheckCircle,
   Clock,
   Cog,
-  Euro,
   Eye,
   Fence,
   Hammer,
   Home,
   MapPin,
+  Megaphone,
   MessageSquare,
   Paintbrush,
   Send,
@@ -56,12 +56,16 @@ import {
   Wrench,
   XCircle,
   Zap,
+  FileText,
+  Navigation,
+  Phone,
 } from "lucide-react";
 import moment from "moment";
 import { useState } from "react";
 import { ServiceRequestForArtisan } from "../../../components/types";
 import useSWR from "swr";
 import { useParams } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function Job() {
@@ -75,6 +79,21 @@ export default function Job() {
     useState<ServiceRequestForArtisan | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
+
+  // Quick Actions States
+  const [showQuickActions, setShowQuickActions] = useState(true);
+
+  // Mobile and UI States
+  const isMobile = useIsMobile();
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
+    null
+  );
+  const [showMobileActions, setShowMobileActions] = useState(false);
+  const [activeTab, setActiveTab] = useState<"mission" | "chat">("mission");
+
+  // Chat notification states
+  const [unreadMessageCount, setUnreadMessageCount] = useState(3); // Fake data for now
+  const [hasViewedChat, setHasViewedChat] = useState(false);
 
   // Completion validation states
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
@@ -138,59 +157,87 @@ export default function Job() {
   const photos = mission?.photos ? JSON.parse(mission.photos) : [];
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; color: string }> = {
+    const statusConfig: Record<
+      string,
+      { label: string; color: string; icon: string }
+    > = {
       scheduled: {
         label: "Planifiée",
-        color: "text-blue-600 border-blue-200 bg-blue-50",
+        color: "bg-blue-50 text-blue-700 border-blue-200 ring-1 ring-blue-200",
+        icon: "🕐",
       },
       "in-progress": {
         label: "En cours",
-        color: "text-orange-600 border-orange-200 bg-orange-50",
+        color:
+          "bg-orange-50 text-orange-700 border-orange-200 ring-1 ring-orange-200",
+        icon: "⚡",
       },
       accepted: {
         label: "Validation mutuelle requise",
-        color: "text-purple-600 border-purple-200 bg-purple-50",
+        color:
+          "bg-purple-50 text-purple-700 border-purple-200 ring-1 ring-purple-200",
+        icon: "🤝",
       },
       completed: {
         label: "Terminée",
-        color: "text-green-600 border-green-200 bg-green-50",
+        color:
+          "bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-emerald-200",
+        icon: "✅",
       },
       awaiting_validation: {
         label: "A valider",
-        color: "text-purple-600 border-purple-200 bg-purple-50",
+        color:
+          "bg-purple-50 text-purple-700 border-purple-200 ring-1 ring-purple-200",
+        icon: "⏳",
       },
       client_validated: {
         label: "À valider",
-        color: "text-cyan-600 border-cyan-200 bg-cyan-50",
+        color: "bg-cyan-50 text-cyan-700 border-cyan-200 ring-1 ring-cyan-200",
+        icon: "👤",
       },
       artisan_validated: {
         label: "Validée",
-        color: "text-indigo-600 border-indigo-200 bg-indigo-50",
+        color:
+          "bg-indigo-50 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200",
+        icon: "🔨",
       },
       disputed_by_client: {
         label: "Litige client",
-        color: "text-red-600 border-red-200 bg-red-50",
+        color: "bg-red-50 text-red-700 border-red-200 ring-1 ring-red-200",
+        icon: "⚠️",
       },
       disputed_by_artisan: {
         label: "Litige artisan",
-        color: "text-orange-600 border-orange-200 bg-orange-50",
+        color:
+          "bg-amber-50 text-amber-700 border-amber-200 ring-1 ring-amber-200",
+        icon: "⚠️",
       },
       disputed_by_both: {
         label: "Litige des deux parties",
-        color: "text-purple-600 border-purple-200 bg-purple-50",
+        color: "bg-rose-50 text-rose-700 border-rose-200 ring-1 ring-rose-200",
+        icon: "⚠️",
       },
       completed_with_issues: {
         label: "Terminée avec problèmes",
-        color: "text-red-600 border-red-200 bg-red-50",
+        color: "bg-red-50 text-red-700 border-red-200 ring-1 ring-red-200",
+        icon: "⚠️",
       },
       could_not_complete: {
         label: "Non réalisable",
-        color: "text-gray-600 border-gray-200 bg-gray-50",
+        color: "bg-gray-50 text-gray-700 border-gray-200 ring-1 ring-gray-200",
+        icon: "❌",
       },
     };
 
     const config = statusConfig[status] || statusConfig.scheduled;
-    return <Badge className={config.color}>{config.label}</Badge>;
+    return (
+      <Badge
+        className={`${config.color} px-3 py-1.5 text-sm font-medium border rounded-full`}
+      >
+        <span className="mr-2">{config.icon}</span>
+        {config.label}
+      </Badge>
+    );
   };
 
   const handleMissionCompletion = async () => {
@@ -356,369 +403,772 @@ export default function Job() {
     }
   };
 
+  // Helper function for phone calls
+  const handleCallClient = () => {
+    if (mission.clientPhone) {
+      window.location.href = `tel:${mission.clientPhone}`;
+    } else {
+      alert("Numéro de téléphone non disponible");
+    }
+  };
+
+  // Helper function for GPS navigation
+  const handleNavigateToLocation = () => {
+    if (mission.location) {
+      const encodedAddress = encodeURIComponent(mission.location);
+      // Check if user is on iOS or Android for appropriate maps app
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+
+      if (isIOS) {
+        window.open(
+          `maps://maps.google.com/maps?daddr=${encodedAddress}`,
+          "_blank"
+        );
+      } else if (isAndroid) {
+        window.open(`geo:0,0?q=${encodedAddress}`, "_blank");
+      } else {
+        window.open(
+          `https://maps.google.com/maps?daddr=${encodedAddress}`,
+          "_blank"
+        );
+      }
+    } else {
+      alert("Adresse non disponible");
+    }
+  };
+
+  // Get primary action based on status
+  const getPrimaryAction = () => {
+    switch (mission.status) {
+      case "scheduled":
+        return {
+          label: "Commencer la mission",
+          icon: <Clock className="h-5 w-5" />,
+          onClick: () => handleStartMission(mission),
+          className: "bg-blue-600 hover:bg-blue-700 text-white",
+        };
+      case "accepted":
+        return {
+          label: "Mission terminée",
+          icon: <CheckCircle className="h-5 w-5" />,
+          onClick: () => {
+            setCompletionType("success");
+            setShowCompletionDialog(true);
+          },
+          className: "bg-emerald-600 hover:bg-emerald-700 text-white",
+        };
+      case "in-progress":
+        return {
+          label: "Valider la mission",
+          icon: <ThumbsUp className="h-5 w-5" />,
+          onClick: () => {
+            setValidationType("approve");
+            setShowValidationDialog(true);
+          },
+          className: "bg-emerald-600 hover:bg-emerald-700 text-white",
+        };
+      case "client_validated":
+        return {
+          label: "Confirmer validation",
+          icon: <CheckCircle className="h-5 w-5" />,
+          onClick: () => {
+            setValidationType("approve");
+            setShowValidationDialog(true);
+          },
+          className: "bg-emerald-600 hover:bg-emerald-700 text-white",
+        };
+      default:
+        return null;
+    }
+  };
+
+  // Get timeline steps based on mission status
+  const getTimelineSteps = () => {
+    const steps = [
+      {
+        step: "Mission créée",
+        completed: true,
+        date: moment(mission.createdAt).format("DD/MM/YYYY à HH:mm"),
+        icon: "📝",
+      },
+      {
+        step: "Mission acceptée par l'artisan",
+        completed: true,
+        date: moment(mission.createdAt)
+          .add(1, "hour")
+          .format("DD/MM/YYYY à HH:mm"),
+        icon: "🤝",
+      },
+      {
+        step: "Mission en cours",
+        completed: [
+          "in-progress",
+          "client_validated",
+          "artisan_validated",
+          "completed",
+        ].includes(mission.status),
+        date:
+          mission.status !== "scheduled"
+            ? moment(mission.createdAt)
+                .add(2, "hours")
+                .format("DD/MM/YYYY à HH:mm")
+            : undefined,
+        icon: "⚡",
+      },
+      {
+        step: "Mission terminée",
+        completed: [
+          "client_validated",
+          "artisan_validated",
+          "completed",
+        ].includes(mission.status),
+        date: ["client_validated", "artisan_validated", "completed"].includes(
+          mission.status
+        )
+          ? moment(mission.createdAt)
+              .add(4, "hours")
+              .format("DD/MM/YYYY à HH:mm")
+          : undefined,
+        icon: "✅",
+      },
+      {
+        step: "Validation finale",
+        completed: mission.status === "completed",
+        date:
+          mission.status === "completed"
+            ? moment(mission.createdAt)
+                .add(5, "hours")
+                .format("DD/MM/YYYY à HH:mm")
+            : undefined,
+        icon: "🎉",
+      },
+    ];
+    return steps;
+  };
+
+  // Photo lightbox handlers
+  const openPhotoLightbox = (index: number) => {
+    setSelectedPhotoIndex(index);
+  };
+
+  const closePhotoLightbox = () => {
+    setSelectedPhotoIndex(null);
+  };
+
+  const navigatePhoto = (direction: "prev" | "next") => {
+    if (selectedPhotoIndex === null || !photos) return;
+
+    if (direction === "prev") {
+      setSelectedPhotoIndex(
+        selectedPhotoIndex > 0 ? selectedPhotoIndex - 1 : photos.length - 1
+      );
+    } else {
+      setSelectedPhotoIndex(
+        selectedPhotoIndex < photos.length - 1 ? selectedPhotoIndex + 1 : 0
+      );
+    }
+  };
+
+  // Handle tab switching and mark messages as read
+  const handleTabSwitch = (tab: "mission" | "chat") => {
+    setActiveTab(tab);
+    if (tab === "chat") {
+      setHasViewedChat(true);
+      setUnreadMessageCount(0); // Mark all messages as read when viewing chat
+    }
+  };
+
+  // Simulate receiving new messages (for demo purposes)
+  const simulateNewMessage = () => {
+    if (activeTab !== "chat") {
+      setUnreadMessageCount((prev) => prev + 1);
+    }
+  };
+
+  // Get action banner based on mission status
+  const getActionBanner = () => {
+    switch (mission.status) {
+      case "in-progress":
+        return {
+          type: "warning",
+          title: "Une action est requise",
+          message:
+            "Mission terminée ? Validation requise pour finaliser le paiement",
+          buttons: (
+            <>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="h-8 text-xs bg-red-600 text-white hover:bg-red-700 border-red-600"
+                onClick={() => {
+                  setValidationType("dispute");
+                  setShowDisputeDialog(true);
+                }}
+              >
+                Contester
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 text-xs bg-emerald-600 text-white hover:bg-emerald-700"
+                onClick={() => {
+                  setValidationType("approve");
+                  setShowValidationDialog(true);
+                }}
+              >
+                Valider la mission
+              </Button>
+            </>
+          ),
+        };
+      case "client_validated":
+        return {
+          type: "info",
+          title: "Une action est requise",
+          message:
+            "Le client a confirmé la mission. Votre validation est maintenant requise",
+          buttons: (
+            <>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="h-8 text-xs bg-red-600 text-white hover:bg-red-700 border-red-600"
+                onClick={() => {
+                  setValidationType("dispute");
+                  setShowDisputeDialog(true);
+                }}
+              >
+                Contester
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 text-xs bg-emerald-600 text-white hover:bg-emerald-700"
+                onClick={() => {
+                  setValidationType("approve");
+                  setShowValidationDialog(true);
+                }}
+              >
+                Confirmer validation
+              </Button>
+            </>
+          ),
+        };
+      case "scheduled":
+        return {
+          type: "info",
+          title: "Une action est requise",
+          message:
+            "Mission planifiée - prêt à commencer quand vous le souhaitez",
+          buttons: (
+            <Button
+              size="sm"
+              className="h-8 text-xs bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => handleStartMission(mission)}
+            >
+              Commencer la mission
+            </Button>
+          ),
+        };
+      default:
+        return null;
+    }
+  };
+
   return (
     <>
-      <div className="space-y-6">
-        {/* Main Content - Split Layout */}
-        <div className="grid lg:grid-cols-2 gap-6 h-[calc(100vh-250px)]">
-          {/* Mission Details - Left Side */}
-          <Card className="overflow-y-auto">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src="/placeholder.svg" />
-                  <AvatarFallback>
-                    {(mission.clientName || "")
-                      .split(" ")
-                      .map((n: string) => n[0])
-                      .join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h2 className="text-xl font-bold">
-                    {mission.clientName || "Georges"}
-                  </h2>
-                  <div className="flex items-center space-x-1">
-                    <Star className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm">5/5</span>
-                  </div>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Quick Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm text-gray-600">Date & Heure</p>
-                  <p className="font-medium">
-                    {moment(mission.createdAt).format("DD/MM/YYYY")}
-                  </p>
-                  <p className="font-medium">
-                    {moment(mission.createdAt).format("HH:mm")}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Durée estimée</p>
-                  <p className="font-medium">2h</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Téléphone</p>
-                  <p className="font-medium">
-                    {mission.clientPhone || "Non spécifié"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Rémunération</p>
-                  <p className="font-bold text-xl text-green-600">
-                    {mission.estimatedPrice
-                      ? (mission.estimatedPrice / 100).toFixed(2)
-                      : "60"}
-                    €
-                  </p>
-                </div>
-              </div>
+      {/* Top Action Banner */}
+      {(() => {
+        const actionBanner = getActionBanner();
+        if (!actionBanner) return null;
 
-              {/* Address */}
+        return (
+          <div className="border-t py-3 fixed bottom-0 left-64 right-0 z-50 shadow-lg mx-6 bg-gradient-to-r from-orange-100 to-yellow-100 border-orange-200">
+            <div className="flex items-center px-6 gap-4 justify-between">
+              <div className="flex items-center gap-2">
+                <Megaphone className="h-4 w-4 text-orange-600" />
+                <span className="text-sm font-medium text-orange-800">
+                  {actionBanner.title} - {actionBanner.message}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {actionBanner.buttons}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      <div
+        className={`space-y-6 ${isMobile ? "p-4" : ""} bg-gray-50 min-h-screen`}
+      >
+        {/* Modern SaaS Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src="/placeholder.svg" />
+                <AvatarFallback className="bg-gray-100 text-gray-600 text-sm font-medium">
+                  {(mission.clientName || "")
+                    .split(" ")
+                    .map((n: string) => n[0])
+                    .join("")}
+                </AvatarFallback>
+              </Avatar>
               <div>
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Adresse
-                </h3>
-                <p className="text-gray-700">{mission.location}</p>
+                <h1 className="text-lg font-semibold text-gray-900">
+                  {mission.title || `Mission ${mission.serviceType}`}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {mission.clientName || "Georges"} •{" "}
+                  {moment(mission.createdAt).format("DD/MM/YYYY")}
+                </p>
+              </div>
+              <div className="flex gap-2 mb-2 ml-4">
                 <Button
-                  variant="outline"
                   size="sm"
-                  className="mt-2 flex items-center gap-2 bg-transparent"
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  onClick={handleCallClient}
+                  disabled={!mission.clientPhone}
                 >
-                  <MapPin className="h-4 w-4" />
-                  Ouvrir dans Maps
+                  <Phone className="h-3 w-3" />
+                  Appeler
                 </Button>
-              </div>
-
-              {/* Description */}
-              <div>
-                <h3 className="font-semibold mb-2">Description</h3>
-                <p className="text-gray-700">{mission.description}</p>
-                {mission.notes && (
-                  <div className="mt-3 p-3 bg-yellow-50 rounded border-l-4 border-yellow-400">
-                    <p className="text-sm">
-                      <strong>Notes importantes:</strong> {mission.notes}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Photos */}
-              <div>
-                <h3 className="font-semibold mb-2">Photos</h3>
-                {photos && photos.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    {photos.map((photo: string, index: number) => (
-                      <img
-                        key={index}
-                        src={photo || "/placeholder.svg"}
-                        alt={`Photo ${index + 1}`}
-                        className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-80"
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center p-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                    <div className="text-center">
-                      <Camera className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">
-                        Aucune photo disponible
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Timeline */}
-              <div>
-                <h3 className="font-semibold mb-3">Suivi de la mission</h3>
-                <div className="space-y-3">
-                  {/* {mission?.timeline?.map((step, index: number) => (
-                    <div key={index} className="flex items-center space-x-3">
-                      <div
-                        className={`w-3 h-3 rounded-full ${
-                          step.completed ? "bg-green-500" : "bg-gray-300"
-                        }`}
-                      />
-                      <div className="flex-1">
-                        <p
-                          className={`text-sm font-medium ${
-                            step.completed ? "text-gray-900" : "text-gray-500"
-                          }`}
-                        >
-                          {step.step}
-                        </p>
-                        {step.date && (
-                          <p className="text-xs text-gray-500">{step.date}</p>
-                        )}
-                      </div>
-                    </div>
-                  )) || (
-                    <div className="flex items-center space-x-3">
-                      <div className="w-3 h-3 rounded-full bg-gray-300" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-500">
-                          Mission créée
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {moment(mission.createdAt).format(
-                            "DD/MM/YYYY à HH:mm"
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  )} */}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-3 pt-4 border-t">
-                {mission.status === "scheduled" && (
-                  <Button
-                    className="w-full flex items-center gap-2"
-                    size="lg"
-                    onClick={() => handleStartMission(mission)}
-                  >
-                    <Clock className="h-4 w-4" />
-                    Commencer la mission
-                  </Button>
-                )}
-
-                {mission.status === "accepted" && (
-                  <div className="space-y-2">
-                    <Button
-                      className="w-full flex items-center gap-2"
-                      size="lg"
-                      onClick={() => {
-                        setCompletionType("success");
-                        setShowCompletionDialog(true);
-                      }}
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                      Mission terminée avec succès
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full flex items-center gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
-                      size="lg"
-                      onClick={() => {
-                        setCompletionType("issue");
-                        setShowIssueDialog(true);
-                      }}
-                    >
-                      <AlertTriangle className="h-4 w-4" />
-                      Signaler un problème
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
-                      size="lg"
-                      onClick={() => {
-                        setCompletionType("impossible");
-                        setShowIssueDialog(true);
-                      }}
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Mission impossible à réaliser
-                    </Button>
-                  </div>
-                )}
-
-                {/* Validation Actions for Artisan */}
-                {(mission.status === "in-progress" ||
-                  mission.status === "client_validated") && (
-                  <div className="space-y-3">
-                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                      <p className="text-sm text-purple-700 font-medium mb-2">
-                        {mission.status === "in-progress"
-                          ? "Mission terminée ? Validation requise"
-                          : "Le client a validé - Votre validation est maintenant requise"}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600"
-                        size="lg"
-                        onClick={() => {
-                          setValidationType("approve");
-                          setShowValidationDialog(true);
-                        }}
-                      >
-                        <ThumbsUp className="h-4 w-4" />
-                        Valider
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
-                        size="lg"
-                        onClick={() => {
-                          setValidationType("dispute");
-                          setShowDisputeDialog(true);
-                        }}
-                      >
-                        <AlertTriangle className="h-4 w-4" />
-                        Contester
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Artisan Already Validated */}
-                {mission.status === "artisan_validated" && (
-                  <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
-                    <p className="text-sm text-indigo-700 font-medium">
-                      Vous avez validé cette mission. En attente de la
-                      validation du client.
-                    </p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2 bg-transparent"
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    Appeler
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2 bg-transparent"
-                  >
-                    <MapPin className="h-4 w-4 mr-2" />
-                    Navigation
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Chat Interface - Right Side */}
-          <Card className="flex flex-col">
-            <CardHeader className="border-b">
-              <CardTitle className="flex items-center gap-3   ">
-                <MessageSquare className="h-5 w-5" />
-                Chat avec {mission.clientName || "Georges"}
-                <div className="ml-auto flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">En ligne</span>
-                </div>
-              </CardTitle>
-            </CardHeader>
-
-            {/* Messages */}
-            <CardContent className="flex-1 p-4 overflow-y-auto bg-gray-50">
-              <div className="space-y-4">
-                {mission.messages?.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.sender === "artisan"
-                        ? "justify-end"
-                        : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[80%] px-4 py-2 rounded-lg ${
-                        message.sender === "artisan"
-                          ? "bg-blue-600 text-white"
-                          : "bg-white text-gray-900 border shadow-sm"
-                      }`}
-                    >
-                      <p className="text-sm">{message.message}</p>
-                      <p
-                        className={`text-xs mt-1 ${
-                          message.sender === "artisan"
-                            ? "text-blue-200"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {new Date(message.createdAt).toLocaleTimeString(
-                          "fr-FR",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                )) || (
-                  <div className="text-center text-gray-500 py-8">
-                    <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>Aucun message pour le moment</p>
-                    <p className="text-sm">
-                      Commencez la conversation avec le client
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-
-            {/* Message Input */}
-            <div className="p-4 border-t bg-white">
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Tapez votre message..."
-                  value={chatMessage}
-                  onChange={(e) => setChatMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-                  className="flex-1"
-                />
-                <Button onClick={sendMessage} disabled={!chatMessage.trim()}>
-                  <Send className="h-4 w-4" />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  onClick={handleNavigateToLocation}
+                >
+                  <Navigation className="h-3 w-3" />
+                  Navigation
                 </Button>
               </div>
             </div>
-          </Card>
+
+            <div className="flex items-center  gap-3">
+              {/* Quick Actions */}
+
+              {/* Primary Action */}
+              {getPrimaryAction() && (
+                <Button
+                  size="sm"
+                  className={`flex items-center gap-2 ${
+                    getPrimaryAction()?.className
+                  }`}
+                  onClick={getPrimaryAction()?.onClick}
+                >
+                  {getPrimaryAction()?.icon}
+                  {getPrimaryAction()?.label}
+                </Button>
+              )}
+
+              {/* Secondary Actions for Accepted Status */}
+              {mission.status === "accepted" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex items-center gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+                  onClick={() => {
+                    setCompletionType("issue");
+                    setShowIssueDialog(true);
+                  }}
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  Problème
+                </Button>
+              )}
+
+              {/* Validation Actions for In-Progress */}
+              {(mission.status === "in-progress" ||
+                mission.status === "client_validated") && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={() => {
+                    setValidationType("dispute");
+                    setShowDisputeDialog(true);
+                  }}
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  Contester
+                </Button>
+              )}
+
+              <div className="h-6 w-px bg-gray-300 mx-2"></div>
+
+              {/* Clickable Price - Opens Devis */}
+              <button
+                className="text-right hover:bg-blue-50 rounded-lg p-2 transition-colors group cursor-pointer"
+                onClick={() =>
+                  window.open(
+                    `/workspace/devis/@artisan/${mission.id}`,
+                    "_blank"
+                  )
+                }
+                title="Cliquer pour voir le devis détaillé"
+              >
+                <div className="flex items-center gap-2">
+                  <div>
+                    <p className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+                      {mission.estimatedPrice
+                        ? (mission.estimatedPrice / 100).toFixed(2)
+                        : "60"}
+                      €
+                    </p>
+                    <p className="text-xs text-gray-500 group-hover:text-blue-600 transition-colors flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      Voir devis
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="relative">
+            <div className="flex border-b border-gray-200 bg-gray-50">
+              <button
+                onClick={() => handleTabSwitch("mission")}
+                className={`px-6 py-4 font-medium text-sm transition-all duration-200 relative ${
+                  activeTab === "mission"
+                    ? "bg-white text-blue-600 border-t-4 border-t-blue-500 border-r border-l border-gray-200 -mb-px z-10"
+                    : "bg-gray-100 text-gray-600 hover:text-gray-800 hover:bg-gray-200  mr-1 border-t border-l border-r border-gray-300"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4" />
+                  <span>Détails de la mission</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleTabSwitch("chat")}
+                className={`px-6 py-4 font-medium text-sm transition-all duration-200 relative ${
+                  activeTab === "chat"
+                    ? "bg-white text-blue-600 border-t-4 border-t-blue-500 border-r border-l border-gray-200 -mb-px z-10"
+                    : "bg-gray-100 text-gray-600 hover:text-gray-800 hover:bg-gray-200 border-t border-l border-r border-gray-300"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Chat avec {mission.clientName || "Georges"}</span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  {/* Unread Message Notification Badge */}
+                  {unreadMessageCount > 0 && activeTab !== "chat" && (
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg border-2 border-white">
+                      {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
+                    </div>
+                  )}
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-6 bg-white">
+            {activeTab === "mission" ? (
+              /* Mission Details Tab */
+              <div className="space-y-8">
+                {/* Main Content with Key Info on Left and Progression on Right */}
+                <div className="grid lg:grid-cols-4 gap-6">
+                  {/* Left Side - Key Info + Mission Details */}
+                  <div className="lg:col-span-3 space-y-8">
+                    {/* Simplified Key Information */}
+
+                    {/* Location with Google Maps */}
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-600" />
+                        Localisation
+                      </h3>
+
+                      {/* Address */}
+                      <p className="text-gray-700 mb-3 text-sm">
+                        {mission.location}
+                      </p>
+
+                      {/* Google Maps Embed */}
+                      <div className="mb-4 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                        <iframe
+                          src={`https://www.google.com/maps?q=${encodeURIComponent(
+                            mission.location || ""
+                          )}&output=embed`}
+                          width="100%"
+                          height="200"
+                          style={{ border: 0 }}
+                          allowFullScreen
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          className="w-full"
+                        />
+                      </div>
+
+                      {/* Navigation Button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
+                        onClick={handleNavigateToLocation}
+                      >
+                        <Navigation className="h-4 w-4 text-blue-600" />
+                        Ouvrir dans l'app Maps
+                      </Button>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3">
+                        Description
+                      </h3>
+                      <p className="text-gray-500 leading-relaxed">
+                        {mission.description}
+                      </p>
+                      {mission.notes && (
+                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="font-medium text-amber-800 text-sm">
+                                Notes importantes
+                              </p>
+                              <p className="text-sm text-amber-700 mt-1">
+                                {mission.notes}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Photos */}
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Camera className="h-4 w-4 text-gray-600" />
+                        Photos ({photos?.length || 0})
+                      </h3>
+                      {photos && photos.length > 0 ? (
+                        <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                          {photos.map((photo: string, index: number) => (
+                            <div
+                              key={index}
+                              className="group relative aspect-square"
+                            >
+                              <img
+                                src={photo || "/placeholder.svg"}
+                                alt={`Photo ${index + 1}`}
+                                className="w-full h-full object-cover rounded-lg border border-gray-200 cursor-pointer transition-all group-hover:scale-105"
+                                onClick={() => openPhotoLightbox(index)}
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center">
+                                <Eye className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Camera className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                          <p className="text-sm">Aucune photo disponible</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Side - Progression Timeline (Sticky) */}
+                  <div className="lg:col-span-1 flex justify-end">
+                    <div className="sticky top-4 bg-white  p-5 ">
+                      <div className="space-y-4">
+                        {getTimelineSteps().map((step, index) => (
+                          <div
+                            key={index}
+                            className="flex items-start space-x-3"
+                          >
+                            <div className="flex flex-col items-center">
+                              <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 ${
+                                  step.completed
+                                    ? "bg-emerald-500 border-emerald-500 text-white"
+                                    : "bg-gray-100 border-gray-300 text-gray-400"
+                                }`}
+                              >
+                                {step.icon}
+                              </div>
+                              {index < getTimelineSteps().length - 1 && (
+                                <div
+                                  className={`w-0.5 h-8 mt-2 ${
+                                    step.completed
+                                      ? "bg-emerald-500"
+                                      : "bg-gray-200"
+                                  }`}
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0 pb-4">
+                              <p
+                                className={`text-sm font-medium ${
+                                  step.completed
+                                    ? "text-gray-900"
+                                    : "text-gray-500"
+                                }`}
+                              >
+                                {step.step}
+                              </p>
+                              {step.date && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {step.date}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Chat Tab */
+              <div className="h-[600px] flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src="/placeholder.svg" />
+                      <AvatarFallback className="bg-gray-100 text-gray-700">
+                        {(mission.clientName || "")
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {mission.clientName || "Georges"}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-sm text-gray-600">En ligne</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto bg-gray-50 rounded-lg p-4 mb-4">
+                  <div className="space-y-3">
+                    {mission.messages?.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${
+                          message.sender === "artisan"
+                            ? "justify-end"
+                            : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[75%] px-3 py-2 rounded-lg text-sm ${
+                            message.sender === "artisan"
+                              ? "bg-blue-600 text-white"
+                              : "bg-white text-gray-900 border shadow-sm"
+                          }`}
+                        >
+                          <p>{message.message}</p>
+                          <p
+                            className={`text-xs mt-1 ${
+                              message.sender === "artisan"
+                                ? "text-blue-200"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {new Date(message.createdAt).toLocaleTimeString(
+                              "fr-FR",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    )) || (
+                      <div className="text-center text-gray-500 py-12">
+                        <MessageSquare className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                        <p>Aucun message pour le moment</p>
+                        <p className="text-sm mt-1">
+                          Commencez la conversation avec{" "}
+                          {mission.clientName || "Georges"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Message Input */}
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder="Tapez votre message..."
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+                    className="flex-1"
+                  />
+                  <Button onClick={sendMessage} disabled={!chatMessage.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Photo Lightbox Modal */}
+      {selectedPhotoIndex !== null && photos && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+          <div className="relative max-w-4xl max-h-full">
+            <img
+              src={photos[selectedPhotoIndex] || "/placeholder.svg"}
+              alt={`Photo ${selectedPhotoIndex + 1}`}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+
+            <Button
+              onClick={closePhotoLightbox}
+              className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full p-2"
+              size="sm"
+            >
+              <XCircle className="h-6 w-6" />
+            </Button>
+
+            {photos.length > 1 && (
+              <>
+                <Button
+                  onClick={() => navigatePhoto("prev")}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2"
+                  size="sm"
+                >
+                  <ArrowLeft className="h-6 w-6" />
+                </Button>
+                <Button
+                  onClick={() => navigatePhoto("next")}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2"
+                  size="sm"
+                >
+                  <ArrowLeft className="h-6 w-6 rotate-180" />
+                </Button>
+              </>
+            )}
+
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+              {selectedPhotoIndex + 1} / {photos.length}
+            </div>
+          </div>
+        </div>
+      )}
 
       <Dialog
         open={showCompletionDialog}
