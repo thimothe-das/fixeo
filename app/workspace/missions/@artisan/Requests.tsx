@@ -1,30 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import {
-  XCircle,
-  CheckCircle,
-  Eye,
-  Timer,
-  Star,
-  Calendar,
-  MapPin,
-  Clock,
-  DollarSign,
-  Euro,
-  Wrench,
-  Camera,
-  User,
-  Navigation,
-  MessageCircle,
-  ChevronLeft,
-  ChevronRight,
-  TimerIcon,
-} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -33,7 +11,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import {
+  Calendar,
+  Camera,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Eye,
+  MapPin,
+  Navigation,
+  Timer,
+  Wrench,
+  XCircle,
+} from "lucide-react";
 import moment from "moment";
+import { useEffect, useMemo, useState } from "react";
 
 type ServiceRequestForArtisan = {
   id: number;
@@ -857,14 +850,6 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
 
       {/* Photo Gallery Modal */}
       <PhotoGalleryModal />
-
-      {/* Auto-refresh indicator */}
-      <div className="flex items-center justify-center text-sm text-gray-500">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          Actualisation automatique toutes les 60 secondes
-        </div>
-      </div>
     </div>
   );
 }

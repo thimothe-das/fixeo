@@ -943,7 +943,7 @@ export async function getBillingEstimateById(estimateId: number, userId?: number
   return estimate;
 }
 
-export async function getBillingEstimateByIdForArtisan(estimateId: number, userId?: number) {
+export async function getBillingEstimateByIdForArtisan(estimateId: number, userId: number) {
   const query = db
     .select({
       id: billingEstimates.id,
@@ -987,8 +987,8 @@ export async function getBillingEstimateByIdForArtisan(estimateId: number, userI
 
   const estimate = result[0];
   
-  // If userId is provided (for client access), verify they own the related service request
-  if (userId && estimate.serviceRequest?.userId !== userId) {
+  // If userId is provided (for artisan access), verify they are assigned to the related service request
+  if (userId && estimate.serviceRequest?.assignedArtisanId !== userId) {
     return null;
   }
 

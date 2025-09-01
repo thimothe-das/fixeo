@@ -1,17 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 
-import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,38 +15,24 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useBillingEstimate } from "@/hooks/use-billing-estimate";
 import {
-  Calculator,
+  AlertTriangle,
+  Building,
   Calendar,
   CheckCircle,
-  XCircle,
   Clock,
-  MapPin,
   FileText,
-  AlertTriangle,
-  Wrench,
-  Zap,
-  Settings,
-  Hammer,
-  PaintBucket,
-  Monitor,
-  Database,
-  CreditCard,
-  Building,
   Info,
-  Tag,
-  ShoppingCart,
-  Phone,
   ReceiptText,
+  XCircle,
 } from "lucide-react";
-import type {
-  BillingEstimateForClient,
-  BillingEstimateBreakdownItem,
-} from "../../../components/types";
 import moment from "moment";
-import useSWR, { mutate } from "swr";
 import { useParams } from "next/navigation";
-import { useBillingEstimate } from "@/hooks/use-billing-estimate";
+import type {
+  BillingEstimateBreakdownItem,
+  BillingEstimateForClient,
+} from "../../../components/types";
 
 interface EstimatedBillProps {
   estimate: BillingEstimateForClient;
@@ -479,7 +457,7 @@ export default function EstimatedBill() {
                         {item.quantity || 80}
                       </span>
                       <div className="text-xs text-gray-500">
-                        {(item as any).unit || "heures"}
+                        {(item as any).unit || ""}
                       </div>
                     </td>
                     <td className="px-4 py-4 text-right">

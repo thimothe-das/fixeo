@@ -701,7 +701,7 @@ export default function Job() {
                   {mission.title || `Mission ${mission.serviceType}`}
                 </h1>
                 <p className="text-sm text-gray-500">
-                  {mission.clientName || "Georges"} •{" "}
+                  {mission.clientName || "Nom du client non disponible"} •{" "}
                   {moment(mission.createdAt).format("DD/MM/YYYY")}
                 </p>
               </div>
@@ -837,7 +837,10 @@ export default function Job() {
               >
                 <div className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
-                  <span>Chat avec {mission.clientName || "Georges"}</span>
+                  <span>
+                    Chat avec{" "}
+                    {mission.clientName || "Nom du client non disponible"}
+                  </span>
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   {/* Unread Message Notification Badge */}
                   {unreadMessageCount > 0 && activeTab !== "chat" && (
@@ -1028,7 +1031,7 @@ export default function Job() {
                     </Avatar>
                     <div>
                       <p className="font-semibold text-gray-900">
-                        {mission.clientName || "Georges"}
+                        {mission.clientName || "Nom du client non disponible"}
                       </p>
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -1081,7 +1084,7 @@ export default function Job() {
                         <p>Aucun message pour le moment</p>
                         <p className="text-sm mt-1">
                           Commencez la conversation avec{" "}
-                          {mission.clientName || "Georges"}
+                          {mission.clientName || "Nom du client non disponible"}
                         </p>
                       </div>
                     )}
