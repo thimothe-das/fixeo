@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
-import { getUser, createBillingEstimate, getAllBillingEstimates } from '@/lib/db/queries';
-import { sendEstimateCreatedNotification } from '@/lib/email/notifications';
 import { db } from '@/lib/db/drizzle';
+import { createBillingEstimate, getAllBillingEstimates, getUser } from '@/lib/db/queries';
 import { serviceRequests } from '@/lib/db/schema';
+import { sendEstimateCreatedNotification } from '@/lib/email/notifications';
 import { eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       try {
         await sendEstimateCreatedNotification(
           serviceRequest[0].clientEmail,
-          serviceRequest[0].clientName || 'Client',
+          'Client name not available',
           serviceRequest[0].serviceType,
           estimateData.estimatedPrice,
           estimate.id

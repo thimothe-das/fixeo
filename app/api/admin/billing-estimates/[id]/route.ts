@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Validate user has admin role
@@ -17,7 +17,8 @@ export async function GET(
       );
     }
 
-    const estimateId = parseInt(params.id);
+    const { id } = await params;
+    const estimateId = parseInt(id);
 
     if (isNaN(estimateId)) {
       return NextResponse.json(

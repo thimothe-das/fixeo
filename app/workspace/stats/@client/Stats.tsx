@@ -1,37 +1,14 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 // Charts component - remove if recharts is not available
+import { ServiceRequest, ServiceRequestStatus } from "@/lib/db/schema";
 import {
-  Clock,
-  CheckCircle,
-  X,
-  AlertCircle,
-  Euro,
   BarChart3,
   Calendar,
-  DollarSign,
+  CheckCircle,
+  Clock,
+  Euro,
   TrendingUp,
 } from "lucide-react";
-import { ServiceRequestStatus } from "@/lib/db/schema";
-
-interface ServiceRequest {
-  id: number;
-  title?: string;
-  serviceType: string;
-  urgency: string;
-  description: string;
-  location: string;
-  status: string;
-  estimatedPrice?: number;
-  createdAt: string;
-  photos?: string;
-  assignedArtisan?: {
-    id: number;
-    name: string;
-    email: string;
-  };
-}
 
 interface StatsProps {
   requests: ServiceRequest[];
@@ -41,9 +18,7 @@ export default function Stats({ requests }: StatsProps) {
   // Calculate statistics
   const totalRequests = requests.length;
   const pendingRequests = requests.filter(
-    (req) =>
-      req.status === ServiceRequestStatus.AWAITING_ASSIGNATION ||
-      req.status === "pending" // Legacy support
+    (req) => req.status === ServiceRequestStatus.AWAITING_ASSIGNATION
   ).length;
   const completedRequests = requests.filter(
     (req) => req.status === ServiceRequestStatus.COMPLETED
@@ -52,9 +27,7 @@ export default function Stats({ requests }: StatsProps) {
     (req) => req.status === ServiceRequestStatus.CANCELLED
   ).length;
   const inProgressRequests = requests.filter(
-    (req) =>
-      req.status === ServiceRequestStatus.IN_PROGRESS ||
-      req.status === "accepted" // Legacy support
+    (req) => req.status === ServiceRequestStatus.IN_PROGRESS
   );
 
   const totalSpent = requests

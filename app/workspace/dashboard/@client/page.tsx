@@ -1,11 +1,9 @@
 "use client";
 
-import useSWR from "swr";
-import { ArtisanStats, ServiceRequestForArtisan } from "../../components/types";
-import { Dashboard } from "./Dashboard";
 import { ServiceRequest, ServiceRequestStatus } from "@/lib/db/schema";
-import { NewRequest } from "../../(client)/NewRequest";
 import { useState } from "react";
+import useSWR from "swr";
+import { Dashboard } from "./Dashboard";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 

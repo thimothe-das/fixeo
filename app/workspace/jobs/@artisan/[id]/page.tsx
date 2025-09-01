@@ -785,7 +785,9 @@ export default function Job() {
                 className="text-right hover:bg-blue-50 rounded-lg p-2 transition-colors group cursor-pointer"
                 onClick={() =>
                   router.push(
-                    `/workspace/devis/${mission.billingEstimates[0].id}`
+                    `/workspace/devis/${
+                      (mission as any).billingEstimates[0].id
+                    }`
                   )
                 }
                 title="Cliquer pour voir le devis détaillé"

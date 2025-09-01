@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { getUser, updateBillingEstimateStatus } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { serviceRequests, billingEstimates } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { getUser, updateBillingEstimateStatus } from '@/lib/db/queries';
+import { billingEstimates, serviceRequests } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
@@ -112,7 +112,7 @@ async function sendEstimateResponseNotification(
       
       await sendNotification(
         adminEmail,
-        serviceRequest[0].clientName || user.name || 'Client',
+        'Client name not available',
         serviceRequest[0].serviceType,
         status,
         estimate[0].estimatedPrice,

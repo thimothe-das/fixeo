@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  AddressAutocomplete,
+  AddressData,
+} from "@/components/ui/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,11 +12,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -20,32 +22,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowLeft,
-  Mail,
-  Lock,
-  User,
-  Phone,
-  MapPin,
+  FormState,
+  getFormValue,
+  SignUpFormFields,
+  useFormState,
+} from "@/lib/auth/form-utils";
+import {
   Briefcase,
-  Star,
   Loader2,
+  Lock,
+  Mail,
+  Phone,
+  Star,
+  User,
 } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { Suspense, useActionState, useState } from "react";
 import { signUp } from "../../actions";
-import { ActionState } from "@/lib/auth/middleware";
-import {
-  AddressAutocomplete,
-  AddressData,
-} from "@/components/ui/address-autocomplete";
-import {
-  useFormState,
-  getFormValue,
-  FormState,
-  SignUpFormFields,
-} from "@/lib/auth/form-utils";
 
 const specialties = [
   "Plomberie",
@@ -58,7 +55,7 @@ const specialties = [
   "Déménagement",
 ];
 
-export default function SignUpArtisanPage() {
+function SignUpArtisanForm() {
   const searchParams = useSearchParams();
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [selectedExperience, setSelectedExperience] = useState<string>("");
@@ -340,5 +337,22 @@ export default function SignUpArtisanPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function SignUpArtisanPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+          <div className="flex items-center space-x-2">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>Chargement...</span>
+          </div>
+        </div>
+      }
+    >
+      <SignUpArtisanForm />
+    </Suspense>
   );
 }

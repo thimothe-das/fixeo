@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getUser();
@@ -12,7 +12,8 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const estimateId = parseInt(params.id);
+    const { id } = await params;
+    const estimateId = parseInt(id);
     
     if (isNaN(estimateId)) {
       return NextResponse.json({ error: 'Invalid estimate ID' }, { status: 400 });

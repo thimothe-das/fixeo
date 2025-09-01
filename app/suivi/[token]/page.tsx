@@ -4,15 +4,15 @@ import { db } from "@/lib/db/drizzle";
 import { serviceRequests, ServiceRequestStatus } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import {
-  Clock,
-  CheckCircle,
   AlertCircle,
-  MapPin,
   Calendar,
-  Phone,
-  Mail,
-  User,
+  CheckCircle,
+  Clock,
   Image as ImageIcon,
+  Mail,
+  MapPin,
+  Phone,
+  User,
 } from "lucide-react";
 import { TokenStorage } from "./token-storage";
 
@@ -210,12 +210,10 @@ export default async function TrackingPage({
               </div>
 
               <div className="space-y-4">
-                {request.clientName && (
-                  <div className="flex items-center text-gray-600">
-                    <User className="h-4 w-4 mr-2" />
-                    {request.clientName}
-                  </div>
-                )}
+                <div className="flex items-center text-gray-600">
+                  <User className="h-4 w-4 mr-2" />
+                  {"name not available"}
+                </div>
 
                 {request.clientEmail && (
                   <div className="flex items-center text-gray-600">
@@ -224,12 +222,10 @@ export default async function TrackingPage({
                   </div>
                 )}
 
-                {request.clientPhone && (
-                  <div className="flex items-center text-gray-600">
-                    <Phone className="h-4 w-4 mr-2" />
-                    {request.clientPhone}
-                  </div>
-                )}
+                <div className="flex items-center text-gray-600">
+                  <Phone className="h-4 w-4 mr-2" />
+                  {"phone not available"}
+                </div>
 
                 {request.estimatedPrice && (
                   <div className="bg-green-50 p-3 rounded-lg">

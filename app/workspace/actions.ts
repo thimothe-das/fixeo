@@ -1,12 +1,12 @@
 'use server';
 
-import { z } from 'zod';
-import { db } from '@/lib/db/drizzle';
-import { serviceRequests, type NewServiceRequest } from '@/lib/db/schema';
 import { validatedAction } from '@/lib/auth/middleware';
-import { redirect } from 'next/navigation';
-import { randomUUID } from 'crypto';
+import { db } from '@/lib/db/drizzle';
 import { getUser } from '@/lib/db/queries';
+import { serviceRequests, type NewServiceRequest } from '@/lib/db/schema';
+import { randomUUID } from 'crypto';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
 
 const createServiceRequestSchema = z.object({
   title: z.string().min(1, 'Titre requis').max(100, 'Le titre ne peut pas dépasser 100 caractères'),
@@ -45,9 +45,9 @@ export const createServiceRequest = validatedAction(
       location_district,
       location_coordinates,
       location_context,
-      clientName,
+      // clientName,
       clientEmail,
-      clientPhone,
+      // clientPhone,
       photos,
     } = data;
 
@@ -80,9 +80,9 @@ export const createServiceRequest = validatedAction(
         locationDistrict: location_district || null,
         locationCoordinates: location_coordinates || null,
         locationContext: location_context || null,
-        clientName,
+        // clientName,
         clientEmail: clientEmail || currentUser?.email || null,
-        clientPhone,
+        // clientPhone,
         photos,
         userId: currentUser?.id || null,
         guestToken,

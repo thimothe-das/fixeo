@@ -1,9 +1,12 @@
 "use client";
 
+import {
+  AddressAutocomplete,
+  AddressData,
+} from "@/components/ui/address-autocomplete";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -11,48 +14,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Search,
-  MapPin,
-  Clock,
-  Shield,
-  Star,
-  Smartphone,
-  Wrench,
-  Zap,
-  Home,
-  Paintbrush,
-  Hammer,
-  Settings,
-  ArrowRight,
-  Users,
-  CheckCircle,
-  TrendingUp,
-  Award,
-  Phone,
-  Calendar,
-  CreditCard,
-  Camera,
-  Plus,
-  X,
-  Image,
-  Loader2,
-  Upload,
-} from "lucide-react";
-import { useState, useActionState, useEffect } from "react";
-import { createServiceRequest } from "./(dashboard)/actions";
-import { ActionState } from "@/lib/auth/middleware";
-import {
-  AddressAutocomplete,
-  AddressData,
-} from "@/components/ui/address-autocomplete";
-import {
-  useFormState,
-  getFormValue,
   FormState,
+  getFormValue,
   ServiceRequestFormFields,
+  useFormState,
 } from "@/lib/auth/form-utils";
-import { Badge } from "@/components/ui/badge";
+import {
+  ArrowRight,
+  Award,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  Hammer,
+  Home,
+  Loader2,
+  Paintbrush,
+  Phone,
+  Search,
+  Settings,
+  Shield,
+  Smartphone,
+  Star,
+  Upload,
+  Wrench,
+  X,
+  Zap,
+} from "lucide-react";
+import { useActionState, useEffect, useState } from "react";
+import { createServiceRequest } from "./(dashboard)/actions";
 
 type GuestToken = {
   token: string;
@@ -480,7 +471,6 @@ export default function FixeoHomePage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {console.log(guestTokens)}
                         {guestTokens.map((token, index) => (
                           <a
                             key={token.token}

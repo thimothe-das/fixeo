@@ -1,17 +1,17 @@
 "use client";
 
+import { ServiceRequest } from "@/lib/db/schema";
 import useSWR from "swr";
 import Stats from "./Stats";
-import { ServiceRequest } from "@/lib/db/schema";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function StatsPage() {
   const {
-    data: requests,
+    data: requests = [] as ServiceRequest[],
     error: requestsError,
     mutate: mutateRequests,
   } = useSWR<ServiceRequest[]>("/api/service-requests/client", fetcher);
 
-  return <Stats requests={requests || []} />;
+  return <Stats requests={requests} />;
 }

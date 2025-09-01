@@ -1,8 +1,3 @@
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Accordion,
   AccordionContent,
@@ -11,127 +6,67 @@ import {
 } from "@/components/ui/accordion";
 import {
   AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogTrigger,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ServiceRequest, ServiceRequestStatus } from "@/lib/db/schema";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Clock,
-  CheckCircle,
   AlertCircle,
-  Calendar,
-  CalendarDays,
-  MapPin,
-  Eye,
+  AlertTriangle,
   Calculator,
-  ExternalLink,
-  ZoomIn,
-  X,
-  Wrench,
-  Zap,
-  Droplets,
-  Hammer,
-  PaintBucket,
-  Home,
   Car,
-  Laptop,
-  Wifi,
-  Shield,
-  Settings,
-  CircleDot,
-  Navigation,
-  Star,
-  User,
-  Copy,
-  Phone,
-  ChevronDown,
-  MoreVertical,
-  Plus,
-  Image as ImageIcon,
+  Check,
+  CheckCircle,
   ChevronLeft,
   ChevronRight,
-  Check,
-  LucideWrench,
-  AlertTriangle,
-  ThumbsUp,
-  ThumbsDown,
-  MessageCircle,
+  CircleDot,
+  Clock,
+  Eye,
   FileText,
+  Hammer,
+  Home,
+  Image as ImageIcon,
+  Laptop,
+  LucideWrench,
+  MessageCircle,
+  PaintBucket,
+  Phone,
+  Settings,
+  Shield,
+  Star,
+  ThumbsDown,
+  ThumbsUp,
+  User,
+  Wifi,
+  Wrench,
+  X,
+  Zap,
 } from "lucide-react";
 import moment from "moment";
-import { ServiceRequestStatus } from "@/lib/db/schema";
-
-type ServiceRequest = {
-  id: number;
-  title?: string;
-  serviceType: string;
-  urgency: string;
-  description: string;
-  location: string;
-  status: string;
-  estimatedPrice?: number;
-  createdAt: string;
-  photos?: string;
-  assignedArtisan?: {
-    id: number;
-    name: string;
-    email: string;
-    firstName?: string;
-    lastName?: string;
-    specialty?: string;
-    rating?: number;
-    profilePicture?: string;
-  };
-  billingEstimates?: {
-    id: number;
-    estimatedPrice: number;
-    status: "pending" | "accepted" | "rejected" | "expired";
-    validUntil?: string;
-    createdAt: string;
-  }[];
-  priority?: "high" | "normal" | "low";
-  category?: string;
-  timeline?: {
-    created?: { date: string; actor?: string };
-    quote?: { date: string; actor?: string };
-    accepted?: { date: string; actor?: string };
-    completed?: { date: string; actor?: string };
-  };
-};
+import { useRouter } from "next/navigation";
+import * as React from "react";
 
 interface ClientRequestsListComponentProps {
   requests: ServiceRequest[];
@@ -142,27 +77,6 @@ interface ClientRequestsListComponentProps {
 // Helper functions
 const formatPrice = (cents: number): string => {
   return `${(cents / 100).toFixed(2)} €`;
-};
-
-const formatDate = (
-  dateString: string,
-  format: "short" | "full" = "short"
-): string => {
-  const date = new Date(dateString);
-  if (format === "short") {
-    return date.toLocaleDateString("fr-FR", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  }
-  return date.toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 };
 
 const copyToClipboard = async (text: string): Promise<void> => {
@@ -248,14 +162,18 @@ function Stepper({ steps, current }: StepperProps) {
 
                     {/* Date if reached */}
                     <span className="text-xs text-slate-500 mt-1">
-                      {step.reachedAt ? formatDate(step.reachedAt) : "—"}
+                      {step.reachedAt
+                        ? moment(step.reachedAt).format("DD/MM/YYYY")
+                        : "—"}
                     </span>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>
                     {step.label} •{" "}
-                    {step.reachedAt ? formatDate(step.reachedAt, "full") : "—"}{" "}
+                    {step.reachedAt
+                      ? moment(step.reachedAt).format("DD/MM/YYYY")
+                      : "—"}{" "}
                     • {step.actor || ""}
                   </p>
                 </TooltipContent>
@@ -403,7 +321,7 @@ function RequestCard({
   onRequestUpdate,
   priorityStyle = "dot", // "dot" or "topBar"
 }: {
-  request: ServiceRequest;
+  request: any;
   onRequestUpdate?: () => void;
   priorityStyle?: "dot" | "topBar";
 }) {
@@ -1285,7 +1203,7 @@ function RequestCard({
               📍 {request.location}
             </p>
             <p className="text-xs text-slate-400 text-center">
-              Créée le {formatDate(request.createdAt, "full")}
+              Créée le {moment(request.createdAt).format("DD/MM/YYYY")}
             </p>
           </div>
         </div>

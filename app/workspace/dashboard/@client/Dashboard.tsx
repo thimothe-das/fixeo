@@ -1,42 +1,24 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ServiceRequest, ServiceRequestStatus } from "@/lib/db/schema";
 import {
-  Clock,
-  CheckCircle,
   AlertCircle,
-  Calendar,
-  MapPin,
-  Plus,
-  FileText,
-  Eye,
   AlertTriangle,
-  Zap,
-  Paperclip,
+  Calendar,
+  CheckCircle,
   ChevronRight,
+  Clock,
+  Eye,
+  FileText,
+  MapPin,
+  Paperclip,
+  Plus,
   TriangleAlert,
+  Zap,
 } from "lucide-react";
 import moment from "moment";
-import { ServiceRequestStatus } from "@/lib/db/schema";
 import { useRouter } from "next/navigation";
 import { NewRequest } from "../../(client)/NewRequest";
-
-type ServiceRequest = {
-  id: number;
-  serviceType: string;
-  urgency: string;
-  description: string;
-  location: string;
-  status: string;
-  estimatedPrice?: number;
-  createdAt: string;
-  photos?: string;
-  assignedArtisan?: {
-    id: number;
-    name: string;
-    email: string;
-  };
-};
 
 interface ClientOverviewComponentProps {
   totalRequests: number;
@@ -158,10 +140,6 @@ export function Dashboard({
       default:
         return urgency;
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return moment(dateString).format("DD/MM/YYYY");
   };
 
   const getAttachmentCount = (photos?: string) => {
@@ -293,7 +271,9 @@ export function Dashboard({
           ) : (
             <div className="space-y-6">
               {recentRequests.map((request) => {
-                const attachmentCount = getAttachmentCount(request.photos);
+                const attachmentCount = getAttachmentCount(
+                  request.photos || ""
+                );
 
                 return (
                   <div
@@ -366,16 +346,17 @@ export function Dashboard({
                     <div className="flex items-center text-xs text-gray-500 space-x-4 pt-2 border-t border-gray-100">
                       <span className="flex items-center">
                         <Calendar className="h-3 w-3 mr-1" />
-                        Créée le {formatDate(request.createdAt)}
+                        Créée le{" "}
+                        {moment(request.createdAt).format("DD/MM/YYYY")}
                       </span>
                       <span className="flex items-center">
                         <MapPin className="h-3 w-3 mr-1" />
                         {request.location}
                       </span>
-                      {request.assignedArtisan && (
+                      {request.assignedArtisanId && (
                         <span className="flex items-center text-blue-600">
                           <CheckCircle className="h-3 w-3 mr-1" />
-                          Assignée à {request.assignedArtisan.name}
+                          Assignée à {request.assignedArtisanId}
                         </span>
                       )}
                     </div>

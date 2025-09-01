@@ -1,14 +1,14 @@
+import { relations } from 'drizzle-orm';
 import {
+  boolean,
+  integer,
+  pgEnum,
   pgTable,
   serial,
-  varchar,
   text,
   timestamp,
-  integer,
-  boolean,
-  pgEnum,
+  varchar,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
 
 // Service Request Status Enum - following the workflow
 export const serviceRequestStatusEnum = pgEnum('service_request_status', [
