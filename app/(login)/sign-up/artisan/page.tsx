@@ -41,7 +41,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useActionState, useState } from "react";
+import { useActionState, useState } from "react";
 import { signUp } from "../../actions";
 
 const specialties = [
@@ -55,7 +55,7 @@ const specialties = [
   "Déménagement",
 ];
 
-function SignUpArtisanForm() {
+export default function SignUpArtisanPage() {
   const searchParams = useSearchParams();
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [selectedExperience, setSelectedExperience] = useState<string>("");
@@ -337,22 +337,5 @@ function SignUpArtisanForm() {
         </Card>
       </div>
     </div>
-  );
-}
-
-export default function SignUpArtisanPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
-          <div className="flex items-center space-x-2">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span>Chargement...</span>
-          </div>
-        </div>
-      }
-    >
-      <SignUpArtisanForm />
-    </Suspense>
   );
 }
