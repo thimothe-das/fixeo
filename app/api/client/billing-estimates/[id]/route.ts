@@ -1,5 +1,5 @@
+import { getBillingEstimateById, getUser } from '@/lib/db/queries';
 import { NextResponse } from 'next/server';
-import { getUser, getBillingEstimateById } from '@/lib/db/queries';
 
 export async function GET(
   request: Request,

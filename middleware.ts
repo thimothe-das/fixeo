@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { signToken, verifyToken } from '@/lib/auth/session';
 
 // Route protection configuration
-const protectedRoutes = ['/workspace', '/account'];
+const protectedRoutes = ['/workspace', '/account', 'workspace/dashboard'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

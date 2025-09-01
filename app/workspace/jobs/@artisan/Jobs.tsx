@@ -4,53 +4,35 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 
 import { ServiceRequestStatus } from "@/lib/db/schema";
-import {
-  cn,
-  getCategoryConfig,
-  getStatusConfig,
-  getPriorityConfig,
-} from "@/lib/utils";
+import { cn, getCategoryConfig, getStatusConfig } from "@/lib/utils";
 import {
   AlertTriangle,
   Camera,
-  Euro,
   Eye,
-  FileText,
   MapPin,
-  Navigation,
-  ThumbsUp,
-  ThumbsDown,
   MessageCircle,
+  Navigation,
+  ThumbsDown,
+  ThumbsUp,
   User,
   Wrench,
 } from "lucide-react";
-import moment from "moment";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ServiceRequestForArtisan } from "../../components/types";

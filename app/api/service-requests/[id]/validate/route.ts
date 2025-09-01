@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getUser, updateServiceRequestStatus, getServiceRequestWithUser } from "@/lib/db/queries";
+import { getServiceRequestWithUser, getUser, updateServiceRequestStatus } from "@/lib/db/queries";
 import { ServiceRequestStatus } from "@/lib/db/schema";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   request: NextRequest,
@@ -30,8 +30,11 @@ export async function POST(
       return NextResponse.json({ error: "Service request not found" }, { status: 404 });
     }
 
-    // Verify the user owns this request
-    if (serviceRequestData.request.userId !== user.id) {
+    // Verify the user is either the client who created the request or the assigned artisan
+    const isClient = serviceRequestData.request.userId === user.id;
+    const isAssignedArtisan = serviceRequestData.request.assignedArtisanId === user.id;
+    
+    if (!isClient && !isAssignedArtisan) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -39,6 +42,7 @@ export async function POST(
     const validStatesForValidation = [
       ServiceRequestStatus.IN_PROGRESS,
       ServiceRequestStatus.ARTISAN_VALIDATED,
+      ServiceRequestStatus.CLIENT_VALIDATED,
       ServiceRequestStatus.RESOLVED
     ];
     
@@ -49,23 +53,38 @@ export async function POST(
       );
     }
 
-    // Determine the new status based on validation action
+    // Determine the new status based on validation action and user role
     let newStatus: ServiceRequestStatus;
     if (action === "approve") {
-      // Check if artisan already validated
-      if (serviceRequestData.request.status === ServiceRequestStatus.ARTISAN_VALIDATED) {
-        newStatus = ServiceRequestStatus.COMPLETED; // Both have validated
+      if (isClient) {
+        // Client is validating
+        if (serviceRequestData.request.status === ServiceRequestStatus.ARTISAN_VALIDATED) {
+          newStatus = ServiceRequestStatus.COMPLETED; // Both have validated
+        } else {
+          newStatus = ServiceRequestStatus.CLIENT_VALIDATED; // Client validated, waiting for artisan
+        }
+      } else if (isAssignedArtisan) {
+        // Artisan is validating
+        if (serviceRequestData.request.status === ServiceRequestStatus.CLIENT_VALIDATED) {
+          newStatus = ServiceRequestStatus.COMPLETED; // Both have validated
+        } else {
+          newStatus = ServiceRequestStatus.ARTISAN_VALIDATED; // Artisan validated, waiting for client
+        }
       } else {
-        newStatus = ServiceRequestStatus.CLIENT_VALIDATED; // Client validated, waiting for artisan
+        return NextResponse.json(
+          { error: "Unauthorized user type" },
+          { status: 403 }
+        );
       }
     } else if (action === "dispute") {
-      newStatus = ServiceRequestStatus.DISPUTED_BY_CLIENT;
-      
-      // Validate dispute fields
-      if (!disputeReason || !disputeDetails?.trim()) {
+      if (isClient) {
+        newStatus = ServiceRequestStatus.DISPUTED_BY_CLIENT;
+      } else if (isAssignedArtisan) {
+        newStatus = ServiceRequestStatus.DISPUTED_BY_ARTISAN;
+      } else {
         return NextResponse.json(
-          { error: "Dispute reason and details are required" },
-          { status: 400 }
+          { error: "Unauthorized user type" },
+          { status: 403 }
         );
       }
     } else {

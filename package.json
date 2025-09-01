@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.850.0",
+    "@next/eslint-plugin-next": "^15.5.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-checkbox": "^1.3.2",
@@ -47,6 +48,7 @@
     "react-dom": "19.1.0",
     "recharts": "^2.15.4",
     "server-only": "^0.0.1",
+    "sonner": "^2.0.7",
     "stripe": "^18.1.0",
     "swr": "^2.3.3",
     "tailwind-merge": "^3.3.0",

@@ -15,6 +15,8 @@ import {
   MoreHorizontal,
   Power,
   Users,
+  Euro,
+  Calculator,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -48,6 +50,7 @@ import type { ServiceRequestForAdmin, AdminStats } from "../components/types";
 import { Dashboard } from "../dashboard/@admin/Dashboard";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
+import { signOut } from "@/app/(login)/actions";
 
 const sidebarItems = [
   {
@@ -65,6 +68,13 @@ const sidebarItems = [
     disabled: false,
   },
   { title: "Utilisateurs", icon: Users, id: "users", route: "users" },
+  {
+    title: "Devis",
+    icon: Calculator,
+    id: "estimatedBills",
+    route: "devis",
+    disabled: false,
+  },
   {
     title: "Statistiques",
     icon: BarChart3,
@@ -158,11 +168,14 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/workspace/dashboard")}
+                  >
                     <Settings className="h-4 w-4 mr-2" />
-                    Paramètres
+                    Dashboard
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem disabled>Paramètres</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => signOut()}>
                     <Power className="h-4 w-4 mr-2" />
                     Déconnexion
                   </DropdownMenuItem>
@@ -188,10 +201,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 </h1>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" disabled>
                   <Bell className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" disabled>
                   <Settings className="h-4 w-4" />
                 </Button>
               </div>

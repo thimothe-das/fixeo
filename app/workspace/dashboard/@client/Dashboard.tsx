@@ -297,6 +297,9 @@ export function Dashboard({
 
                 return (
                   <div
+                    onClick={() =>
+                      router.push(`/workspace/requests/${request.id}`)
+                    }
                     key={request.id}
                     className="group hover:bg-gray-50  p-4 transition-all duration-200 border-l-4 border-l-blue-200 hover:border-l-blue-400 hover:shadow-sm cursor-pointer"
                   >

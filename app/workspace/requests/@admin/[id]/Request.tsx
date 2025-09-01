@@ -47,6 +47,7 @@ import {
   ExternalLink,
   ArrowRight,
   SquareArrowOutUpRight,
+  Calculator,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,7 @@ import {
   getCategoryConfig,
   getPriorityConfig,
 } from "@/lib/utils";
+import { BillingEstimateForm } from "../../../(admin)/BillingEstimateCreation";
 
 interface ServiceRequestDetail {
   id: number;
@@ -490,7 +492,7 @@ const getProfessionName = (serviceType: string) => {
   return professions[serviceType] || "Artisan";
 };
 
-export function User({
+export function Request({
   setUserId,
 }: {
   setUserId: (userId: string | null) => void;
@@ -516,6 +518,8 @@ export function User({
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [tempDescription, setTempDescription] = useState("");
   const [showConversationPanel, setShowConversationPanel] = useState(false);
+  const [showEstimateModal, setShowEstimateModal] = useState(false);
+  const [isCreatingEstimate, setIsCreatingEstimate] = useState(false);
 
   const requestId = params.id as string;
 
@@ -609,6 +613,41 @@ export function User({
       setError(err instanceof Error ? err.message : "Failed to send message");
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  const handleCreateEstimate = async (estimateData: {
+    serviceRequestId: number;
+    estimatedPrice: number;
+    description: string;
+    breakdown?: any[];
+    validUntil?: string;
+  }) => {
+    try {
+      setIsCreatingEstimate(true);
+
+      const response = await fetch("/api/admin/billing-estimates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(estimateData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create billing estimate");
+      }
+
+      setShowEstimateModal(false);
+      // Refresh request data to show new estimate
+      await fetchRequest();
+    } catch (err) {
+      console.error("Error creating estimate:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to create estimate"
+      );
+    } finally {
+      setIsCreatingEstimate(false);
     }
   };
 
@@ -809,27 +848,37 @@ export function User({
             </div>
           </div>
           <div className="flex items-center gap-8">
-            {/* Clickable Price - Links to Bill */}
-            <button
-              className="flex flex-col items-center text-blue-700 hover:text-blue-800 hover:bg-blue-50 rounded-lg px-3 py-2 transition-all cursor-pointer group"
-              onClick={() => {
-                // User will handle the click functionality
-              }}
-              title="Voir le devis détaillé"
+            <div
+              onClick={() =>
+                request.estimatedPrice
+                  ? router.push(`/workspace/devis/${request.id}`)
+                  : setShowEstimateModal(true)
+              }
+              className="flex flex-col items-start hover:bg-blue-50 rounded-md px-3 py-2 transition-colors group "
             >
-              <div className="flex items-center gap-2">
-                <Euro className="h-5 w-5" />
-                <span className="text-2xl font-bold">
+              <div
+                className="flex items-center gap-2 cursor-pointer transition-colors group text-blue-600 hover:text-blue-700"
+                title="Cliquez pour créer/modifier le devis"
+              >
+                <span className="text-2xl font-bold transition-colors hover:text-blue-700">
                   {formatCurrency(request.estimatedPrice || null)}
                 </span>
+                {(!request.billingEstimates ||
+                  request.billingEstimates.length === 0) && (
+                  <Calculator className="h-4 w-4 text-gray-400 ml-1" />
+                )}
               </div>
-              <div className="flex items-center gap-1 mt-1">
-                <FileText className="h-3 w-3 opacity-60 group-hover:opacity-100 transition-opacity" />
-                <span className="text-xs font-medium opacity-60 group-hover:opacity-100 transition-opacity">
-                  Voir devis
+              {request.estimatedPrice ? (
+                <div className="flex items-center gap-1 text-blue-700 hover:text-blue-800 cursor-pointer">
+                  <Calculator className="h-3 w-3" />
+                  <span className="text-xs font-medium">Voir devis</span>
+                </div>
+              ) : (
+                <span className="text-xs text-gray-500 mt-1 cursor-pointer hover:text-blue-700">
+                  Cliquez pour créer un devis
                 </span>
-              </div>
-            </button>
+              )}
+            </div>
             <div className="ml-4">
               <Button
                 onClick={saveRequest}
@@ -1654,6 +1703,18 @@ export function User({
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Billing Estimate Creation Modal */}
+        <Dialog open={showEstimateModal} onOpenChange={setShowEstimateModal}>
+          <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto p-0">
+            <BillingEstimateForm
+              serviceRequestId={parseInt(requestId)}
+              onSubmit={handleCreateEstimate}
+              onCancel={() => setShowEstimateModal(false)}
+              isLoading={isCreatingEstimate}
+            />
           </DialogContent>
         </Dialog>
       </div>

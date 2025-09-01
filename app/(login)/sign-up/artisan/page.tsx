@@ -106,24 +106,6 @@ export default function SignUpArtisanPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center py-4">
-            <Link
-              href="/"
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span>Retour</span>
-            </Link>
-            <div className="flex items-center space-x-2 ml-6">
-              <span className="text-2xl font-bold text-gray-900">Fixéo</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardHeader className="text-center">

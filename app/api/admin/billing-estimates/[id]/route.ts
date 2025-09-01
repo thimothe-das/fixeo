@@ -1,5 +1,5 @@
 import { ROLES, validateUserRole } from '@/lib/auth/roles';
-import { getBillingEstimateByIdForArtisan } from '@/lib/db/queries';
+import { getBillingEstimateById } from '@/lib/db/queries';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -7,8 +7,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Validate user has professional role (artisan)
-    const validation = await validateUserRole([ROLES.PROFESSIONAL]);
+    // Validate user has admin role
+    const validation = await validateUserRole([ROLES.ADMIN, ROLES.MEMBER]);
     
     if (!validation.hasAccess) {
       return NextResponse.json(
@@ -17,7 +17,6 @@ export async function GET(
       );
     }
 
-    const artisan = validation.user;
     const estimateId = parseInt(params.id);
 
     if (isNaN(estimateId)) {
@@ -27,27 +26,19 @@ export async function GET(
       );
     }
 
-    // Get the billing estimate
-    const estimate = await getBillingEstimateByIdForArtisan(estimateId, artisan.id);
+    // Get the billing estimate (no userId check since admin can access all)
+    const estimate = await getBillingEstimateById(estimateId);
     
     if (!estimate) {
       return NextResponse.json(
-        { error: 'Estimate not found', estimateId, artisanId: artisan.id },
+        { error: 'Estimate not found' },
         { status: 404 }
-      );
-    }
-
-    // Verify this estimate belongs to a service request assigned to this artisan
-    if (estimate.serviceRequest?.assignedArtisanId !== artisan.id) {
-      return NextResponse.json(
-        { error: 'Access denied - this estimate is not assigned to you' },
-        { status: 403 }
       );
     }
 
     return NextResponse.json(estimate);
   } catch (error) {
-    console.error('Error fetching artisan billing estimate:', error);
+    console.error('Error fetching admin billing estimate:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

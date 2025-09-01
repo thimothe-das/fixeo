@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMemo } from "react";
 import { ServiceRequestStatus } from "@/lib/db/schema";
 import moment from "moment";
+import { useRouter } from "next/navigation";
 
 type ServiceRequestForArtisan = {
   id: number;
@@ -48,6 +49,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ stats, assignedRequests }: DashboardProps) {
+  const router = useRouter();
   // Calculate monthly revenue from completed assigned requests in current month
   console.debug("assignedRequests");
   const monthlyRevenue = useMemo(() => {
@@ -212,7 +214,7 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
             <CardTitle className="text-sm font-medium">
               Revenus du mois
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-blue-600" />
+            <Euro className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -297,7 +299,11 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="destructive">Urgent</Badge>
-                <Button size="sm" variant="outline" onClick={() => {}}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push(`/workspace/jobs/${request.id}`)}
+                >
                   Voir
                 </Button>
               </div>
@@ -326,7 +332,11 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
                 >
                   Litige
                 </Badge>
-                <Button size="sm" variant="outline" onClick={() => {}}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push(`/workspace/jobs/${request.id}`)}
+                >
                   Résoudre
                 </Button>
               </div>
@@ -357,7 +367,11 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
                 >
                   Validée
                 </Badge>
-                <Button size="sm" variant="outline" onClick={() => {}}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push(`/workspace/jobs/${request.id}`)}
+                >
                   Voir
                 </Button>
               </div>
@@ -431,7 +445,13 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
                         ? (request.estimatedPrice / 100).toFixed(2) + "€"
                         : "Prix à définir"}
                     </p>
-                    <Button size="sm" className="mt-2" onClick={() => {}}>
+                    <Button
+                      size="sm"
+                      className="mt-2"
+                      onClick={() =>
+                        router.push(`/workspace/jobs/${request.id}`)
+                      }
+                    >
                       Voir détails
                     </Button>
                   </div>

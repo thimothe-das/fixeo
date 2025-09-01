@@ -101,9 +101,7 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total des demandes
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -136,7 +134,7 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              En attente d'acceptation du devis
+              En attente d'acceptation
             </CardTitle>
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -276,7 +274,7 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
             </SelectContent>
           </Select>
         </CardHeader>
-        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+        <CardContent className="px-2 pt-8 sm:px-6 sm:pt-8">
           {filteredData.length === 0 ? (
             <div className="flex items-center justify-center h-[250px] text-muted-foreground">
               <div className="text-center">
@@ -287,9 +285,12 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
           ) : (
             <ChartContainer
               config={chartConfig}
-              className="aspect-auto h-[250px] w-full"
+              className="aspect-auto h-[300px] w-full mt-4"
             >
-              <AreaChart data={filteredData}>
+              <AreaChart
+                data={filteredData}
+                margin={{ top: 20, right: 20, left: 0, bottom: 0 }}
+              >
                 <defs>
                   <linearGradient id="fillRequests" x1="0" y1="0" x2="0" y2="1">
                     <stop
@@ -374,7 +375,7 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
                 />
                 <Area
                   dataKey="count"
-                  type="natural"
+                  type="monotone"
                   fill="url(#fillRequests)"
                   stroke="var(--color-requests)"
                   strokeWidth={2}
@@ -382,7 +383,7 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
                 />
                 <Area
                   dataKey="earnings"
-                  type="natural"
+                  type="monotone"
                   fill="url(#fillEarnings)"
                   stroke="var(--color-earnings)"
                   strokeWidth={2}

@@ -1,8 +1,8 @@
-import { desc, and, eq, isNull, sql, or } from 'drizzle-orm';
-import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users, serviceRequests, professionalProfiles, clientProfiles, billingEstimates, conversations, ServiceRequestStatus } from './schema';
-import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
+import { and, desc, eq, isNull, or, sql } from 'drizzle-orm';
+import { cookies } from 'next/headers';
+import { db } from './drizzle';
+import { activityLogs, billingEstimates, clientProfiles, conversations, professionalProfiles, serviceRequests, ServiceRequestStatus, teamMembers, teams, users } from './schema';
 
 export async function getUser() {
   const sessionCookie = (await cookies()).get('session');
@@ -926,6 +926,58 @@ export async function getBillingEstimateById(estimateId: number, userId?: number
     .leftJoin(users, eq(billingEstimates.adminId, users.id))
     .leftJoin(serviceRequests, eq(billingEstimates.serviceRequestId, serviceRequests.id))
     .where(eq(billingEstimates.id, estimateId));
+
+  const result = await query.limit(1);
+  
+  if (result.length === 0) {
+    return null;
+  }
+
+  const estimate = result[0];
+  
+  // If userId is provided (for client access), verify they own the related service request
+  if (userId && estimate.serviceRequest?.userId !== userId) {
+    return null;
+  }
+
+  return estimate;
+}
+
+export async function getBillingEstimateByIdForArtisan(estimateId: number, userId?: number) {
+  const query = db
+    .select({
+      id: billingEstimates.id,
+      serviceRequestId: billingEstimates.serviceRequestId,
+      adminId: billingEstimates.adminId,
+      estimatedPrice: billingEstimates.estimatedPrice,
+      description: billingEstimates.description,
+      breakdown: billingEstimates.breakdown,
+      validUntil: billingEstimates.validUntil,
+      status: billingEstimates.status,
+      clientResponse: billingEstimates.clientResponse,
+      createdAt: billingEstimates.createdAt,
+      updatedAt: billingEstimates.updatedAt,
+      admin: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+      serviceRequest: {
+        id: serviceRequests.id,
+        userId: serviceRequests.userId,
+        serviceType: serviceRequests.serviceType,
+        description: serviceRequests.description,
+        location: serviceRequests.location,
+        status: serviceRequests.status,
+        title: serviceRequests.title,
+        createdAt: serviceRequests.createdAt,
+        assignedArtisanId: serviceRequests.assignedArtisanId,
+      }
+    })
+    .from(billingEstimates)
+    .leftJoin(users, eq(billingEstimates.adminId, users.id))
+    .leftJoin(serviceRequests, eq(billingEstimates.serviceRequestId, serviceRequests.id))
+    .where(and(eq(billingEstimates.id, estimateId), eq(serviceRequests.assignedArtisanId, userId)));
 
   const result = await query.limit(1);
   

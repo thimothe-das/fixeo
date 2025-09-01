@@ -74,3 +74,25 @@ export function useArtisanBillingEstimate(estimateId: number | string | null) {
     mutate,
   };
 }
+
+export function useAdminBillingEstimate(estimateId: number | string | null) {
+  const shouldFetch = estimateId !== null && estimateId !== undefined;
+  const key = shouldFetch ? `/api/admin/billing-estimates/${estimateId}` : null;
+  
+  const {
+    data,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR<BillingEstimateForClient>(key, fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: true,
+  });
+
+  return {
+    estimate: data,
+    error,
+    isLoading,
+    mutate,
+  };
+}

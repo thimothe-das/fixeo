@@ -19,17 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   Calculator,
   Search,
   Calendar,
@@ -43,6 +32,7 @@ import {
   DollarSign,
   ChevronDown,
   Euro,
+  Building2,
 } from "lucide-react";
 import type { BillingEstimateForClient } from "../../components/types";
 import useSWR from "swr";
@@ -58,18 +48,14 @@ interface EstimatedBillsProps {
 export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedEstimate, setSelectedEstimate] = useState<number | null>(null);
-  const [isResponding, setIsResponding] = useState(false);
-  const [showAcceptDialog, setShowAcceptDialog] = useState(false);
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [dialogEstimateId, setDialogEstimateId] = useState<number | null>(null);
   const router = useRouter();
+
   const {
     data: estimates,
     error,
     mutate,
   } = useSWR<BillingEstimateForClient[]>(
-    "/api/artisan/billing-estimates",
+    "/api/admin/billing-estimates",
     fetcher
   );
 
@@ -114,57 +100,8 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
       case "expired":
         return <AlertTriangle className="h-3 w-3" />;
       default:
-        return <FileText className="h-3 w-3" />;
+        return <Calculator className="h-3 w-3" />;
     }
-  };
-
-  const handleEstimateResponse = async (
-    estimateId: number,
-    action: "accept" | "reject",
-    response?: string
-  ) => {
-    setIsResponding(true);
-    try {
-      const apiResponse = await fetch("/api/client/billing-estimates/respond", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          estimateId,
-          action,
-          response,
-        }),
-      });
-
-      if (apiResponse.ok) {
-        await mutate(); // Refresh estimates
-        setSelectedEstimate(null); // Close detail view
-        onEstimateResponse?.(); // Notify parent component
-      } else {
-        const error = await apiResponse.json();
-        alert(`Erreur: ${error.error}`);
-      }
-    } catch (error) {
-      console.error("Error responding to estimate:", error);
-      alert("Erreur lors de la réponse au devis");
-    } finally {
-      setIsResponding(false);
-    }
-  };
-
-  const handleAcceptQuote = async () => {
-    if (!dialogEstimateId) return;
-    await handleEstimateResponse(dialogEstimateId, "accept");
-    setShowAcceptDialog(false);
-    setDialogEstimateId(null);
-  };
-
-  const handleRejectQuote = async () => {
-    if (!dialogEstimateId) return;
-    await handleEstimateResponse(dialogEstimateId, "reject");
-    setShowRejectDialog(false);
-    setDialogEstimateId(null);
   };
 
   // Filter estimates
@@ -218,7 +155,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
               Erreur de chargement
             </h3>
             <p className="text-gray-500">
-              Impossible de charger vos devis. Veuillez réessayer.
+              Impossible de charger les devis. Veuillez réessayer.
             </p>
           </div>
         </CardContent>
@@ -227,13 +164,15 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Mes devis</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Tous les devis
+          </h1>
           <p className="text-gray-600 mt-1">
-            Gérez et examinez vos devis en attente de validation
+            Gérez et examinez tous les devis de la plateforme
           </p>
         </div>
       </div>
@@ -252,7 +191,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                 </p>
               </div>
               <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                <FileText className="h-5 w-5 text-gray-600" />
+                <Calculator className="h-5 w-5 text-gray-600" />
               </div>
             </div>
           </CardContent>
@@ -324,22 +263,37 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
         </Card>
       </div>
 
+      {/* Search and Filter Section */}
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Rechercher par type de service, description ou lieu..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-auto min-w-[200px]">
+            <SelectValue placeholder="Tous les statuts" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les statuts</SelectItem>
+            <SelectItem value="pending">En attente de validation</SelectItem>
+            <SelectItem value="accepted">Accepté</SelectItem>
+            <SelectItem value="rejected">Refusé</SelectItem>
+            <SelectItem value="expired">Expiré</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Estimates List Section */}
-      <div className="space-y-4 ">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Mes devis</h2>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-auto">
-              <SelectValue placeholder="Tous les statuts" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les statuts</SelectItem>
-              <SelectItem value="pending">En attente de validation</SelectItem>
-              <SelectItem value="accepted">Accepté</SelectItem>
-              <SelectItem value="rejected">Refusé</SelectItem>
-              <SelectItem value="expired">Expiré</SelectItem>
-            </SelectContent>
-          </Select>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Liste des devis ({sortedEstimates.length})
+          </h2>
         </div>
 
         {/* Bills List */}
@@ -373,7 +327,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
               <p className="text-gray-500">
                 {searchTerm || statusFilter !== "all"
                   ? "Essayez de modifier vos critères de recherche"
-                  : "Vous n'avez pas de devis en attente de validation"}
+                  : "Aucun devis n'a été créé sur la plateforme"}
               </p>
             </div>
           ) : (
@@ -382,8 +336,6 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                 const isExpired =
                   estimate.validUntil &&
                   new Date(estimate.validUntil) < new Date();
-                const needsResponse =
-                  estimate.status === "pending" && !isExpired;
 
                 return (
                   <div
@@ -409,14 +361,25 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                               {getStatusLabel(estimate.status)}
                             </span>
                           </Badge>
+                          {isExpired && estimate.status === "pending" && (
+                            <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">
+                              Expiré
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-gray-600 mb-1">
                           {estimate.description}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          Créé le :{" "}
-                          {moment(estimate.createdAt).format("DD/MM/YYYY")}
-                        </p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            {estimate.serviceRequest?.location || "N/A"}
+                          </span>
+                          <span>
+                            Créé le:{" "}
+                            {moment(estimate.createdAt).format("DD/MM/YYYY")}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-4">
@@ -424,54 +387,11 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                           <div className="text-lg font-semibold text-gray-900">
                             {(estimate.estimatedPrice / 100).toFixed(2)} €
                           </div>
-                          {estimate.status === "pending" && (
-                            <p className="text-xs text-gray-500 mb-2">
-                              Créé le{" "}
-                              {moment(estimate.createdAt).format("DD/MM/YYYY")}
-                            </p>
-                          )}
-                          {estimate.status === "accepted" && (
+                          {estimate.validUntil && (
                             <p className="text-xs text-gray-500">
-                              Accepté le{" "}
-                              {moment(estimate.createdAt).format("DD/MM/YYYY")}
+                              Valide jusqu'au:{" "}
+                              {moment(estimate.validUntil).format("DD/MM/YYYY")}
                             </p>
-                          )}
-                          {estimate.status === "rejected" && (
-                            <p className="text-xs text-gray-500">
-                              Refusé le:{" "}
-                              {moment(estimate.createdAt).format("DD/MM/YYYY")}
-                            </p>
-                          )}
-                          {needsResponse && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-red-300 text-red-700 hover:bg-red-50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDialogEstimateId(estimate.id);
-                                  setShowRejectDialog(true);
-                                }}
-                                disabled={isResponding}
-                              >
-                                <XCircle className="h-4 w-4" />
-                                Refuser
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDialogEstimateId(estimate.id);
-                                  setShowAcceptDialog(true);
-                                }}
-                                disabled={isResponding}
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                                Accepter
-                              </Button>
-                            </div>
                           )}
                         </div>
                       </div>
@@ -483,57 +403,6 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
           )}
         </div>
       </div>
-
-      {/* Confirmation Dialogs */}
-      <AlertDialog open={showAcceptDialog} onOpenChange={setShowAcceptDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Accepter le devis</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir accepter ce devis de{" "}
-              {dialogEstimateId &&
-                estimates?.find((e) => e.id === dialogEstimateId) &&
-                `$${(
-                  estimates.find((e) => e.id === dialogEstimateId)!
-                    .estimatedPrice / 100
-                ).toFixed(2)}`}{" "}
-              ? Cette action déclenchera le début des travaux.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleAcceptQuote}
-              disabled={isResponding}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {isResponding ? "En cours..." : "Accepter"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Refuser le devis</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir refuser ce devis ? L'artisan sera notifié
-              de votre décision.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleRejectQuote}
-              disabled={isResponding}
-              className="bg-rose-600 hover:bg-rose-700"
-            >
-              {isResponding ? "En cours..." : "Refuser"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

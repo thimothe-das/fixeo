@@ -42,6 +42,9 @@ import {
 
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { signOut } from "@/app/(login)/actions";
+import useSWR from "swr";
+import { User as UserType } from "@/lib/db/schema";
 
 const sidebarItems = [
   { title: "Vue d'ensemble", icon: Home, id: "dashboard", route: "dashboard" },
@@ -88,10 +91,12 @@ function ServiceRequestsListSkeleton() {
   );
 }
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export function ArtisanLayout({ children }: { children: React.ReactNode }) {
   const [activeSection, setActiveSection] = React.useState("dashboard");
   const pathname = usePathname();
   const router = useRouter();
+  const { data: user } = useSWR<UserType>("/api/user", fetcher);
 
   return (
     <SidebarProvider>
@@ -104,7 +109,7 @@ export function ArtisanLayout({ children }: { children: React.ReactNode }) {
               </div>
               <div>
                 <h2 className="font-bold text-lg text-blue-600">Fixéo</h2>
-                <p className="text-sm text-gray-600">Tableau de bord</p>
+                <p className="text-sm text-gray-600">Mon espace artisan</p>
               </div>
             </div>
           </SidebarHeader>
@@ -140,8 +145,8 @@ export function ArtisanLayout({ children }: { children: React.ReactNode }) {
                 <AvatarFallback>PD</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">Pierre Dupont</p>
-                <p className="text-sm text-gray-600 truncate">Plombier Pro</p>
+                <p className="font-medium truncate">{user?.name}</p>
+                <p className="text-sm text-gray-600 truncate">{user?.email}</p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -150,11 +155,11 @@ export function ArtisanLayout({ children }: { children: React.ReactNode }) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
+                  <DropdownMenuItem disabled>
                     <Settings className="h-4 w-4 mr-2" />
                     Paramètres
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => signOut()}>
                     <Power className="h-4 w-4 mr-2" />
                     Déconnexion
                   </DropdownMenuItem>
@@ -180,10 +185,10 @@ export function ArtisanLayout({ children }: { children: React.ReactNode }) {
                 </h1>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" disabled>
                   <Bell className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" disabled>
                   <Settings className="h-4 w-4" />
                 </Button>
               </div>

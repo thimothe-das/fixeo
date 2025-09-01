@@ -3,7 +3,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -20,52 +19,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   AlertCircle,
   AlertTriangle,
   ArrowLeft,
-  Calendar,
   Camera,
   CheckCircle,
   Clock,
-  Cog,
   Eye,
-  Fence,
-  Hammer,
-  Home,
+  FileText,
   MapPin,
   Megaphone,
   MessageSquare,
-  Paintbrush,
-  Send,
-  Star,
-  ThumbsDown,
-  ThumbsUp,
-  User,
-  Wrench,
-  XCircle,
-  Zap,
-  FileText,
   Navigation,
   Phone,
+  Send,
+  ThumbsDown,
+  ThumbsUp,
+  Wrench,
+  XCircle,
 } from "lucide-react";
 import moment from "moment";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { ServiceRequestForArtisan } from "../../../components/types";
 import useSWR from "swr";
-import { useParams } from "next/navigation";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { ServiceRequestForArtisan } from "../../../components/types";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function Job() {
@@ -155,6 +135,8 @@ export default function Job() {
   console.debug("mission", mission);
 
   const photos = mission?.photos ? JSON.parse(mission.photos) : [];
+
+  const router = useRouter();
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<
@@ -802,9 +784,8 @@ export default function Job() {
               <button
                 className="text-right hover:bg-blue-50 rounded-lg p-2 transition-colors group cursor-pointer"
                 onClick={() =>
-                  window.open(
-                    `/workspace/devis/@artisan/${mission.id}`,
-                    "_blank"
+                  router.push(
+                    `/workspace/devis/${mission.billingEstimates[0].id}`
                   )
                 }
                 title="Cliquer pour voir le devis détaillé"

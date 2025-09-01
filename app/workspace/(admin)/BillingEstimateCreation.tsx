@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Plus, Trash2, Calculator, Calendar } from "lucide-react";
+import { toast } from "sonner";
 import type { BillingEstimateBreakdownItem } from "../components/types";
 
 interface BillingEstimateFormProps {
@@ -91,17 +92,31 @@ export function BillingEstimateForm({
       return;
     }
 
-    await onSubmit({
-      serviceRequestId,
-      estimatedPrice: totalPrice,
-      description,
-      breakdown: breakdown.filter((item) => item.description.trim()),
-      validUntil: validUntil || undefined,
-    });
+    try {
+      await onSubmit({
+        serviceRequestId,
+        estimatedPrice: totalPrice,
+        description,
+        breakdown: breakdown.filter((item) => item.description.trim()),
+        validUntil: validUntil || undefined,
+      });
+
+      // Show success toast
+      toast.success("Devis créé avec succès !", {
+        description:
+          "Le devis a été envoyé au client et est maintenant disponible pour les artisans.",
+      });
+    } catch (error) {
+      // Handle any errors that might occur
+      console.error("Error creating billing estimate:", error);
+      toast.error("Erreur lors de la création du devis", {
+        description: "Veuillez réessayer ou contacter le support.",
+      });
+    }
   };
 
   return (
-    <Card className="w-full max-w-4xl">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calculator className="h-5 w-5" />

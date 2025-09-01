@@ -317,7 +317,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                 </p>
               </div>
               <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-green-600" />
+                <Euro className="h-5 w-5 text-green-600" />
               </div>
             </div>
           </CardContent>

@@ -1,32 +1,31 @@
 "use client";
 
-import * as React from "react";
-import { Suspense, useState } from "react";
 import {
+  BarChart3,
+  Bell,
+  Calculator,
+  CreditCard,
+  FileText,
   Home,
   MessageSquare,
-  Settings,
-  User,
-  Plus,
-  Bell,
-  FileText,
-  CreditCard,
-  BarChart3,
   MoreHorizontal,
   Power,
   Search,
-  Calculator,
+  Settings,
+  User,
 } from "lucide-react";
+import * as React from "react";
+import { Suspense } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
@@ -41,18 +40,11 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import useSWR from "swr";
 import { usePathname, useRouter } from "next/navigation";
+import useSWR from "swr";
 
-import { ServiceRequestStatus } from "@/lib/db/schema";
+import { signOut } from "@/app/(login)/actions";
+import { ServiceRequestStatus, User as UserType } from "@/lib/db/schema";
 import { NewRequest } from "./NewRequest";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -131,103 +123,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     error: requestsError,
     mutate: mutateRequests,
   } = useSWR<ServiceRequest[]>("/api/service-requests/client", fetcher);
-
-  const pendingRequests =
-    requests?.filter(
-      (req) =>
-        req.status === ServiceRequestStatus.AWAITING_ASSIGNATION ||
-        req.status === ServiceRequestStatus.AWAITING_ESTIMATE
-    ) || [];
-  const activeRequests =
-    requests?.filter((req) =>
-      [ServiceRequestStatus.IN_PROGRESS].includes(
-        req.status as ServiceRequestStatus
-      )
-    ) || [];
-  const completedRequests =
-    requests?.filter((req) => req.status === ServiceRequestStatus.COMPLETED) ||
-    [];
-  const disputedRequests =
-    requests?.filter((req) =>
-      [
-        ServiceRequestStatus.DISPUTED_BY_CLIENT,
-        ServiceRequestStatus.DISPUTED_BY_ARTISAN,
-        ServiceRequestStatus.DISPUTED_BY_BOTH,
-      ].includes(req.status as ServiceRequestStatus)
-    ) || [];
-
-  //   const renderContent = () => {
-  //     switch (activeSection) {
-  //       case "dashboard":
-  //         return (
-  //           <ClientOverviewComponent
-  //             totalRequests={requests?.length || 0}
-  //             disputedRequests={disputedRequests.length}
-  //             pendingRequests={pendingRequests.length}
-  //             activeRequests={activeRequests.length}
-  //             completedRequests={completedRequests.length}
-  //             recentRequests={requests?.slice(0, 3) || []}
-  //             onNavigateToSection={setActiveSection}
-  //             openNewRequestModal={() => setIsNewRequestModalOpen(true)}
-  //             onViewRequestDetails={(requestId) => {
-  //               // Navigate to requests section and potentially highlight the specific request
-  //               setActiveSection("requests");
-  //               // You could add logic here to scroll to or highlight the specific request
-  //               console.log(`Viewing details for request ${requestId}`);
-  //             }}
-  //           />
-  //         );
-  //       case "requests":
-  //         return (
-  //           <ClientRequestsListComponent
-  //             requests={requests || []}
-  //             onViewEstimate={(estimateId) => {
-  //               // Navigate to estimates section and show specific estimate
-  //               setActiveSection("estimates");
-  //               // You could add a way to highlight/open specific estimate here
-  //             }}
-  //             onRequestUpdate={mutateRequests}
-  //           />
-  //         );
-  //       case "estimates":
-  //         return (
-  //           <ClientEstimatesComponent
-  //             onEstimateResponse={() => {
-  //               mutateRequests(); // Refresh requests when estimate is responded to
-  //             }}
-  //           />
-  //         );
-  //       case "messages":
-  //         return <ClientMessagesComponent />;
-  //       case "stats":
-  //         return <ClientStatsComponent requests={requests || []} />;
-  //       case "account":
-  //         return (
-  //           <AccountComponent isActive={isActive} setIsActive={setIsActive} />
-  //         );
-  //       case "subscription":
-  //         return <SubscriptionComponent />;
-  //       default:
-  //         return (
-  //           <ClientOverviewComponent
-  //             totalRequests={requests?.length || 0}
-  //             disputedRequests={disputedRequests.length}
-  //             pendingRequests={pendingRequests.length}
-  //             activeRequests={activeRequests.length}
-  //             completedRequests={completedRequests.length}
-  //             recentRequests={requests?.slice(0, 3) || []}
-  //             onNavigateToSection={setActiveSection}
-  //             openNewRequestModal={() => setIsNewRequestModalOpen(true)}
-  //             onViewRequestDetails={(requestId) => {
-  //               // Navigate to requests section and potentially highlight the specific request
-  //               setActiveSection("requests");
-  //               // You could add logic here to scroll to or highlight the specific request
-  //               console.log(`Viewing details for request ${requestId}`);
-  //             }}
-  //           />
-  //         );
-  //     }
-  //   };
+  const { data: user } = useSWR<UserType>("/api/user", fetcher);
 
   return (
     <SidebarProvider>
@@ -257,13 +153,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 <SidebarMenu>
                   {sidebarItems.map((item) => (
                     <SidebarMenuItem
-                      className="cursor-pointer"
                       key={item.id}
                       onClick={() => router.push(`/workspace/${item.route}`)}
                     >
                       <SidebarMenuButton
                         isActive={pathname === `/workspace/${item.route}`}
-                        className="w-full justify-start"
+                        className="w-full justify-start cursor-pointer"
                         disabled={item.disabled}
                       >
                         <item.icon className="h-4 w-4" />
@@ -283,8 +178,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 <AvatarFallback>MD</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">Marie Dubois</p>
-                <p className="text-sm text-gray-600 truncate">Client</p>
+                <p className="font-medium truncate">{user?.name}</p>
+                <p className="text-sm text-gray-600 truncate">{user?.email}</p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -293,11 +188,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
+                  <DropdownMenuItem disabled>
                     <Settings className="h-4 w-4 mr-2" />
                     Paramètres
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => signOut()}>
                     <Power className="h-4 w-4 mr-2" />
                     Déconnexion
                   </DropdownMenuItem>
@@ -323,10 +218,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 </h1>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" disabled>
                   <Bell className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" disabled>
                   <Settings className="h-4 w-4" />
                 </Button>
               </div>

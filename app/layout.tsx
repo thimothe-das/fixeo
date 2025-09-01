@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans";
 import { getUser, getTeamForUser } from "@/lib/db/queries";
 import { SWRConfig } from "swr";
 import Header from "./components/Header";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Next.js SaaS Starter",
@@ -38,6 +39,7 @@ export default function RootLayout({
           <Header />
           {children}
         </SWRConfig>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

@@ -15,6 +15,7 @@ import { signOut } from "@/app/(login)/actions";
 import { useRouter } from "next/navigation";
 import { User } from "@/lib/db/schema";
 import useSWR, { mutate } from "swr";
+import { usePathname } from "next/navigation";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -28,16 +29,10 @@ function UserMenu() {
     mutate("/api/user");
     router.push("/");
   }
-
-  if (!user) {
+  console.log(user);
+  if (!user || !user.id) {
     return (
       <>
-        <Link
-          href="/pricing"
-          className="text-sm font-medium text-gray-700 hover:text-gray-900"
-        >
-          Pricing
-        </Link>
         <Button asChild className="rounded-full bg-blue-600 text-white">
           <Link href="/sign-in">Sign In</Link>
         </Button>
@@ -63,7 +58,10 @@ function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="flex flex-col gap-1">
         <DropdownMenuItem className="cursor-pointer">
-          <Link href="/workspace" className="flex w-full items-center">
+          <Link
+            href="/workspace/dashboard"
+            className="flex w-full items-center"
+          >
             <Home className="mr-2 h-4 w-4" />
             <span>Espace de travail</span>
           </Link>
@@ -88,6 +86,10 @@ function UserMenu() {
 }
 
 export default function Header() {
+  const pathname = usePathname();
+  if (pathname.includes("/workspace")) {
+    return null;
+  }
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">

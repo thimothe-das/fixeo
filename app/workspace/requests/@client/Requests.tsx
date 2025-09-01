@@ -400,12 +400,10 @@ function PhotosStrip({ photos, maxDisplay = 3 }: PhotosStripProps) {
 
 function RequestCard({
   request,
-  onViewEstimate,
   onRequestUpdate,
   priorityStyle = "dot", // "dot" or "topBar"
 }: {
   request: ServiceRequest;
-  onViewEstimate?: (estimateId: number) => void;
   onRequestUpdate?: () => void;
   priorityStyle?: "dot" | "topBar";
 }) {
@@ -1149,25 +1147,28 @@ function RequestCard({
             {/* Right Panel - Conditional based on status */}
             <div className="space-y-1 h-full">
               {/* Special statuses Panel - for non-dispute issues */}
-              {(request.status === "completed_with_issues" ||
-                request.status === "could_not_complete") && (
+              {request.status === ServiceRequestStatus.DISPUTED_BY_ARTISAN && (
                 <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-lg border border-amber-200 p-2">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle className="h-4 w-4 text-amber-600" />
                     <span className="text-xs font-medium text-amber-700 uppercase tracking-wide">
-                      {request.status === "could_not_complete"
+                      {request.status ===
+                      ServiceRequestStatus.DISPUTED_BY_ARTISAN
                         ? "Mission impossible"
                         : "Problème signalé"}
                     </span>
                   </div>
 
                   <p className="text-xs text-amber-700 mb-3">
-                    {request.status === "could_not_complete"
+                    {request.status === ServiceRequestStatus.DISPUTED_BY_ARTISAN
                       ? "L'artisan n'a pas pu réaliser cette mission."
                       : "L'artisan a signalé des problèmes lors de la réalisation."}
                   </p>
 
                   <Button
+                    onClick={() =>
+                      router.push(`/workspace/requests/${request.id}`)
+                    }
                     variant="outline"
                     size="sm"
                     className="w-full border border-amber-200 bg-amber-50/50 text-amber-700 hover:bg-amber-100 text-[10px] h-6 font-medium rounded-md"
@@ -1245,7 +1246,9 @@ function RequestCard({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => onViewEstimate?.(relevantEstimate.id)}
+                        onClick={() =>
+                          router.push(`/workspace/devis/${relevantEstimate.id}`)
+                        }
                         className="w-full border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all duration-200 text-[10px] h-6 font-medium rounded-md"
                       >
                         <Eye className="h-3 w-3 mr-1.5" />
@@ -1431,7 +1434,7 @@ function RequestCard({
 
 function RequestGrid({
   requests,
-  onViewEstimate,
+
   onRequestUpdate,
 }: ClientRequestsListComponentProps) {
   return (
@@ -1440,7 +1443,6 @@ function RequestGrid({
         <RequestCard
           key={request.id}
           request={request}
-          onViewEstimate={onViewEstimate}
           onRequestUpdate={onRequestUpdate}
         />
       ))}
@@ -1450,7 +1452,6 @@ function RequestGrid({
 
 export function ClientRequestsListComponent({
   requests,
-  onViewEstimate,
   onRequestUpdate,
 }: ClientRequestsListComponentProps) {
   const router = useRouter();
@@ -1634,7 +1635,6 @@ export function ClientRequestsListComponent({
             <AccordionContent className="pt-4">
               <RequestGrid
                 requests={awaitingEstimateRequests}
-                onViewEstimate={onViewEstimate}
                 onRequestUpdate={onRequestUpdate}
               />
             </AccordionContent>
@@ -1653,7 +1653,6 @@ export function ClientRequestsListComponent({
             <AccordionContent className="pt-4">
               <RequestGrid
                 requests={pendingRequests}
-                onViewEstimate={onViewEstimate}
                 onRequestUpdate={onRequestUpdate}
               />
             </AccordionContent>
@@ -1672,7 +1671,6 @@ export function ClientRequestsListComponent({
             <AccordionContent className="pt-4">
               <RequestGrid
                 requests={activeRequests}
-                onViewEstimate={onViewEstimate}
                 onRequestUpdate={onRequestUpdate}
               />
             </AccordionContent>
@@ -1691,7 +1689,6 @@ export function ClientRequestsListComponent({
             <AccordionContent className="pt-4">
               <RequestGrid
                 requests={awaitingValidationRequests}
-                onViewEstimate={onViewEstimate}
                 onRequestUpdate={onRequestUpdate}
               />
             </AccordionContent>
@@ -1710,7 +1707,6 @@ export function ClientRequestsListComponent({
             <AccordionContent className="pt-4">
               <RequestGrid
                 requests={disputedRequests}
-                onViewEstimate={onViewEstimate}
                 onRequestUpdate={onRequestUpdate}
               />
             </AccordionContent>
@@ -1718,7 +1714,7 @@ export function ClientRequestsListComponent({
         )}
 
         {/* Completed Requests */}
-        {completedRequests.length > 0 && (
+        {/* {completedRequests.length > 0 && (
           <AccordionItem value="completed">
             <AccordionTrigger className="text-lg font-semibold text-slate-900 hover:no-underline">
               <div className="flex items-center">
@@ -1729,12 +1725,12 @@ export function ClientRequestsListComponent({
             <AccordionContent className="pt-4">
               <RequestGrid
                 requests={completedRequests}
-                onViewEstimate={onViewEstimate}
+               
                 onRequestUpdate={onRequestUpdate}
               />
             </AccordionContent>
           </AccordionItem>
-        )}
+        )} */}
 
         {/* Cancelled Requests */}
         {cancelledRequests.length > 0 && (
@@ -1748,7 +1744,6 @@ export function ClientRequestsListComponent({
             <AccordionContent className="pt-4">
               <RequestGrid
                 requests={cancelledRequests}
-                onViewEstimate={onViewEstimate}
                 onRequestUpdate={onRequestUpdate}
               />
             </AccordionContent>

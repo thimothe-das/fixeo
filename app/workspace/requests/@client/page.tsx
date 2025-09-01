@@ -17,10 +17,6 @@ export default function DashboardPage() {
   return (
     <ClientRequestsListComponent
       requests={requests || []}
-      onViewEstimate={(estimateId) => {
-        // Navigate to estimates section and show specific estimate
-        // You could add a way to highlight/open specific estimate here
-      }}
       onRequestUpdate={mutateRequests}
     />
   );

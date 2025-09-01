@@ -26,6 +26,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface NewRequestProps {
   onRequestCreated: () => void;
@@ -129,6 +130,11 @@ export function NewRequest({
             setUrgency("");
             setLocation("");
             setSelectedAddress(null);
+            setIsOpen(false); // Close modal after successful creation
+            toast.success("Demande créée avec succès !", {
+              description:
+                "Vous recevrez bientôt des devis de nos artisans qualifiés.",
+            });
             onRequestCreated();
           }
         }, 100);

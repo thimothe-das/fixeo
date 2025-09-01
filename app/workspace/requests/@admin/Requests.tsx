@@ -22,9 +22,23 @@ import {
   Mail,
   Zap,
   Wrench,
+  Calculator,
+  Plus,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/ui/pagination";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   getStatusConfig,
   getCategoryConfig,
@@ -32,6 +46,7 @@ import {
 } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import moment from "moment";
+import { BillingEstimateForm } from "../../(admin)/BillingEstimateCreation";
 
 interface ServiceRequest {
   id: number;
@@ -113,6 +128,11 @@ export function Requests({
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEstimateModal, setShowEstimateModal] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<number | null>(
+    null
+  );
+  const [isCreatingEstimate, setIsCreatingEstimate] = useState(false);
   const router = useRouter();
 
   const fetchRequests = async (page: number = 1, pageSize: number = 10) => {
@@ -152,6 +172,47 @@ export function Requests({
 
   const handlePageSizeChange = (pageSize: number) => {
     fetchRequests(1, pageSize); // Reset to first page when changing page size
+  };
+
+  const handleCreateEstimate = async (estimateData: {
+    serviceRequestId: number;
+    estimatedPrice: number;
+    description: string;
+    breakdown?: any[];
+    validUntil?: string;
+  }) => {
+    try {
+      setIsCreatingEstimate(true);
+
+      const response = await fetch("/api/admin/billing-estimates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(estimateData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create billing estimate");
+      }
+
+      setShowEstimateModal(false);
+      setSelectedRequestId(null);
+      // Refresh requests to show updated data
+      await fetchRequests(pagination.currentPage, pagination.pageSize);
+    } catch (err) {
+      console.error("Error creating estimate:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to create estimate"
+      );
+    } finally {
+      setIsCreatingEstimate(false);
+    }
+  };
+
+  const openEstimateModal = (requestId: number) => {
+    setSelectedRequestId(requestId);
+    setShowEstimateModal(true);
   };
 
   if (loading) {
@@ -200,164 +261,236 @@ export function Requests({
   }
 
   return (
-    <Card className="border-none shadow-none ">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wrench className="h-5 w-5" />
-          Requêtes ({pagination.totalCount})
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {requests.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">Aucune requête trouvée.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Lieu</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Urgence</TableHead>
-                  <TableHead>Prix</TableHead>
-                  <TableHead>Créé le</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.map((request) => (
-                  <TableRow key={request.id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium">#{request.id}</TableCell>
-
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getCategoryConfig(request.serviceType, "h-4 w-4").icon}
-                        <span className="font-medium">
-                          {getCategoryConfig(request.serviceType, "").type}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="space-y-1">
-                        {request.client?.name && (
-                          <div className="flex items-center gap-1 text-sm">
-                            <User className="h-3 w-3 text-gray-400" />
-                            <span>{request.client.name}</span>
-                          </div>
-                        )}
-                        {request.clientEmail && (
-                          <div className="flex items-center gap-1 text-xs text-gray-600">
-                            <Mail className="h-3 w-3 text-gray-400" />
-                            <span>{request.clientEmail}</span>
-                          </div>
-                        )}
-                        {request.client?.phone && (
-                          <div className="flex items-center gap-1 text-xs text-gray-600">
-                            <Phone className="h-3 w-3 text-gray-400" />
-                            <span>{request.client.phone}</span>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex items-center gap-1 max-w-[200px]">
-                        <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                        <span
-                          className="text-sm truncate"
-                          title={request.location}
-                        >
-                          {truncateText(request.location, 30)}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="max-w-[250px]">
-                        <span
-                          className="text-sm text-gray-700"
-                          title={request.description}
-                        >
-                          {truncateText(request.description, 60)}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge
-                        className={`${
-                          getStatusConfig(request.status, "").color
-                        } text-xs border`}
-                      >
-                        {getStatusConfig(request.status, "").label}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge
-                        className={`${
-                          getPriorityConfig(request.urgency).color
-                        } text-xs border`}
-                      >
-                        <span className="mr-1">
-                          {getPriorityConfig(request.urgency, "h-3 w-3").icon}
-                        </span>
-                        {getPriorityConfig(request.urgency).label}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell>
-                      <span className="font-medium">
-                        {formatCurrency(request.estimatedPrice)}
-                      </span>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm text-gray-600">
-                        <Calendar className="h-3 w-3 text-gray-400" />
-                        <span>
-                          {moment(request.createdAt).format("DD/MM/YYYY")}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        title="Voir les détails"
-                        onClick={() =>
-                          router.push(`/workspace/requests/${request.id}`)
-                        }
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+    <TooltipProvider>
+      <Card className="border-none shadow-none ">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wrench className="h-5 w-5" />
+            Requêtes ({pagination.totalCount})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {requests.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Aucune requête trouvée.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Titre</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Ville</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Urgence</TableHead>
+                    <TableHead>Prix</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                </TableHeader>
+                <TableBody>
+                  {requests.map((request) => (
+                    <TableRow key={request.id} className="hover:bg-gray-50">
+                      <TableCell className="font-medium">
+                        #{request.id}
+                      </TableCell>
 
-        {requests.length > 0 && (
-          <Pagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            pageSize={pagination.pageSize}
-            totalCount={pagination.totalCount}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-          />
-        )}
-      </CardContent>
-    </Card>
+                      <TableCell>
+                        <div className="max-w-[200px]">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm truncate cursor-help block">
+                                {truncateText(request.description, 40)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-md">
+                                <p className="text-sm">{request.description}</p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {
+                            getCategoryConfig(request.serviceType, "h-4 w-4")
+                              .icon
+                          }
+                          <span className="font-medium">
+                            {getCategoryConfig(request.serviceType, "").type}
+                          </span>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="space-y-1">
+                          {request.client?.name && (
+                            <div className="flex items-center gap-1 text-sm">
+                              <User className="h-3 w-3 text-gray-400" />
+                              <span>{request.client.name}</span>
+                            </div>
+                          )}
+                          {request.clientEmail && (
+                            <div className="flex items-center gap-1 text-xs text-gray-600">
+                              <Mail className="h-3 w-3 text-gray-400" />
+                              <span>{request.clientEmail}</span>
+                            </div>
+                          )}
+                          {request.client?.phone && (
+                            <div className="flex items-center gap-1 text-xs text-gray-600">
+                              <Phone className="h-3 w-3 text-gray-400" />
+                              <span>{request.client.phone}</span>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center gap-1 max-w-[200px]">
+                          <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm truncate cursor-help">
+                                {request.client?.addressPostcode ||
+                                  truncateText(request.location, 10)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs">
+                                <p className="text-sm">
+                                  {[
+                                    request.client?.addressHousenumber,
+                                    request.client?.addressStreet,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" ")}
+                                  {[
+                                    request.client?.addressHousenumber,
+                                    request.client?.addressStreet,
+                                  ].filter(Boolean).length > 0 && <br />}
+                                  {[
+                                    request.client?.addressPostcode,
+                                    request.client?.addressCity,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" ")}
+                                  {request.client?.addressDistrict && (
+                                    <>
+                                      <br />
+                                      {request.client.addressDistrict}
+                                    </>
+                                  )}
+                                  {!request.client?.addressCity &&
+                                    request.location}
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge
+                          className={`${
+                            getStatusConfig(request.status, "").color
+                          } text-xs border`}
+                        >
+                          {getStatusConfig(request.status, "").label}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge
+                          className={`${
+                            getPriorityConfig(request.urgency).color
+                          } text-xs border`}
+                        >
+                          <span className="mr-1">
+                            {getPriorityConfig(request.urgency, "h-3 w-3").icon}
+                          </span>
+                          {getPriorityConfig(request.urgency).label}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <span className="font-medium">
+                          {formatCurrency(request.estimatedPrice)}
+                        </span>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            title="Voir les détails"
+                            onClick={() =>
+                              router.push(`/workspace/requests/${request.id}`)
+                            }
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {!request.estimatedPrice && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  title="Créer un devis"
+                                  onClick={() => openEstimateModal(request.id)}
+                                >
+                                  <Calculator className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Créer un devis</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {requests.length > 0 && (
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              pageSize={pagination.pageSize}
+              totalCount={pagination.totalCount}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Billing Estimate Creation Modal */}
+      <Dialog open={showEstimateModal} onOpenChange={setShowEstimateModal}>
+        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto p-0">
+          {selectedRequestId && (
+            <BillingEstimateForm
+              serviceRequestId={selectedRequestId}
+              onSubmit={handleCreateEstimate}
+              onCancel={() => {
+                setShowEstimateModal(false);
+                setSelectedRequestId(null);
+              }}
+              isLoading={isCreatingEstimate}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </TooltipProvider>
   );
 }
