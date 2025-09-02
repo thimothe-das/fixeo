@@ -42,8 +42,9 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { createServiceRequest } from "./(dashboard)/actions";
+import { TokenStorage } from "./suivi/[token]/token-storage";
 
 type GuestToken = {
   token: string;
@@ -92,22 +93,13 @@ export default function FixeoHomePage() {
     }
   }, []);
 
-  // Handle successful form submission with guest token
   useEffect(() => {
-    if (state?.success && state?.guestToken) {
-      const newToken: GuestToken = {
-        token: state.guestToken,
-        clientEmail: state.clientEmail || "",
-        createdAt: new Date().toISOString(),
-      };
-
-      if (typeof window !== "undefined") {
-        const newTokens = [newToken, ...guestTokens.slice(0, 4)]; // Keep max 5 tokens
-        setGuestTokens(newTokens);
-        localStorage.setItem("fixeo_guest_tokens", JSON.stringify(newTokens));
-      }
+    if (typeof window !== "undefined") {
+      setGuestTokens(
+        JSON.parse(localStorage.getItem("fixeo_guest_tokens") || "[]")
+      );
     }
-  }, [state?.success, state?.guestToken, guestTokens]);
+  }, [state]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -160,7 +152,11 @@ export default function FixeoHomePage() {
     }
   };
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
     try {
       // Upload photos first if any are selected
       let photoUrls: string[] = [];
@@ -172,16 +168,9 @@ export default function FixeoHomePage() {
       formData.set("photos", JSON.stringify(photoUrls));
 
       // Call the original form action
-      await formAction(formData);
-
-      // Reset form if successful
-      if (!state?.error) {
-        setPhotos([]);
-        setServiceType("");
-        setUrgency("");
-        setLocation("");
-        setSelectedAddress(null);
-      }
+      startTransition(() => {
+        formAction(formData);
+      });
     } catch (error) {
       console.error("Form submission error:", error);
     }
@@ -207,6 +196,8 @@ export default function FixeoHomePage() {
   return (
     <main className="bg-white">
       {/* Hero Section */}
+      <TokenStorage token={state.guestToken} />
+
       <section className="relative bg-gradient-to-br from-slate-50 to-blue-50 py-8 lg:py-12 min-h-[calc(100vh-80px)] flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl">
@@ -232,7 +223,7 @@ export default function FixeoHomePage() {
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <form action={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleFormSubmit} className="space-y-4">
                       {/* Service Type & Urgency */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -474,7 +465,7 @@ export default function FixeoHomePage() {
                         {guestTokens.map((token, index) => (
                           <a
                             key={token.token}
-                            href={`/suivi/${token.token}`}
+                            href={`/suivi/${token}`}
                             className="block p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
                           >
                             <div className="flex items-center justify-between">

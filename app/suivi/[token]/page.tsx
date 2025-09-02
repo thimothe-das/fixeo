@@ -1,19 +1,22 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db/drizzle";
 import { serviceRequests, ServiceRequestStatus } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import {
   AlertCircle,
+  ArrowLeft,
   Calendar,
   CheckCircle,
   Clock,
-  Image as ImageIcon,
   Mail,
   MapPin,
   Phone,
   User,
 } from "lucide-react";
+import Link from "next/link";
+import { PhotoGallery } from "./photo-gallery";
 import { TokenStorage } from "./token-storage";
 
 export async function generateMetadata({
@@ -157,13 +160,23 @@ export default async function TrackingPage({
       <TokenStorage token={token} />
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Suivi de votre demande
-          </h1>
-          <p className="text-gray-600">
-            Suivez l'évolution de votre demande de service en temps réel
-          </p>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <Button asChild variant="outline" className="flex items-center">
+              <Link href="/">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Retour à l'accueil
+              </Link>
+            </Button>
+          </div>
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Suivi de votre demande
+            </h1>
+            <p className="text-gray-600">
+              Suivez l'évolution de votre demande de service en temps réel
+            </p>
+          </div>
         </div>
 
         {/* Status Card */}
@@ -241,25 +254,7 @@ export default async function TrackingPage({
             </div>
 
             {/* Photos Section */}
-            {photos.length > 0 && (
-              <div className="mt-6">
-                <h3 className="font-medium text-gray-900 mb-3 flex items-center">
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                  Photos ({photos.length})
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {photos.map((photoUrl: string, index: number) => (
-                    <img
-                      key={index}
-                      src={photoUrl}
-                      alt={`Photo ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity cursor-pointer"
-                      onClick={() => window.open(photoUrl, "_blank")}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            <PhotoGallery photos={photos} />
           </CardContent>
         </Card>
 
