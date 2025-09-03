@@ -1,20 +1,13 @@
 "use client";
 
-import {
-  DollarSign,
-  Wrench,
-  Star,
-  AlertTriangle,
-  Euro,
-  MapPin,
-} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMemo } from "react";
 import { ServiceRequestStatus } from "@/lib/db/schema";
+import { AlertTriangle, Euro, MapPin, Star, Wrench } from "lucide-react";
 import moment from "moment";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 
 type ServiceRequestForArtisan = {
   id: number;
@@ -203,7 +196,9 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Vue d'ensemble</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Vue d'ensemble sur Fixeo
+        </h1>
         <p className="text-gray-600">Bonjour, voici votre activité du jour</p>
       </div>
 

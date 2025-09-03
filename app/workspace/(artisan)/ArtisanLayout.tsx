@@ -40,11 +40,10 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-import { usePathname, useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { signOut } from "@/app/(login)/actions";
-import useSWR from "swr";
 import { User as UserType } from "@/lib/db/schema";
+import { usePathname, useRouter } from "next/navigation";
+import useSWR from "swr";
 
 const sidebarItems = [
   { title: "Vue d'ensemble", icon: Home, id: "dashboard", route: "dashboard" },
