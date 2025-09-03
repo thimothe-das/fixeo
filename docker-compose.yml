@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       ports:
-        - "5433:5432"
+        - "5436:5432"
     # ports:
     #   - "${POSTGRES_PORT_MAPPING:-5433:5432}"
     volumes:
