@@ -5,7 +5,6 @@ import { db } from '@/lib/db/drizzle';
 import { getUser } from '@/lib/db/queries';
 import { serviceRequests, type NewServiceRequest } from '@/lib/db/schema';
 import { randomUUID } from 'crypto';
-import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 const createServiceRequestSchema = z.object({
@@ -86,7 +85,7 @@ export const createServiceRequest = validatedAction(
         photos,
         userId: currentUser?.id || null,
         guestToken,
-        status: 'awaiting_estimate',
+        status: 'awaiting_payment',
       };
 
       console.log('About to insert service request:', newServiceRequest);
@@ -104,22 +103,6 @@ export const createServiceRequest = validatedAction(
         };
       }
 
-      // TODO: Send email with tracking link for guest users
-      if (guestToken) {
-        // await sendTrackingEmail(clientEmail, guestToken);
-        console.log(`Tracking link: /suivi/${guestToken}`);
-      }
-
-      // TODO: Send notifications to nearby artisans
-      // TODO: Log the activity
-
-      // For guest users, redirect to tracking page
-      if (guestToken) {
-        redirect(`/suivi/${guestToken}`);
-      }
-
-      // Return success for logged-in users
-      console.log('Returning success for logged-in user');
       return {
         success: true,
         message: 'Votre demande a été envoyée avec succès ! Les artisans de votre secteur vont être notifiés.',

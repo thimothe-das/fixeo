@@ -1,30 +1,26 @@
 "use client";
 
+import { Breadcrumb, createBreadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Breadcrumb, createBreadcrumbs } from "@/components/ui/breadcrumb";
 import { ServiceRequestStatus } from "@/lib/db/schema";
+import { getStatusConfig } from "@/lib/utils";
 import {
   AlertCircle,
   Calculator,
   CheckCircle2,
   Clock as ClockIcon,
   FileText as DocumentIcon,
-  Hammer,
   Info,
-  LucideWrench,
-  PaintBucket,
   Phone,
   PlayCircle,
   Send,
   Star,
   User,
-  Wrench,
-  Zap,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import * as React from "react";
@@ -203,104 +199,6 @@ export default function RequestDetailPage() {
     }
   };
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case ServiceRequestStatus.AWAITING_ESTIMATE:
-        return {
-          color: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
-          label: "En attente de devis",
-        };
-      case ServiceRequestStatus.AWAITING_ASSIGNATION:
-        return {
-          color: "bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200",
-          label: "En attente d'assignation",
-        };
-      case ServiceRequestStatus.IN_PROGRESS:
-        return {
-          color: "bg-blue-100 text-blue-700 ring-1 ring-blue-200",
-          label: "En cours",
-        };
-      case ServiceRequestStatus.CLIENT_VALIDATED:
-        return {
-          color: "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200",
-          label: "Client validé",
-        };
-      case ServiceRequestStatus.ARTISAN_VALIDATED:
-        return {
-          color: "bg-cyan-100 text-cyan-700 ring-1 ring-cyan-200",
-          label: "Artisan validé",
-        };
-      case ServiceRequestStatus.COMPLETED:
-        return {
-          color: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
-          label: "Terminée",
-        };
-      case ServiceRequestStatus.DISPUTED_BY_CLIENT:
-        return {
-          color: "bg-red-100 text-red-700 ring-1 ring-red-200",
-          label: "Litige client",
-        };
-      case ServiceRequestStatus.DISPUTED_BY_ARTISAN:
-        return {
-          color: "bg-orange-100 text-orange-700 ring-1 ring-orange-200",
-          label: "Litige artisan",
-        };
-      case ServiceRequestStatus.DISPUTED_BY_BOTH:
-        return {
-          color: "bg-purple-100 text-purple-700 ring-1 ring-purple-200",
-          label: "Litige des deux parties",
-        };
-      case ServiceRequestStatus.RESOLVED:
-        return {
-          color: "bg-green-100 text-green-700 ring-1 ring-green-200",
-          label: "Litige résolu",
-        };
-      case ServiceRequestStatus.CANCELLED:
-        return {
-          color: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
-          label: "Annulée",
-        };
-      default:
-        return {
-          color: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
-          label: status,
-        };
-    }
-  };
-
-  const getCategoryIcon = (serviceType: string) => {
-    const type = serviceType.toLowerCase();
-
-    if (
-      type.includes("plomberie") ||
-      type.includes("plombier") ||
-      type.includes("fuite") ||
-      type.includes("eau")
-    ) {
-      return <LucideWrench className="h-6 w-6 text-blue-600" />;
-    } else if (
-      type.includes("électricité") ||
-      type.includes("électricien") ||
-      type.includes("électrique")
-    ) {
-      return <Zap className="h-6 w-6 text-amber-600" />;
-    } else if (
-      type.includes("peinture") ||
-      type.includes("peintre") ||
-      type.includes("peindre")
-    ) {
-      return <PaintBucket className="h-6 w-6 text-violet-600" />;
-    } else if (
-      type.includes("maçonnerie") ||
-      type.includes("maçon") ||
-      type.includes("construction")
-    ) {
-      return <Hammer className="h-6 w-6 text-stone-600" />;
-    } else {
-      return <Wrench className="h-6 w-6 text-slate-600" />;
-    }
-  };
-
   // Prepare stepper data
   const getStepperData = (): { steps: StepMeta[]; current: StepKey } => {
     const steps: StepMeta[] = [
@@ -366,7 +264,7 @@ export default function RequestDetailPage() {
     : null;
 
   const priorityConfig = getPriorityConfig(request.priority);
-  const statusConfig = getStatusConfig(request.status);
+  const statusConfig = getStatusConfig(request.status, "h-4 w-4");
 
   // Action handlers
   const handleAcceptQuote = async () => {
@@ -514,7 +412,10 @@ export default function RequestDetailPage() {
                     <div className="h-8 w-px bg-gray-300"></div>
                   </>
                 )}
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusConfig.color} ${statusConfig.borderTop}`}
+                >
+                  {statusConfig.icon}
                   {statusConfig.label}
                 </span>
               </div>
@@ -725,50 +626,62 @@ export default function RequestDetailPage() {
           <div className="space-y-6">
             {/* Artisan Info */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                Artisan assigné
-              </h2>
               {request.assignedArtisan?.name ? (
-                <div className="flex items-center gap-4 mb-6">
-                  {request.assignedArtisan.profilePicture ? (
-                    <img
-                      src={request.assignedArtisan.profilePicture}
-                      alt={
-                        request.assignedArtisan.firstName &&
+                <>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                    Artisan assigné
+                  </h2>
+                  <div className="flex items-center gap-4 mb-6">
+                    {request.assignedArtisan.profilePicture ? (
+                      <img
+                        src={request.assignedArtisan.profilePicture}
+                        alt={
+                          request.assignedArtisan.firstName &&
+                          request.assignedArtisan.lastName
+                            ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
+                            : request.assignedArtisan.name
+                        }
+                        className="w-16 h-16 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                        <User className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-semibold text-lg text-gray-900">
+                        {request.assignedArtisan.firstName &&
                         request.assignedArtisan.lastName
                           ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
-                          : request.assignedArtisan.name
-                      }
-                      className="w-16 h-16 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                      <User className="h-8 w-8 text-gray-400" />
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-900">
-                      {request.assignedArtisan.firstName &&
-                      request.assignedArtisan.lastName
-                        ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
-                        : request.assignedArtisan.name}
-                    </h3>
+                          : request.assignedArtisan.name}
+                      </h3>
 
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className="flex text-yellow-400">
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
+                      <div className="flex items-center gap-1 mt-1">
+                        <div className="flex text-yellow-400">
+                          <Star className="h-4 w-4 fill-current" />
+                          <Star className="h-4 w-4 fill-current" />
+                          <Star className="h-4 w-4 fill-current" />
+                          <Star className="h-4 w-4 fill-current" />
+                          <Star className="h-4 w-4 fill-current" />
+                        </div>
+                        <span className="text-sm text-gray-600 ml-1">
+                          {request.assignedArtisan.rating?.toFixed(1) || "4.9"}{" "}
+                          (127 avis)
+                        </span>
                       </div>
-                      <span className="text-sm text-gray-600 ml-1">
-                        {request.assignedArtisan.rating?.toFixed(1) || "4.9"}{" "}
-                        (127 avis)
-                      </span>
                     </div>
                   </div>
-                </div>
+                  <div className="space-y-3">
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                      <Phone className="h-4 w-4 mr-2" />
+                      Appeler
+                    </Button>
+                    <Button variant="outline" className="w-full">
+                      <span className="mr-2">✉️</span>
+                      Email
+                    </Button>
+                  </div>
+                </>
               ) : (
                 <div className="text-center py-8">
                   <div className="relative mx-auto mb-4 w-16 h-16 flex items-center justify-center">
@@ -785,17 +698,6 @@ export default function RequestDetailPage() {
                   </p>
                 </div>
               )}
-
-              <div className="space-y-3">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Appeler
-                </Button>
-                <Button variant="outline" className="w-full">
-                  <span className="mr-2">✉️</span>
-                  Email
-                </Button>
-              </div>
             </div>
 
             {/* Chat */}

@@ -1,4 +1,5 @@
 import { verifyToken } from '@/lib/auth/session';
+import { isWithinServiceRadius } from '@/lib/utils';
 import { and, desc, eq, isNull, or, sql } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { db } from './drizzle';
@@ -44,6 +45,26 @@ export async function getTeamByStripeCustomerId(customerId: string) {
     .limit(1);
 
   return result.length > 0 ? result[0] : null;
+}
+
+export async function getUserByStripeCustomerId(customerId: string) {
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.stripeCustomerId, customerId))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateUserStripeCustomerId(userId: number, stripeCustomerId: string) {
+  await db
+    .update(users)
+    .set({
+      stripeCustomerId,
+      updatedAt: new Date()
+    })
+    .where(eq(users.id, userId));
 }
 
 export async function updateTeamSubscription(
@@ -234,23 +255,26 @@ export async function getServiceRequestsForArtisan(userId: number) {
     .where(
       and(
         eq(serviceRequests.status, ServiceRequestStatus.AWAITING_ASSIGNATION),
-        isNull(serviceRequests.assignedArtisanId)
+        isNull(serviceRequests.assignedArtisanId),
       )
     )
     .orderBy(desc(serviceRequests.createdAt))
     .limit(20);
 
-    // Filter by specialties and location (simplified)
+    // Filter by specialties and location
   const filteredAvailable = availableRequests.filter((request) => {
     const matchesSpecialty = userSpecialties.length === 0 || 
-      userSpecialties.some(specialty => 
-        request.serviceType.toLowerCase().includes(specialty.toLowerCase())
-      );
-    // TODO: Add location filter
-    // const matchesLocation = !serviceArea || 
-    //   request.location.toLowerCase().includes(serviceArea.toLowerCase());
+      userSpecialties.some(specialty => {
+        console.log("specialty", specialty.toLowerCase(), request.serviceType.toLowerCase());
+        return request.serviceType.toLowerCase().includes(specialty.toLowerCase())
+      })
     
-    return matchesSpecialty
+    // Location filter: check if request is within artisan's service radius
+    const matchesLocation = isWithinServiceRadius(
+      user.professionalProfile.serviceAreaCoordinates,
+      request.locationCoordinates
+    );
+    return matchesSpecialty && matchesLocation;
   });
 
   // Add the isAssigned flag after querying
@@ -1047,6 +1071,23 @@ export async function updateServiceRequestStatus(
   // If it's a dispute, we might want to log this separately
   // For now, we'll just store the dispute details in a separate table if needed
   
+  return updatedRequest;
+}
+
+export async function updateServiceRequestDownPaymentByGuestToken(guestToken: string) {
+  if (!guestToken) {
+    throw new Error('Guest token is required');
+  }
+
+  const [updatedRequest] = await db
+    .update(serviceRequests)
+    .set({
+      downPaymentPaid: true,
+      updatedAt: new Date()
+    })
+    .where(eq(serviceRequests.guestToken, guestToken))
+    .returning();
+
   return updatedRequest;
 }
 

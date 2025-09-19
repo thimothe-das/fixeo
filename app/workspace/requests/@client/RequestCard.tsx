@@ -1,20 +1,20 @@
 "use client";
 
-import {
-  Calendar,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  MapPin,
-  User,
-  Euro,
-  Badge as BadgeIcon,
-  Mail,
-  Phone,
-} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertTriangle,
+  Badge as BadgeIcon,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Euro,
+  Mail,
+  MapPin,
+  Phone,
+  User,
+} from "lucide-react";
 import { PhotoGallery } from "./PhotoGallery";
 
 type ServiceRequestForArtisan = {

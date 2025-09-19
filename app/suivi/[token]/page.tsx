@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db/drizzle";
 import { serviceRequests, ServiceRequestStatus } from "@/lib/db/schema";
+import { getStatusConfig, ServiceType } from "@/lib/utils";
 import { eq } from "drizzle-orm";
 import {
   AlertCircle,
@@ -15,6 +16,7 @@ import {
   Phone,
   User,
 } from "lucide-react";
+import moment from "moment";
 import Link from "next/link";
 import { PhotoGallery } from "./photo-gallery";
 import { TokenStorage } from "./token-storage";
@@ -65,51 +67,6 @@ export default async function TrackingPage({
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "accepted":
-        return "bg-green-100 text-green-800";
-      case "completed":
-        return "bg-blue-100 text-blue-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Clock className="h-4 w-4" />;
-      case "accepted":
-        return <CheckCircle className="h-4 w-4" />;
-      case "completed":
-        return <CheckCircle className="h-4 w-4" />;
-      case "cancelled":
-        return <AlertCircle className="h-4 w-4" />;
-      default:
-        return <AlertCircle className="h-4 w-4" />;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "En attente";
-      case "accepted":
-        return "Acceptée";
-      case "completed":
-        return "Terminée";
-      case "cancelled":
-        return "Annulée";
-      default:
-        return "Statut inconnu";
-    }
-  };
-
   const getUrgencyText = (urgency: string) => {
     switch (urgency) {
       case "urgent":
@@ -125,36 +82,25 @@ export default async function TrackingPage({
 
   const getServiceTypeText = (serviceType: string) => {
     switch (serviceType) {
-      case "plomberie":
+      case ServiceType.PLOMBERIE:
         return "🔧 Plomberie";
-      case "electricite":
+      case ServiceType.ELECTRICITE:
         return "⚡ Électricité";
-      case "menuiserie":
+      case ServiceType.MENUISERIE:
         return "🔨 Menuiserie";
-      case "peinture":
+      case ServiceType.PEINTURE:
         return "🎨 Peinture";
-      case "renovation":
+      case ServiceType.RENOVATION:
         return "🏠 Rénovation";
-      case "depannage":
+      case ServiceType.DEPANNAGE:
         return "⚙️ Dépannage";
       default:
         return serviceType;
     }
   };
 
-  const formatDate = (date: string | Date) => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
-    return dateObj.toLocaleDateString("fr-FR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const photos = request.photos ? JSON.parse(request.photos) : [];
-
+  const statusConfig = getStatusConfig(request.status, "h-4 w-4");
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <TokenStorage token={token} />
@@ -186,9 +132,9 @@ export default async function TrackingPage({
               <CardTitle className="text-xl">
                 {getServiceTypeText(request.serviceType)}
               </CardTitle>
-              <Badge className={getStatusColor(request.status)}>
-                {getStatusIcon(request.status)}
-                <span className="ml-2">{getStatusText(request.status)}</span>
+              <Badge className={statusConfig.color}>
+                {statusConfig.icon}
+                <span className="ml-2">{statusConfig.label}</span>
               </Badge>
             </div>
           </CardHeader>
@@ -209,7 +155,7 @@ export default async function TrackingPage({
 
                 <div className="flex items-center text-gray-600">
                   <Calendar className="h-4 w-4 mr-2 text-green-600" />
-                  Créée le {formatDate(request.createdAt)}
+                  Créée le {moment(request.createdAt).format("DD/MM/YYYY")}
                 </div>
 
                 <div>
@@ -272,7 +218,7 @@ export default async function TrackingPage({
                 <div>
                   <p className="font-medium text-gray-900">Demande créée</p>
                   <p className="text-sm text-gray-600">
-                    {formatDate(request.createdAt)}
+                    {moment(request.createdAt).format("DD/MM/YYYY")}
                   </p>
                 </div>
               </div>

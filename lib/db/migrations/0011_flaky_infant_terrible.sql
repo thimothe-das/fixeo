@@ -1,0 +1,1 @@
+ALTER TABLE "service_requests" ADD COLUMN "down_payment_paid" boolean DEFAULT false NOT NULL;

@@ -44,7 +44,7 @@ import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 
 import { signOut } from "@/app/(login)/actions";
-import { ServiceRequestStatus, User as UserType } from "@/lib/db/schema";
+import { User as UserType } from "@/lib/db/schema";
 import { NewRequest } from "./NewRequest";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -127,7 +127,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50 w-full">
+      <div className="flex min-h-screen w-full">
         <Sidebar className="border-r border-gray-200">
           <SidebarHeader className="border-b border-gray-200 p-6">
             <div className="flex items-center gap-3">

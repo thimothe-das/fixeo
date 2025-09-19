@@ -1,11 +1,20 @@
 "use client";
 
-import * as React from "react";
-import { useState, useEffect } from "react";
+import {
+  AddressAutocomplete,
+  AddressData,
+} from "@/components/ui/address-autocomplete";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -13,38 +22,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  User,
-  Phone,
-  Mail,
-  Shield,
-  MapPin,
-  Building,
-  CheckCircle,
-  Save,
-  Loader2,
-  Briefcase,
-  Settings,
-  Cog,
-  Scissors,
-  Truck,
-} from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { getCategoryConfig, ServiceType } from "@/lib/utils";
 import {
-  AddressAutocomplete,
-  AddressData,
-} from "@/components/ui/address-autocomplete";
+  Briefcase,
+  Building,
+  CheckCircle,
+  Loader2,
+  Mail,
+  Phone,
+  Save,
+  Settings,
+  Shield,
+  User,
+} from "lucide-react";
 import moment from "moment";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface UserData {
   id: number;
@@ -96,79 +90,19 @@ const getDisplayName = (user: UserData) => {
   return user.email.split("@")[0];
 };
 
-const specialties = [
-  "Plomberie",
-  "Électricité",
-  "Peinture",
-  "Menuiserie",
-  "Carrelage",
-  "Jardinage",
-  "Nettoyage",
-  "Déménagement",
-];
+const specialties = Object.values(ServiceType);
 
 const getSpecialtyConfig = (specialty: string) => {
   switch (specialty) {
-    case "Plomberie":
+    case ServiceType.PLOMBERIE:
       return getCategoryConfig(ServiceType.PLOMBERIE, "h-4 w-4");
-    case "Électricité":
+    case ServiceType.ELECTRICITE:
       return getCategoryConfig(ServiceType.ELECTRICITE, "h-4 w-4");
-    case "Peinture":
+    case ServiceType.PEINTURE:
       return getCategoryConfig(ServiceType.PEINTURE, "h-4 w-4");
-    case "Menuiserie":
+    case ServiceType.MENUISERIE:
       return getCategoryConfig(ServiceType.MENUISERIE, "h-4 w-4");
-    case "Carrelage":
-      return {
-        type: "Carrelage",
-        icon: <Settings className="h-4 w-4 text-teal-700" />,
-        colors: {
-          color: "teal-500",
-          bg: "bg-teal-50",
-          text: "text-teal-700",
-          ring: "ring-teal-200",
-          accent: "border-teal-500",
-          borderTop: "border-t-teal-500",
-        },
-      };
-    case "Jardinage":
-      return {
-        type: "Jardinage",
-        icon: <Scissors className="h-4 w-4 text-green-700" />,
-        colors: {
-          color: "green-500",
-          bg: "bg-green-50",
-          text: "text-green-700",
-          ring: "ring-green-200",
-          accent: "border-green-500",
-          borderTop: "border-t-green-500",
-        },
-      };
-    case "Nettoyage":
-      return {
-        type: "Nettoyage",
-        icon: <Cog className="h-4 w-4 text-cyan-700" />,
-        colors: {
-          color: "cyan-500",
-          bg: "bg-cyan-50",
-          text: "text-cyan-700",
-          ring: "ring-cyan-200",
-          accent: "border-cyan-500",
-          borderTop: "border-t-cyan-500",
-        },
-      };
-    case "Déménagement":
-      return {
-        type: "Déménagement",
-        icon: <Truck className="h-4 w-4 text-purple-700" />,
-        colors: {
-          color: "purple-500",
-          bg: "bg-purple-50",
-          text: "text-purple-700",
-          ring: "ring-purple-200",
-          accent: "border-purple-500",
-          borderTop: "border-t-purple-500",
-        },
-      };
+
     default:
       return {
         type: specialty,
@@ -216,11 +150,6 @@ export function UserEditModal({ userId, setUserId }: UserEditModalProps) {
     description: "",
     isVerified: false,
   });
-
-  const [selectedServiceAddress, setSelectedServiceAddress] =
-    useState<AddressData | null>(null);
-  const [selectedClientAddress, setSelectedClientAddress] =
-    useState<AddressData | null>(null);
 
   const fetchUser = async () => {
     try {
@@ -447,15 +376,13 @@ export function UserEditModal({ userId, setUserId }: UserEditModalProps) {
     address: AddressData | null,
     rawValue: string
   ) => {
-    setSelectedServiceAddress(address);
-    setFormData((prev) => ({ ...prev, serviceArea: rawValue }));
+    -setFormData((prev) => ({ ...prev, serviceArea: rawValue }));
   };
 
   const handleClientAddressChange = (
     address: AddressData | null,
     rawValue: string
   ) => {
-    setSelectedClientAddress(address);
     setFormData((prev) => ({ ...prev, address: rawValue }));
   };
 

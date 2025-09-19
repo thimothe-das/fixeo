@@ -1,8 +1,18 @@
-import { useState, useActionState, useTransition } from "react";
+import {
+  AddressAutocomplete,
+  AddressData,
+} from "@/components/ui/address-autocomplete";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -10,23 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Loader2, X, Upload, Plus } from "lucide-react";
-import { Dialog } from "@/components/ui/dialog";
-import {
-  AddressAutocomplete,
-  AddressData,
-} from "@/components/ui/address-autocomplete";
-import { createServiceRequest } from "../actions";
+import { Textarea } from "@/components/ui/textarea";
 import { ActionState } from "@/lib/auth/middleware";
-import {
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-  DialogContent,
-} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { Loader2, Plus, Upload, X } from "lucide-react";
+import { useActionState, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { createServiceRequest } from "../actions";
 
 interface NewRequestProps {
   onRequestCreated: () => void;
@@ -119,7 +119,7 @@ export function NewRequest({
 
       // Call the form action within a transition
       startTransition(async () => {
-        await formAction(formData);
+        formAction(formData);
 
         // Reset form on success (check state after action completes)
         setTimeout(() => {
@@ -314,7 +314,7 @@ export function NewRequest({
           <Button
             className={cn(
               className,
-              "w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm transition-colors cursor-pointer hover:cursor-pointer"
+              "w-full bg-fixeo-accent-500 hover:bg-fixeo-accent-500 text-white font-medium py-3 px-4 rounded-lg shadow-sm transition-colors cursor-pointer hover:cursor-pointer"
             )}
           >
             <Plus className="h-4 w-4 mr-2" />

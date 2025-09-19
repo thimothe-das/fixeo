@@ -1,21 +1,21 @@
 "use client";
 
-import { use, useState, Suspense } from "react";
-import Link from "next/link";
+import { signOut } from "@/app/(login)/actions";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { CircleIcon, Home, LogOut, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { signOut } from "@/app/(login)/actions";
-import { useRouter } from "next/navigation";
 import { User } from "@/lib/db/schema";
+import { Home, LogOut, Users } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
 import useSWR, { mutate } from "swr";
-import { usePathname } from "next/navigation";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -94,8 +94,14 @@ export default function Header() {
     <header className="border-b border-gray-200 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center">
-          <CircleIcon className="h-6 w-6 text-orange-500" />
-          <span className="ml-2 text-xl font-semibold text-gray-900">
+          <Image
+            src="/logov3.png"
+            alt="Fixéo Logo"
+            width={40}
+            height={40}
+            className="h-10 w-10 mr-2"
+          />
+          <span className="ml-2 text-2xl font-semibold text-fixeo-blue-600">
             Fixéo
           </span>
         </Link>

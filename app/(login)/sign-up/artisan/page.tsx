@@ -30,6 +30,7 @@ import {
   SignUpFormFields,
   useFormState,
 } from "@/lib/auth/form-utils";
+import { ServiceType } from "@/lib/utils";
 import {
   Briefcase,
   Loader2,
@@ -44,18 +45,8 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useActionState, useState } from "react";
 import { signUp } from "../../actions";
 
-const specialties = [
-  "Plomberie",
-  "Électricité",
-  "Peinture",
-  "Menuiserie",
-  "Carrelage",
-  "Jardinage",
-  "Nettoyage",
-  "Déménagement",
-];
-
 function SignUpArtisanForm() {
+  const specialties = Object.values(ServiceType);
   const searchParams = useSearchParams();
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [selectedExperience, setSelectedExperience] = useState<string>("");

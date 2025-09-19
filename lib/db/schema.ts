@@ -12,7 +12,8 @@ import {
 
 // Service Request Status Enum - following the workflow
 export const serviceRequestStatusEnum = pgEnum('service_request_status', [
-  'awaiting_estimate',     // Initial state when request is created
+  'awaiting_payment',     // Initial state when request is created but payment pending
+  'awaiting_estimate',     // After payment, waiting for estimate
   'awaiting_assignation',  // After estimate is added (replaces "pending")
   'in_progress',          // When work begins
   'client_validated',     // Client has validated the work
@@ -46,6 +47,7 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   role: varchar('role', { length: 20 }).notNull().default('member'),
+  stripeCustomerId: text('stripe_customer_id').unique(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
@@ -178,6 +180,7 @@ export const serviceRequests = pgTable('service_requests', {
   status: serviceRequestStatusEnum('status').notNull().default('awaiting_estimate'),
   assignedArtisanId: integer('assigned_artisan_id').references(() => users.id),
   estimatedPrice: integer('estimated_price'), // In cents
+  downPaymentPaid: boolean('down_payment_paid').notNull().default(false), // Track if down payment was made
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -372,6 +375,7 @@ export enum ActivityType {
 
 // TypeScript enums that match the database enums
 export enum ServiceRequestStatus {
+  AWAITING_PAYMENT = 'awaiting_payment',
   AWAITING_ESTIMATE = 'awaiting_estimate',
   AWAITING_ASSIGNATION = 'awaiting_assignation',
   IN_PROGRESS = 'in_progress',

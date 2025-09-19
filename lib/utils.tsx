@@ -2,9 +2,12 @@ import { clsx, type ClassValue } from "clsx";
 import {
   AlertCircle,
   AlertTriangle,
+  Calendar,
   CheckCircle,
+  CircleDot,
   Clock,
   Cog,
+  CreditCard,
   Fence,
   Flag,
   LucideWrench,
@@ -15,8 +18,6 @@ import {
   Wrench,
   XCircle,
   Zap,
-  Calendar,
-  CircleDot,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { ServiceRequestStatus } from "./db/schema";
@@ -36,6 +37,18 @@ export enum ServiceType {
 
 export const getStatusConfig = (status: string, iconClassName: string) => {
   switch (status) {
+    case ServiceRequestStatus.AWAITING_PAYMENT:
+      return {
+        color: "bg-red-100 text-red-700 ring-1 ring-red-200 hover:bg-red-100",
+        label: "En attente de paiement",
+        borderTop: "border-t-red-200",
+        icon: (
+          <CreditCard
+            className={cn("mr-2 h-5 w-5 text-red-500", iconClassName)}
+          />
+        ),
+      };
+
     case ServiceRequestStatus.AWAITING_ESTIMATE:
       return {
         color:
@@ -360,3 +373,106 @@ export const getCategoryConfig = (
     };
   }
 };
+
+// Service configuration constants
+export const SERVICE_RADIUS_KM = 1000; // Default service radius in kilometers
+
+/**
+ * Calculate the distance between two coordinates using the Haversine formula
+ * @param lat1 Latitude of first point
+ * @param lon1 Longitude of first point
+ * @param lat2 Latitude of second point
+ * @param lon2 Longitude of second point
+ * @returns Distance in kilometers
+ */
+export function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+
+  return distance;
+}
+
+/**
+ * Convert degrees to radians
+ */
+function toRadians(degrees: number): number {
+  return degrees * (Math.PI / 180);
+}
+
+/**
+ * Parse coordinate string in "lat,lng" format
+ * @param coordinateString String in format "lat,lng"
+ * @returns Object with lat and lng numbers, or null if invalid
+ */
+export function parseCoordinates(
+  coordinateString: string | null
+): { lat: number; lng: number } | null {
+  if (!coordinateString || typeof coordinateString !== "string") {
+    return null;
+  }
+
+  const parts = coordinateString.split(",");
+  if (parts.length !== 2) {
+    return null;
+  }
+
+  const lat = parseFloat(parts[0].trim());
+  const lng = parseFloat(parts[1].trim());
+
+  if (isNaN(lat) || isNaN(lng)) {
+    return null;
+  }
+
+  // Basic validation for valid coordinate ranges
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return null;
+  }
+
+  return { lat, lng };
+}
+
+/**
+ * Check if a service request is within the artisan's service radius
+ * @param artisanCoordinates Artisan's service area coordinates as "lat,lng"
+ * @param requestCoordinates Request location coordinates as "lat,lng"
+ * @param radiusKm Service radius in kilometers (defaults to SERVICE_RADIUS_KM)
+ * @returns true if request is within radius, false otherwise
+ */
+export function isWithinServiceRadius(
+  artisanCoordinates: string | null,
+  requestCoordinates: string | null,
+  radiusKm: number = SERVICE_RADIUS_KM
+): boolean {
+  const artisanCoords = parseCoordinates(artisanCoordinates);
+  const requestCoords = parseCoordinates(requestCoordinates);
+
+  // If either coordinate is invalid, return false (conservative approach)
+  if (!artisanCoords || !requestCoords) {
+    return false;
+  }
+
+  const distance = calculateDistance(
+    artisanCoords.lat,
+    artisanCoords.lng,
+    requestCoords.lat,
+    requestCoords.lng
+  );
+
+  return distance <= radiusKm;
+}

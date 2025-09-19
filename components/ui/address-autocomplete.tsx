@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { MapPin, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ChevronDown, MapPin } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface AddressFeature {
   properties: {
@@ -89,7 +89,24 @@ export function AddressAutocomplete({
         )}&limit=8`
       );
       const data = await response.json();
-      setSuggestions(data.features || []);
+
+      // Filter addresses to only include those with valid geolocalisation details
+      const addressesWithGeo = (data.features || []).filter(
+        (feature: AddressFeature) => {
+          return (
+            feature.geometry &&
+            feature.geometry.coordinates &&
+            Array.isArray(feature.geometry.coordinates) &&
+            feature.geometry.coordinates.length === 2 &&
+            typeof feature.geometry.coordinates[0] === "number" &&
+            typeof feature.geometry.coordinates[1] === "number" &&
+            !isNaN(feature.geometry.coordinates[0]) &&
+            !isNaN(feature.geometry.coordinates[1])
+          );
+        }
+      );
+
+      setSuggestions(addressesWithGeo);
     } catch (error) {
       console.error("Error fetching addresses:", error);
       setSuggestions([]);

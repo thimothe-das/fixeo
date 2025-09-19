@@ -6,6 +6,14 @@ import {
 } from "@/components/ui/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -21,6 +29,7 @@ import {
   ServiceRequestFormFields,
   useFormState,
 } from "@/lib/auth/form-utils";
+import { checkoutAction } from "@/lib/payments/actions";
 import {
   ArrowRight,
   Award,
@@ -42,9 +51,17 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { startTransition, useActionState, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { createServiceRequest } from "./(dashboard)/actions";
-import { TokenStorage } from "./suivi/[token]/token-storage";
+import { setGuestToken } from "./suivi/[token]/token-storage";
 
 type GuestToken = {
   token: string;
@@ -62,21 +79,97 @@ export default function FixeoHomePage() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [guestTokens, setGuestTokens] = useState<GuestToken[]>([]);
+  const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
+
+  // Combined action that handles both service request creation and checkout
+  const combinedAction = useCallback(
+    async (
+      prevState: FormState<ServiceRequestFormFields>,
+      formData: FormData
+    ) => {
+      try {
+        // First, create the service request
+        // Note: createServiceRequest is a validatedAction, so we call it directly with formData
+        const serviceRequestResult = await createServiceRequest(
+          prevState,
+          formData
+        );
+
+        // If service request was successful, proceed with checkout
+        if ("success" in serviceRequestResult && serviceRequestResult.success) {
+          // Store guest token if returned from server
+          if (serviceRequestResult.guestToken) {
+            setGuestToken(serviceRequestResult.guestToken);
+          }
+
+          await checkoutAction(formData);
+
+          // Handle redirect for guest users after successful payment processing
+          if (
+            serviceRequestResult.shouldRedirect &&
+            serviceRequestResult.guestToken
+          ) {
+            // The redirect will happen after payment success
+            // This is handled in the payment success flow
+          }
+        }
+
+        return serviceRequestResult;
+      } catch (error) {
+        console.error("Combined action error:", error);
+        // Check if it's a redirect error (expected behavior)
+        if (
+          error &&
+          typeof error === "object" &&
+          "digest" in error &&
+          typeof error.digest === "string" &&
+          error.digest.includes("NEXT_REDIRECT")
+        ) {
+          // This is a redirect, call checkout before redirecting
+          try {
+            await checkoutAction(formData);
+          } catch (checkoutError) {
+            console.error("Checkout error:", checkoutError);
+          }
+          // Re-throw the redirect to let it proceed
+          throw error;
+        }
+        return { error: "Une erreur s'est produite lors de la soumission" };
+      }
+    },
+    []
+  );
+
   const [state, formAction, pending] = useActionState<
     FormState<ServiceRequestFormFields>,
     FormData
-  >(createServiceRequest, { error: "" });
+  >(combinedAction, { error: "" });
 
-  // Use the form state hook for automatic controlled input updates
-  useFormState(
-    state,
-    { serviceType, urgency, location },
-    {
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Memoize objects to prevent unnecessary re-renders
+  const controlledFields = useMemo(
+    () => ({
+      serviceType,
+      urgency,
+      location,
+    }),
+    [serviceType, urgency, location]
+  );
+
+  const fieldSetters = useMemo(
+    () => ({
       serviceType: setServiceType,
       urgency: setUrgency,
       location: setLocation,
-    }
+    }),
+    []
   );
+
+  // Use the form state hook for automatic controlled input updates
+  useFormState(state, controlledFields, fieldSetters);
 
   // Load guest tokens from localStorage on component mount
   useEffect(() => {
@@ -100,6 +193,41 @@ export default function FixeoHomePage() {
       );
     }
   }, [state]);
+
+  // Check for payment success parameter
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    if (paymentStatus === "success") {
+      setShowPaymentSuccessModal(true);
+      // Clean up URL by removing the payment parameter
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("payment");
+      router.replace(newUrl.pathname + newUrl.search);
+    }
+  }, [searchParams, router]);
+
+  const handlePaymentSuccessConfirm = () => {
+    setShowPaymentSuccessModal(false);
+
+    // Get the most recent guest token to redirect to tracking page
+    const storedTokens = localStorage.getItem("fixeo_guest_tokens");
+    if (storedTokens) {
+      try {
+        const tokens: GuestToken[] = JSON.parse(storedTokens);
+        if (tokens.length > 0) {
+          // Get the most recent token (last in array)
+          const mostRecentToken = tokens[tokens.length - 1].token;
+          router.push(`/suivi/${mostRecentToken}`);
+          return;
+        }
+      } catch {
+        console.error("Error parsing guest tokens");
+      }
+    }
+
+    // Fallback: just stay on current page if no token found
+    console.warn("No guest token found for redirect");
+  };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -156,6 +284,7 @@ export default function FixeoHomePage() {
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
+    formData.set("priceId", "price_1S8kNKFJJX6gRQCIui3HlEN8");
 
     try {
       // Upload photos first if any are selected
@@ -167,7 +296,9 @@ export default function FixeoHomePage() {
       // Add photo URLs to form data
       formData.set("photos", JSON.stringify(photoUrls));
 
-      // Call the original form action
+      // Note: Server will generate guest token for non-logged-in users
+
+      // Call the combined form action (handles both service request and checkout)
       startTransition(() => {
         formAction(formData);
       });
@@ -196,13 +327,14 @@ export default function FixeoHomePage() {
   return (
     <main className="bg-white">
       {/* Hero Section */}
-      <TokenStorage token={state.guestToken} />
 
       <section className="relative bg-gradient-to-br from-slate-50 to-blue-50 py-8 lg:py-12 min-h-[calc(100vh-80px)] flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl">
             Envoyez votre demande,
-            <span className="block text-blue-600">un artisan l'accepte</span>
+            <span className="block text-fixeo-main-500">
+              un artisan l'accepte
+            </span>
           </h1>
           <p className="mt-4 text-lg text-gray-600 max-w-2xl">
             Fixéo connecte automatiquement votre demande au premier artisan
@@ -225,8 +357,8 @@ export default function FixeoHomePage() {
                   <CardContent className="space-y-4">
                     <form onSubmit={handleFormSubmit} className="space-y-4">
                       {/* Service Type & Urgency */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
+                      <div className="flex gap-4 items-center">
+                        <div className="w-full">
                           <label className="block text-sm font-semibold text-gray-800 mb-2">
                             Type de travaux *
                           </label>
@@ -236,7 +368,7 @@ export default function FixeoHomePage() {
                             onValueChange={setServiceType}
                             required
                           >
-                            <SelectTrigger className="h-12 border-2 focus:border-blue-500">
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Choisir..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -271,7 +403,7 @@ export default function FixeoHomePage() {
                             onValueChange={setUrgency}
                             required
                           >
-                            <SelectTrigger className="h-12 border-2 focus:border-blue-500">
+                            <SelectTrigger>
                               <SelectValue placeholder="Quand ?" />
                             </SelectTrigger>
                             <SelectContent>
@@ -297,7 +429,7 @@ export default function FixeoHomePage() {
                         <Textarea
                           name="description"
                           placeholder="Ex: Robinet de cuisine qui fuit au niveau du joint, remplacer le joint..."
-                          className="min-h-[70px] border-2 focus:border-blue-500 resize-none text-sm"
+                          className="min-h-[70px] text-sm"
                           defaultValue={getFormValue(state, "description")}
                           required
                         />
@@ -405,10 +537,10 @@ export default function FixeoHomePage() {
                       <div className="pt-2">
                         <Button
                           type="submit"
-                          disabled={pending || isUploading}
-                          className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                          disabled={pending || isPending || isUploading}
+                          className="w-full h-12 bg-gradient-to-r from-fixeo-accent-400 to-fixeo-accent-500 hover:from-fixeo-accent-500 hover:to-fixeo-accent-500 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                         >
-                          {pending || isUploading ? (
+                          {pending || isPending || isUploading ? (
                             <>
                               <Loader2 className="animate-spin mr-2 h-4 w-4" />
                               {isUploading
@@ -829,6 +961,37 @@ export default function FixeoHomePage() {
           </div>
         </div>
       </section>
+
+      {/* Payment Success Modal */}
+      <Dialog
+        open={showPaymentSuccessModal}
+        onOpenChange={setShowPaymentSuccessModal}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <DialogTitle className="text-center text-xl font-semibold text-gray-900">
+              Paiement réussi !
+            </DialogTitle>
+            <DialogDescription className="text-center text-gray-600">
+              Votre demande a été confirmée et transmise aux artisans de votre
+              secteur. Vous allez être redirigé vers la page de suivi de votre
+              demande.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-center space-x-2">
+            <Button
+              onClick={handlePaymentSuccessConfirm}
+              className="w-full bg-fixeo-accent-500 hover:bg-fixeo-accent-600 text-white"
+            >
+              Voir ma demande
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

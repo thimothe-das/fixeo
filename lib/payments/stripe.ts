@@ -1,28 +1,24 @@
-import Stripe from 'stripe';
-import { redirect } from 'next/navigation';
-import { Team } from '@/lib/db/schema';
 import {
   getTeamByStripeCustomerId,
   getUser,
   updateTeamSubscription
 } from '@/lib/db/queries';
+import { Team } from '@/lib/db/schema';
+import { redirect } from 'next/navigation';
+import Stripe from 'stripe';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-04-30.basil'
 });
 
 export async function createCheckoutSession({
-  team,
-  priceId
+  priceId,
+  guestToken
 }: {
-  team: Team | null;
   priceId: string;
+  guestToken?: string;
 }) {
   const user = await getUser();
-
-  if (!team || !user) {
-    redirect(`/sign-up?redirect=checkout&priceId=${priceId}`);
-  }
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
@@ -32,15 +28,18 @@ export async function createCheckoutSession({
         quantity: 1
       }
     ],
-    mode: 'subscription',
+    mode: 'payment',
     success_url: `${process.env.BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.BASE_URL}/pricing`,
-    customer: team.stripeCustomerId || undefined,
-    client_reference_id: user.id.toString(),
+    customer: user?.stripeCustomerId || undefined,
+    client_reference_id: user ? user.id.toString() : undefined,
+    metadata: {
+      guestToken: guestToken || '',
+    },
     allow_promotion_codes: true,
-    subscription_data: {
-      trial_period_days: 14
-    }
+    // subscription_data: {
+    //   trial_period_days: 14
+    // }
   });
 
   redirect(session.url!);

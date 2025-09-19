@@ -5,7 +5,6 @@ import { db } from '@/lib/db/drizzle';
 import { getUser } from '@/lib/db/queries';
 import { serviceRequests, ServiceRequestStatus, type NewServiceRequest } from '@/lib/db/schema';
 import { randomUUID } from 'crypto';
-import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 const createServiceRequestSchema = z.object({
@@ -28,7 +27,7 @@ const createServiceRequestSchema = z.object({
 
 export const createServiceRequest = validatedAction(
   createServiceRequestSchema,
-  async (data, formData) => {
+  async (data) => {
     const {
       serviceType,
       urgency,
@@ -55,7 +54,7 @@ export const createServiceRequest = validatedAction(
       currentUser = null;
     }
 
-    // Generate guest token if not logged in
+    // Generate secure server-side token for guest users
     const guestToken = currentUser ? null : randomUUID();
 
     try {
@@ -78,7 +77,7 @@ export const createServiceRequest = validatedAction(
         photos,
         userId: currentUser?.id || null,
         guestToken,
-        status: ServiceRequestStatus.AWAITING_ESTIMATE,
+        status: ServiceRequestStatus.AWAITING_PAYMENT,
       };
 
       const [createdRequest] = await db
@@ -108,14 +107,11 @@ export const createServiceRequest = validatedAction(
       };
     }
 
-    // For guest users, redirect to tracking page (outside try-catch to avoid catching redirect error)
-    if (guestToken) {
-      redirect(`/suivi/${guestToken}`);
-    }
-
     return {
       success: true,
       message: 'Votre demande a été envoyée avec succès ! Les artisans de votre secteur vont être notifiés.',
+      guestToken,
+      shouldRedirect: !!guestToken,
     };
   }
 ); 
