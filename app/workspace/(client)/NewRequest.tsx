@@ -88,13 +88,13 @@ export function NewRequest({
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setValue("photos", [...photos, ...files]);
+    setValue("photos", [...(photos || []), ...files]);
   };
 
   const removePhoto = (index: number) => {
     setValue(
       "photos",
-      photos.filter((_, i) => i !== index)
+      photos?.filter((_, i) => i !== index)
     );
   };
 
@@ -243,7 +243,7 @@ export function NewRequest({
           </label>
         </div>
 
-        {photos.length > 0 && (
+        {photos && photos.length > 0 && (
           <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
             {photos.map((file, index) => (
               <div key={index} className="relative group">
