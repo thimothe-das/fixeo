@@ -79,13 +79,13 @@ export default function Form() {
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setValue("photos", [...photos, ...files]);
+    setValue("photos", [...(photos || []), ...files]);
   };
 
   const removePhoto = (index: number) => {
     setValue(
       "photos",
-      photos.filter((_, i) => i !== index)
+      photos?.filter((_, i) => i !== index)
     );
   };
 
@@ -276,7 +276,7 @@ export default function Form() {
                   </label>
                   <div className="space-y-2">
                     {/* Photo Preview Grid */}
-                    {photos.length > 0 && (
+                    {photos && photos.length > 0 && (
                       <div className="grid grid-cols-5 gap-2">
                         {photos.map((photo, index) => (
                           <div key={index} className="relative group">
