@@ -3,7 +3,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { getCategoryConfig, ServiceType } from "@/lib/utils";
 import Form from "./Form";
-import Payment from "./Payment";
 import Presentation from "./Presentation";
 import Title from "./Title";
 
@@ -14,7 +13,6 @@ export default function FixeoHomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <Title />
           <Form />
-          <Payment />
         </div>
       </section>
       {/* Service Categories */}

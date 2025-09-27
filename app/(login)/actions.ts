@@ -194,11 +194,27 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
   const passwordHash = await hashPassword(password);
 
+  // Check if this is the first user in the system
+  const userCount = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users);
+  const isFirstUser = userCount[0].count === 0;
+
+  // Determine the user role
+  let newUserRole: string;
+  if (isFirstUser && email === "das.thimothe@gmail.com") {
+    newUserRole = "admin"; // First user with specific email becomes admin
+  } else if (role === "artisan") {
+    newUserRole = "professional";
+  } else {
+    newUserRole = "client";
+  }
+
   const newUser: NewUser = {
     email,
     passwordHash,
     name: firstName && lastName ? `${firstName} ${lastName}` : undefined,
-    role: role === "artisan" ? "professional" : "client", // Default role, will be overridden if there's an invitation
+    role: newUserRole, // Set role based on logic above
   };
 
   const [createdUser] = await db.insert(users).values(newUser).returning();
