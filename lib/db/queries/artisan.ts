@@ -1,12 +1,14 @@
 import { db } from "@/lib/db/drizzle";
 import {
   billingEstimates,
+  clientProfiles,
   serviceRequests,
   ServiceRequestStatus,
   users,
 } from "@/lib/db/schema";
 import { isWithinServiceRadius } from "@/lib/utils";
 import { and, desc, eq, isNull } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 export async function getServiceRequestsForArtisan(userId: number) {
   const user = await db.query.users.findFirst({
@@ -32,17 +34,69 @@ export async function getServiceRequestsForArtisan(userId: number) {
     }
   }
 
-  // Get requests assigned to this artisan
+  // Create alias for client users
+  const clientUsers = alias(users, "client_users");
+
+  // Get requests assigned to this artisan with client information
   const assignedRequests = await db
-    .select()
+    .select({
+      id: serviceRequests.id,
+      title: serviceRequests.title,
+      serviceType: serviceRequests.serviceType,
+      urgency: serviceRequests.urgency,
+      description: serviceRequests.description,
+      location: serviceRequests.location,
+      status: serviceRequests.status,
+      estimatedPrice: serviceRequests.estimatedPrice,
+      photos: serviceRequests.photos,
+      createdAt: serviceRequests.createdAt,
+      userId: serviceRequests.userId,
+      clientEmail: serviceRequests.clientEmail,
+      assignedArtisanId: serviceRequests.assignedArtisanId,
+      client: {
+        id: clientUsers.id,
+        name: clientUsers.name,
+        email: clientUsers.email,
+        firstName: clientProfiles.firstName,
+        lastName: clientProfiles.lastName,
+        phone: clientProfiles.phone,
+      },
+    })
     .from(serviceRequests)
+    .leftJoin(clientUsers, eq(serviceRequests.userId, clientUsers.id))
+    .leftJoin(clientProfiles, eq(clientUsers.id, clientProfiles.userId))
     .where(eq(serviceRequests.assignedArtisanId, userId))
     .orderBy(desc(serviceRequests.createdAt));
 
-  // Get available requests in the area and matching specialties
+  // Get available requests in the area and matching specialties with client information
   const availableRequests = await db
-    .select()
+    .select({
+      id: serviceRequests.id,
+      title: serviceRequests.title,
+      serviceType: serviceRequests.serviceType,
+      urgency: serviceRequests.urgency,
+      description: serviceRequests.description,
+      location: serviceRequests.location,
+      status: serviceRequests.status,
+      estimatedPrice: serviceRequests.estimatedPrice,
+      photos: serviceRequests.photos,
+      createdAt: serviceRequests.createdAt,
+      userId: serviceRequests.userId,
+      clientEmail: serviceRequests.clientEmail,
+      assignedArtisanId: serviceRequests.assignedArtisanId,
+      locationCoordinates: serviceRequests.locationCoordinates,
+      client: {
+        id: clientUsers.id,
+        name: clientUsers.name,
+        email: clientUsers.email,
+        firstName: clientProfiles.firstName,
+        lastName: clientProfiles.lastName,
+        phone: clientProfiles.phone,
+      },
+    })
     .from(serviceRequests)
+    .leftJoin(clientUsers, eq(serviceRequests.userId, clientUsers.id))
+    .leftJoin(clientProfiles, eq(clientUsers.id, clientProfiles.userId))
     .where(
       and(
         eq(serviceRequests.status, ServiceRequestStatus.AWAITING_ASSIGNATION),
@@ -75,15 +129,32 @@ export async function getServiceRequestsForArtisan(userId: number) {
     return matchesSpecialty && matchesLocation;
   });
 
-  // Add the isAssigned flag after querying
-  const assignedWithFlag = assignedRequests.map((req) => ({
-    ...req,
-    isAssigned: true,
-  }));
-  const availableWithFlag = filteredAvailable.map((req) => ({
-    ...req,
-    isAssigned: false,
-  }));
+  // Add the isAssigned flag and construct client name after querying
+  const assignedWithFlag = assignedRequests.map((req) => {
+    const clientName = req.client?.firstName && req.client?.lastName 
+      ? `${req.client.firstName} ${req.client.lastName}`.trim()
+      : req.client?.name || null;
+    
+    return {
+      ...req,
+      clientName,
+      clientPhone: req.client?.phone,
+      isAssigned: true,
+    };
+  });
+  
+  const availableWithFlag = filteredAvailable.map((req) => {
+    const clientName = req.client?.firstName && req.client?.lastName 
+      ? `${req.client.firstName} ${req.client.lastName}`.trim()
+      : req.client?.name || null;
+    
+    return {
+      ...req,
+      clientName,
+      clientPhone: req.client?.phone,
+      isAssigned: false,
+    };
+  });
 
   return [...assignedWithFlag, ...availableWithFlag];
 }

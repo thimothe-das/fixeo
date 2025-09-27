@@ -17,11 +17,45 @@ export type ServiceRequestForArtisan = {
   date?: string;
   time?: string;
   notes?: string;
-  timeline?: Array<{
-    step: string;
-    completed: boolean;
-    date?: string;
+  client?: {
+    id: number | null;
+    name: string | null;
+    email: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+  };
+  assignedArtisan?: {
+    id: number | null;
+    name: string | null;
+    email: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    specialty: string | null;
+  };
+  billingEstimates?: Array<{
+    id: number;
+    estimatedPrice: number;
+    status: string;
+    validUntil: string | null;
+    createdAt: string;
+    description: string;
+    breakdown: string | null;
   }>;
+  timeline?: {
+    created?: {
+      date: string;
+      actor: string;
+    };
+    quote?: {
+      date: string;
+      actor: string;
+    };
+    accepted?: {
+      date: string;
+      actor: string;
+    };
+  };
   messages?: Array<{
     id: number;
     sender: string;

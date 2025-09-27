@@ -150,7 +150,7 @@
     --chart-4: oklch(43 74% 66%);
     --chart-5: oklch(27 87% 67%);
     --radius: 0.5rem;
-    --sidebar-background: oklch(0 0% 98%);
+    --sidebar-background: white;
     --sidebar-foreground: oklch(240 5.3% 26.1%)     ;
     --sidebar-primary: oklch(240 5.9% 10%);
     --sidebar-primary-foreground: oklch(0 0% 98%);

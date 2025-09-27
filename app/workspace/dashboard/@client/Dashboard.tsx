@@ -164,7 +164,7 @@ export function Dashboard({
               <p className="text-gray-600 mb-4">
                 Créez votre première demande de service pour commencer
               </p>
-              <Button onClick={openNewRequestModal}>
+              <Button onClick={openNewRequestModal} className="text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Créer une demande
               </Button>

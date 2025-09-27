@@ -2,11 +2,13 @@ import { db } from "@/lib/db/drizzle";
 import { getUser } from "@/lib/db/queries/common";
 import {
   billingEstimates,
+  clientProfiles,
   professionalProfiles,
   serviceRequests,
   users,
 } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -30,7 +32,10 @@ export async function GET(
       );
     }
 
-    // Get the service request with assigned artisan details
+    // Get the service request with assigned artisan and client details
+    const clientUsers = alias(users, "client_users");
+    const artisanUsers = alias(users, "artisan_users");
+
     const serviceRequestResult = await db
       .select({
         id: serviceRequests.id,
@@ -44,18 +49,35 @@ export async function GET(
         photos: serviceRequests.photos,
         createdAt: serviceRequests.createdAt,
         userId: serviceRequests.userId,
+        clientEmail: serviceRequests.clientEmail,
+        client: {
+          id: clientUsers.id,
+          name: clientUsers.name,
+          email: clientUsers.email,
+          firstName: clientProfiles.firstName,
+          lastName: clientProfiles.lastName,
+          phone: clientProfiles.phone,
+        },
         assignedArtisan: {
-          id: users.id,
-          name: users.name,
-          email: users.email,
+          id: artisanUsers.id,
+          name: artisanUsers.name,
+          email: artisanUsers.email,
           firstName: professionalProfiles.firstName,
           lastName: professionalProfiles.lastName,
           specialty: professionalProfiles.specialties,
         },
       })
       .from(serviceRequests)
-      .leftJoin(users, eq(serviceRequests.assignedArtisanId, users.id))
-      .leftJoin(professionalProfiles, eq(users.id, professionalProfiles.userId))
+      .leftJoin(clientUsers, eq(serviceRequests.userId, clientUsers.id))
+      .leftJoin(clientProfiles, eq(clientUsers.id, clientProfiles.userId))
+      .leftJoin(
+        artisanUsers,
+        eq(serviceRequests.assignedArtisanId, artisanUsers.id)
+      )
+      .leftJoin(
+        professionalProfiles,
+        eq(artisanUsers.id, professionalProfiles.userId)
+      )
       .where(eq(serviceRequests.id, requestId))
       .limit(1);
 
@@ -94,9 +116,17 @@ export async function GET(
       .where(eq(billingEstimates.serviceRequestId, requestId))
       .orderBy(desc(billingEstimates.createdAt));
 
+    // Construct client name from available information
+    const clientName =
+      request.client?.firstName && request.client?.lastName
+        ? `${request.client.firstName} ${request.client.lastName}`.trim()
+        : request.client?.name || null;
+
     // Construct the response with all necessary data
     const response = {
       ...request,
+      clientName,
+      clientPhone: request.client?.phone,
       billingEstimates: estimates,
       // Add mock timeline data for now - in a real app this would come from activity logs
       timeline: {

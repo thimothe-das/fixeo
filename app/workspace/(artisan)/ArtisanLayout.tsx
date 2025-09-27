@@ -4,6 +4,7 @@ import {
   BarChart3,
   Bell,
   CreditCard,
+  Drill,
   FileText,
   Home,
   MessageSquare,
@@ -104,7 +105,7 @@ export function ArtisanLayout({ children }: { children: React.ReactNode }) {
           <SidebarHeader className="border-b border-gray-200 p-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Wrench className="h-6 w-6 text-white" />
+                <Drill className="h-6 w-6 text-white" />
               </div>
               <div>
                 <h2 className="font-bold text-lg text-blue-600">Fixéo</h2>
@@ -158,7 +159,12 @@ export function ArtisanLayout({ children }: { children: React.ReactNode }) {
                     <Settings className="h-4 w-4 mr-2" />
                     Paramètres
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => signOut()}>
+                  <DropdownMenuItem
+                    onClick={async () => {
+                      await signOut();
+                      router.push("/sign-in");
+                    }}
+                  >
                     <Power className="h-4 w-4 mr-2" />
                     Déconnexion
                   </DropdownMenuItem>

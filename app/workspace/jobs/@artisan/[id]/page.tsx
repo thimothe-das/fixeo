@@ -1,7 +1,6 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,7 +32,6 @@ import {
   MapPin,
   Megaphone,
   MessageSquare,
-  Navigation,
   Phone,
   Send,
   ThumbsDown,
@@ -132,95 +130,8 @@ export default function Job() {
     );
   }
 
-  console.debug("mission", mission);
-
   const photos = mission?.photos ? JSON.parse(mission.photos) : [];
-
   const router = useRouter();
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<
-      string,
-      { label: string; color: string; icon: string }
-    > = {
-      scheduled: {
-        label: "Planifiée",
-        color: "bg-blue-50 text-blue-700 border-blue-200 ring-1 ring-blue-200",
-        icon: "🕐",
-      },
-      "in-progress": {
-        label: "En cours",
-        color:
-          "bg-orange-50 text-orange-700 border-orange-200 ring-1 ring-orange-200",
-        icon: "⚡",
-      },
-      accepted: {
-        label: "Validation mutuelle requise",
-        color:
-          "bg-purple-50 text-purple-700 border-purple-200 ring-1 ring-purple-200",
-        icon: "🤝",
-      },
-      completed: {
-        label: "Terminée",
-        color:
-          "bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-emerald-200",
-        icon: "✅",
-      },
-      awaiting_validation: {
-        label: "A valider",
-        color:
-          "bg-purple-50 text-purple-700 border-purple-200 ring-1 ring-purple-200",
-        icon: "⏳",
-      },
-      client_validated: {
-        label: "À valider",
-        color: "bg-cyan-50 text-cyan-700 border-cyan-200 ring-1 ring-cyan-200",
-        icon: "👤",
-      },
-      artisan_validated: {
-        label: "Validée",
-        color:
-          "bg-indigo-50 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200",
-        icon: "🔨",
-      },
-      disputed_by_client: {
-        label: "Litige client",
-        color: "bg-red-50 text-red-700 border-red-200 ring-1 ring-red-200",
-        icon: "⚠️",
-      },
-      disputed_by_artisan: {
-        label: "Litige artisan",
-        color:
-          "bg-amber-50 text-amber-700 border-amber-200 ring-1 ring-amber-200",
-        icon: "⚠️",
-      },
-      disputed_by_both: {
-        label: "Litige des deux parties",
-        color: "bg-rose-50 text-rose-700 border-rose-200 ring-1 ring-rose-200",
-        icon: "⚠️",
-      },
-      completed_with_issues: {
-        label: "Terminée avec problèmes",
-        color: "bg-red-50 text-red-700 border-red-200 ring-1 ring-red-200",
-        icon: "⚠️",
-      },
-      could_not_complete: {
-        label: "Non réalisable",
-        color: "bg-gray-50 text-gray-700 border-gray-200 ring-1 ring-gray-200",
-        icon: "❌",
-      },
-    };
-
-    const config = statusConfig[status] || statusConfig.scheduled;
-    return (
-      <Badge
-        className={`${config.color} px-3 py-1.5 text-sm font-medium border rounded-full`}
-      >
-        <span className="mr-2">{config.icon}</span>
-        {config.label}
-      </Badge>
-    );
-  };
 
   const handleMissionCompletion = async () => {
     if (!selectedMission) return;
@@ -391,32 +302,6 @@ export default function Job() {
       window.location.href = `tel:${mission.clientPhone}`;
     } else {
       alert("Numéro de téléphone non disponible");
-    }
-  };
-
-  // Helper function for GPS navigation
-  const handleNavigateToLocation = () => {
-    if (mission.location) {
-      const encodedAddress = encodeURIComponent(mission.location);
-      // Check if user is on iOS or Android for appropriate maps app
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isAndroid = /Android/.test(navigator.userAgent);
-
-      if (isIOS) {
-        window.open(
-          `maps://maps.google.com/maps?daddr=${encodedAddress}`,
-          "_blank"
-        );
-      } else if (isAndroid) {
-        window.open(`geo:0,0?q=${encodedAddress}`, "_blank");
-      } else {
-        window.open(
-          `https://maps.google.com/maps?daddr=${encodedAddress}`,
-          "_blank"
-        );
-      }
-    } else {
-      alert("Adresse non disponible");
     }
   };
 
@@ -656,29 +541,25 @@ export default function Job() {
     }
   };
 
+  const actionBanner = getActionBanner();
+  console.debug(mission);
   return (
     <>
-      {/* Top Action Banner */}
-      {(() => {
-        const actionBanner = getActionBanner();
-        if (!actionBanner) return null;
-
-        return (
-          <div className="border-t py-3 fixed bottom-0 left-64 right-0 z-50 shadow-lg mx-6 bg-gradient-to-r from-orange-100 to-yellow-100 border-orange-200">
-            <div className="flex items-center px-6 gap-4 justify-between">
-              <div className="flex items-center gap-2">
-                <Megaphone className="h-4 w-4 text-orange-600" />
-                <span className="text-sm font-medium text-orange-800">
-                  {actionBanner.title} - {actionBanner.message}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {actionBanner.buttons}
-              </div>
+      {actionBanner && (
+        <div className="border-t py-3 fixed bottom-0 left-64 right-0 z-50 shadow-lg mx-6 bg-gradient-to-r from-orange-100 to-yellow-100 border-orange-200">
+          <div className="flex items-center px-6 gap-4 justify-between">
+            <div className="flex items-center gap-2">
+              <Megaphone className="h-4 w-4 text-orange-600" />
+              <span className="text-sm font-medium text-orange-800">
+                {actionBanner.title} - {actionBanner.message}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {actionBanner.buttons}
             </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       <div
         className={`space-y-6 ${isMobile ? "p-4" : ""} bg-gray-50 min-h-screen`}
@@ -707,23 +588,12 @@ export default function Job() {
               </div>
               <div className="flex gap-2 mb-2 ml-4">
                 <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex items-center gap-2"
+                  size="lg"
+                  className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 p-0 min-h-[48px] min-w-[48px] touch-manipulation"
                   onClick={handleCallClient}
                   disabled={!mission.clientPhone}
                 >
-                  <Phone className="h-3 w-3" />
-                  Appeler
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex items-center gap-2"
-                  onClick={handleNavigateToLocation}
-                >
-                  <Navigation className="h-3 w-3" />
-                  Navigation
+                  <Phone className="h-5 w-5" />
                 </Button>
               </div>
             </div>
@@ -893,17 +763,6 @@ export default function Job() {
                           className="w-full"
                         />
                       </div>
-
-                      {/* Navigation Button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
-                        onClick={handleNavigateToLocation}
-                      >
-                        <Navigation className="h-4 w-4 text-blue-600" />
-                        Ouvrir dans l'app Maps
-                      </Button>
                     </div>
 
                     {/* Description */}
@@ -911,9 +770,15 @@ export default function Job() {
                       <h3 className="font-semibold text-gray-900 mb-3">
                         Description
                       </h3>
-                      <p className="text-gray-500 leading-relaxed">
-                        {mission.description}
-                      </p>
+                      {mission.description ? (
+                        <p className="text-gray-500 leading-relaxed">
+                          {mission.description}
+                        </p>
+                      ) : (
+                        <p className="text-gray-400 italic leading-relaxed">
+                          Aucune description fournie
+                        </p>
+                      )}
                       {mission.notes && (
                         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                           <div className="flex items-start gap-2">

@@ -194,13 +194,11 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
   const passwordHash = await hashPassword(password);
 
-  // Check if this is the first user in the system
   const userCount = await db
     .select({ count: sql<number>`count(*)` })
     .from(users);
-  const isFirstUser = userCount[0].count === 0;
+  const isFirstUser = Number(userCount[0].count) === 0;
 
-  // Determine the user role
   let newUserRole: string;
   if (isFirstUser && email === "das.thimothe@gmail.com") {
     newUserRole = "admin"; // First user with specific email becomes admin
