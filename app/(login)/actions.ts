@@ -6,7 +6,7 @@ import {
 } from "@/lib/auth/middleware";
 import { comparePasswords, hashPassword, setSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/drizzle";
-import { getUser, getUserWithTeam } from "@/lib/db/queries/common";
+import { getUserWithTeam } from "@/lib/db/queries/common";
 import {
   activityLogs,
   ActivityType,
@@ -15,7 +15,6 @@ import {
   professionalProfiles,
   teamMembers,
   teams,
-  User,
   users,
   type NewActivityLog,
   type NewClientProfile,
@@ -341,9 +340,6 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 });
 
 export async function signOut() {
-  const user = (await getUser()) as User;
-  const userWithTeam = await getUserWithTeam(user.id);
-  await logActivity(userWithTeam?.teamId, user.id, ActivityType.SIGN_OUT);
   (await cookies()).delete("session");
   redirect("/sign-in");
 }
