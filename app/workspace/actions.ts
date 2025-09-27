@@ -34,7 +34,7 @@ const createServiceRequestSchema = z.object({
   location_coordinates: z.string().optional(),
   location_context: z.string().optional(),
   clientEmail: z.string(),
-  photos: z.instanceof(File).array(), // JSON string array of photo URLs
+  photos: z.any().array().optional(),
 });
 
 export const createServiceRequest = async (data: CreateRequestType) => {
