@@ -3,17 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Loader2, Wrench, Users, DoorOpen } from "lucide-react";
+import {
+  FormState,
+  getFormValue,
+  SignUpFormFields,
+} from "@/lib/auth/form-utils";
+import { DoorOpen, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
 import { signIn, signUp } from "./actions";
-import { ActionState } from "@/lib/auth/middleware";
-import {
-  getFormValue,
-  FormState,
-  SignUpFormFields,
-} from "@/lib/auth/form-utils";
 
 type UserRole = "client" | "artisan" | null;
 
@@ -35,19 +34,17 @@ export function LoginComponent({
   const inviteId = searchParams.get("inviteId");
 
   return (
-    <div className="min-h-[100dvh] flex flex-col justify-start py-6 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-[100dvh] flex flex-col justify-start py-6 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-              <DoorOpen className="h-8 w-8 text-blue-600" />
+            <div className="w-16 h-16 bg-fixeo-main-100 rounded-full flex items-center justify-center">
+              <DoorOpen className="h-8 w-8 text-fixeo-main-600" />
             </div>
           </div>
           <h2 className="text-3xl font-extrabold text-gray-900">Connexion</h2>
           <p className="mt-2 text-sm text-gray-600">
-            {selectedRole === "client"
-              ? "Accédez à votre espace client"
-              : "Rejoignez notre réseau d'artisans"}
+            Connectez-vous à votre compte et accédez à votre espace personnalisé
           </p>
         </div>
       </div>
@@ -80,7 +77,7 @@ export function LoginComponent({
                         defaultValue={getFormValue(state, "firstName")}
                         required={selectedRole === "artisan"}
                         maxLength={100}
-                        className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                        className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-fixeo-main-500 focus:border-fixeo-main-500 focus:z-10 sm:text-sm"
                         placeholder="Prénom"
                       />
                     </div>
@@ -102,7 +99,7 @@ export function LoginComponent({
                         defaultValue={state?.lastName || ""}
                         required={selectedRole === "artisan"}
                         maxLength={100}
-                        className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                        className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-fixeo-main-500 focus:border-fixeo-main-500 focus:z-10 sm:text-sm"
                         placeholder="Nom"
                       />
                     </div>
@@ -125,7 +122,7 @@ export function LoginComponent({
                       defaultValue={state?.phone || ""}
                       required={selectedRole === "artisan"}
                       maxLength={20}
-                      className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                      className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-fixeo-main-500 focus:border-fixeo-main-500 focus:z-10 sm:text-sm"
                       placeholder="06 12 34 56 78"
                     />
                   </div>
@@ -145,7 +142,7 @@ export function LoginComponent({
                         name="address"
                         type="text"
                         defaultValue={state?.address || ""}
-                        className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                        className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-fixeo-main-500 focus:border-fixeo-main-500 focus:z-10 sm:text-sm"
                         placeholder="Votre adresse"
                       />
                     </div>
@@ -170,7 +167,7 @@ export function LoginComponent({
                   defaultValue={getFormValue(state, "email")}
                   required
                   maxLength={50}
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-fixeo-main-500 focus:border-fixeo-main-500 focus:z-10 sm:text-sm"
                   placeholder="Entrez votre email"
                 />
               </div>
@@ -210,11 +207,8 @@ export function LoginComponent({
             <div>
               <Button
                 type="submit"
-                className={`w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                  selectedRole === "client"
-                    ? "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
-                    : "bg-green-600 hover:bg-green-700 focus:ring-green-500"
-                } focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                className={`w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-fixeo-main-500 hover:bg-fixeo-main-600
+                   focus:outline-none focus:ring-2 focus:ring-offset-2`}
                 disabled={pending}
               >
                 {pending ? (
@@ -231,7 +225,10 @@ export function LoginComponent({
             </div>
 
             <div className="text-center">
-              <Link href="#" className="text-sm text-green-600 hover:underline">
+              <Link
+                href="#"
+                className="text-sm text-fixeo-main-500 hover:underline"
+              >
                 Mot de passe oublié ?
               </Link>
             </div>

@@ -1,9 +1,8 @@
 "use client";
 
+import { ServiceRequest } from "@/lib/db/schema";
 import useSWR from "swr";
-import { ArtisanStats, ServiceRequestForArtisan } from "../../components/types";
-import { ServiceRequest, ServiceRequestStatus } from "@/lib/db/schema";
-import { ClientRequestsListComponent } from "./Requests";
+import ClientRequestsListComponent from "./Requests";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 

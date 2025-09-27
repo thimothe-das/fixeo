@@ -52,6 +52,9 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  --color-tooltip: var(--tooltip);
+  --color-tooltip-foreground: var(--tooltip-foreground);
+
   /* Custom Fixeo Color System - Tailwind v4 */
   /* Main Blue - 9 shades (Sapphire Blue inspired) */
   --color-fixeo-main-50: oklch(0.97 0.03 216);
@@ -128,12 +131,12 @@
     --card-foreground: oklch(222.2 84% 4.9%);
     --popover: white;
     --popover-foreground: oklch(222.2 84% 4.9%);
-    --primary: oklch(222.2 47.4% 11.2%);
+    --primary: var(--color-fixeo-main-500);
     --primary-foreground: oklch(210 40% 98%);
     --secondary: oklch(210 40% 96.1%);
     --secondary-foreground: oklch(222.2 47.4% 11.2%);
     --muted: oklch(210 40% 96.1%);
-    --muted-foreground: oklch(215.4 16.3% 46.9%);
+    --muted-foreground: var(--color-fixeo-gray-500);
     --accent: oklch(210 40% 96.1%);
     --accent-foreground: oklch(222.2 47.4% 11.2%);
     --destructive: oklch(0 84.2% 60.2%);
@@ -155,6 +158,8 @@
     --sidebar-accent-foreground: oklch(240 5.9% 10%);
     --sidebar-border: oklch(220 13% 91%);
     --sidebar-ring: oklch(217.2 91.2% 59.8%);
+    --tooltip: white;
+    --tooltip-foreground: white;
   }
 
   .dark {
@@ -190,6 +195,8 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --tooltip: var(--color-fixeo-gray-200);
+    --tooltip-foreground: var(--color-fixeo-gray-900);
   }
 }
 
@@ -212,4 +219,30 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Global button cursor pointer */
+  button {
+    cursor: pointer;
+  }
+  
+  /* Global tooltip content white text */
+  [data-tooltip-content],
+  .tooltip-content,
+  [role="tooltip"] {
+    color: white !important;
+  }
+}
+
+/* Custom slow spin animation */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
 }

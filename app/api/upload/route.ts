@@ -1,63 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { uploadFileToS3, validateImageFile } from '@/lib/aws/s3';
+import { uploadPhotosToS3 } from "@/lib/db/queries/common";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  try {
-    const formData = await request.formData();
-    const files = formData.getAll('photos') as File[];
+  const formData = await request.formData();
 
-    if (!files || files.length === 0) {
-      return NextResponse.json(
-        { error: 'No files provided' },
-        { status: 400 }
-      );
-    }
+  // Get all files with the key "photos"
+  const photoFiles = formData.getAll("photos") as File[];
 
-    // Limit to 5 photos max
-    if (files.length > 5) {
-      return NextResponse.json(
-        { error: 'Maximum 5 photos allowed' },
-        { status: 400 }
-      );
-    }
+  // Filter out any non-File entries and empty files
+  const validFiles = photoFiles.filter(
+    (file): file is File => file instanceof File && file.size > 0
+  );
 
-    const uploadPromises = files.map(async (file) => {
-      // Convert File to Express.Multer.File-like object for validation
-      const multerFile = {
-        size: file.size,
-        mimetype: file.type,
-        originalname: file.name,
-      } as Express.Multer.File;
-
-      // Validate file
-      const validation = validateImageFile(multerFile);
-      if (!validation.valid) {
-        throw new Error(validation.error);
-      }
-
-      // Convert File to Buffer
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      // Upload to S3
-      return uploadFileToS3(buffer, file.name, file.type);
-    });
-
-    const uploadResults = await Promise.all(uploadPromises);
-    const photoUrls = uploadResults.map(result => result.url);
-
-    return NextResponse.json({
-      success: true,
-      photos: photoUrls,
-    });
-
-  } catch (error) {
-    console.error('Upload error:', error);
+  if (validFiles.length === 0) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Upload failed' },
-      { status: 500 }
+      { error: "No valid photos provided" },
+      { status: 400 }
     );
   }
+
+  return await uploadPhotosToS3(validFiles);
 }
 
 // Increase the body size limit for file uploads
@@ -65,4 +27,4 @@ export const config = {
   api: {
     bodyParser: false,
   },
-}; 
+};

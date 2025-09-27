@@ -1,8 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useActionState, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,20 +8,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Wrench,
-  Users,
-  ArrowRight,
-  Shield,
-  Clock,
-  Star,
-  Loader2,
-  ArrowLeft,
-} from "lucide-react";
-import { signIn, signUp } from "./actions";
-import { ActionState } from "@/lib/auth/middleware";
+import { ArrowRight, Clock, Shield, Star, Users, Wrench } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type UserRole = "client" | "artisan" | null;
 
@@ -60,8 +46,8 @@ export function Login({
               onClick={() => router.push("/sign-up/client")}
             >
               <CardHeader className="text-center pb-4">
-                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <Users className="h-8 w-8 text-blue-600" />
+                <div className="mx-auto w-16 h-16 bg-fixeo-main-100 rounded-full flex items-center justify-center mb-4">
+                  <Users className="h-8 w-8 text-fixeo-main-600" />
                 </div>
                 <CardTitle className="text-2xl">Je suis client</CardTitle>
                 <CardDescription className="text-base">
@@ -71,26 +57,26 @@ export function Login({
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
-                    <Clock className="h-5 w-5 text-green-600" />
+                    <Clock className="h-5 w-5 text-fixeo-main-600" />
                     <span className="text-sm text-gray-600">
                       Intervention rapide
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <Shield className="h-5 w-5 text-green-600" />
+                    <Shield className="h-5 w-5 text-fixeo-main-600" />
                     <span className="text-sm text-gray-600">
                       Professionnels vérifiés
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <Star className="h-5 w-5 text-green-600" />
+                    <Star className="h-5 w-5 text-fixeo-main-600" />
                     <span className="text-sm text-gray-600">
                       Service de qualité
                     </span>
                   </div>
                 </div>
                 <div className="pt-4">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                  <Button className="w-full bg-fixeo-main-600 hover:bg-fixeo-main-700 text-white">
                     Continuer en tant que client
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -100,12 +86,12 @@ export function Login({
 
             {/* Service Provider Card */}
             <Card
-              className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-green-200"
+              className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-fixeo-accent-200"
               onClick={() => router.push("/sign-up/artisan")}
             >
               <CardHeader className="text-center pb-4">
-                <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                  <Wrench className="h-8 w-8 text-green-600" />
+                <div className="mx-auto w-16 h-16 bg-fixeo-accent-100 rounded-full flex items-center justify-center mb-4">
+                  <Wrench className="h-8 w-8 text-fixeo-accent-600" />
                 </div>
                 <CardTitle className="text-2xl">Je suis artisan</CardTitle>
                 <CardDescription className="text-base">
@@ -115,26 +101,26 @@ export function Login({
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
-                    <Users className="h-5 w-5 text-blue-600" />
+                    <Users className="h-5 w-5 text-fixeo-accent-600" />
                     <span className="text-sm text-gray-600">
                       Réseau national
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <Clock className="h-5 w-5 text-blue-600" />
+                    <Clock className="h-5 w-5 text-fixeo-accent-600" />
                     <span className="text-sm text-gray-600">
                       Gestion simplifiée
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <Star className="h-5 w-5 text-blue-600" />
+                    <Star className="h-5 w-5 text-fixeo-accent-600" />
                     <span className="text-sm text-gray-600">
                       Paiements sécurisés
                     </span>
                   </div>
                 </div>
                 <div className="pt-4">
-                  <Button className="w-full bg-green-600 hover:bg-green-700">
+                  <Button className="w-full bg-fixeo-accent-500 hover:bg-fixeo-accent-400 text-white cursor-pointer">
                     Rejoindre le réseau
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>

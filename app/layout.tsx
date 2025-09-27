@@ -1,14 +1,14 @@
-import "./globals.css";
-import type { Metadata, Viewport } from "next";
+import { getTeamForUser, getUser } from "@/lib/db/queries/common";
 import { GeistSans } from "geist/font/sans";
-import { getUser, getTeamForUser } from "@/lib/db/queries";
+import type { Metadata, Viewport } from "next";
+import { Toaster } from "sonner";
 import { SWRConfig } from "swr";
 import Header from "./components/Header";
-import { Toaster } from "sonner";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Next.js SaaS Starter",
-  description: "Get started quickly with Next.js, Postgres, and Stripe.",
+  title: "Fixéo",
+  description: "Fixéo est une plateforme de réservation d'artisans.",
 };
 
 export const viewport: Viewport = {

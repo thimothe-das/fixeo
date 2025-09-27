@@ -1,12 +1,18 @@
 import { isAdmin } from "@/lib/auth/roles";
-import { getUser } from "@/lib/db/queries";
+import { getUser } from "@/lib/db/queries/common";
 import { redirect } from "next/navigation";
 import { AdminLayout } from "../(admin)/AdminLayout";
 
 export default async function Layout({
   admin, // content from app/users/@admin
+  artisan, // parallel route (unused in admin-only section)
+  client, // parallel route (unused in admin-only section)
+  children,
 }: {
   admin: React.ReactNode;
+  artisan: React.ReactNode;
+  client: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   const user = await getUser();
 

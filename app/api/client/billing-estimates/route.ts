@@ -1,19 +1,20 @@
-import { NextResponse } from 'next/server';
-import { getUser, getBillingEstimatesByRequestId } from '@/lib/db/queries';
-import { db } from '@/lib/db/drizzle';
-import { serviceRequests, billingEstimates } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { db } from "@/lib/db/drizzle";
+import { getBillingEstimatesByRequestId } from "@/lib/db/queries";
+import { getUser } from "@/lib/db/queries/common";
+import { billingEstimates, serviceRequests } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   try {
     const user = await getUser();
-    
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
-    const requestId = searchParams.get('requestId');
+    const requestId = searchParams.get("requestId");
 
     if (requestId) {
       // Get estimates for a specific request (verify ownership)
@@ -29,10 +30,15 @@ export async function GET(request: Request) {
         .limit(1);
 
       if (serviceRequest.length === 0) {
-        return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+        return NextResponse.json(
+          { error: "Request not found" },
+          { status: 404 }
+        );
       }
 
-      const estimates = await getBillingEstimatesByRequestId(parseInt(requestId));
+      const estimates = await getBillingEstimatesByRequestId(
+        parseInt(requestId)
+      );
       return NextResponse.json(estimates);
     } else {
       // Get all estimates for user's requests
@@ -45,8 +51,8 @@ export async function GET(request: Request) {
         return NextResponse.json([]);
       }
 
-      const requestIds = userRequests.map(r => r.id);
-      
+      const requestIds = userRequests.map((r) => r.id);
+
       const estimates = await db
         .select({
           id: billingEstimates.id,
@@ -70,15 +76,18 @@ export async function GET(request: Request) {
           },
         })
         .from(billingEstimates)
-        .leftJoin(serviceRequests, eq(billingEstimates.serviceRequestId, serviceRequests.id))
+        .leftJoin(
+          serviceRequests,
+          eq(billingEstimates.serviceRequestId, serviceRequests.id)
+        )
         .where(eq(serviceRequests.userId, user.id));
 
       return NextResponse.json(estimates);
     }
   } catch (error) {
-    console.error('Error fetching client billing estimates:', error);
+    console.error("Error fetching client billing estimates:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

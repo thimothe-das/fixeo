@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { cn, getCategoryConfig } from "@/lib/utils";
 import {
   Calendar,
   Camera,
@@ -26,7 +26,7 @@ import {
   XCircle,
 } from "lucide-react";
 import moment from "moment";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type ServiceRequestForArtisan = {
   id: number;
@@ -106,28 +106,6 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
     );
   };
 
-  // Keyboard navigation for photo gallery
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!showPhotoGallery) return;
-
-      switch (e.key) {
-        case "Escape":
-          closePhotoGallery();
-          break;
-        case "ArrowLeft":
-          prevPhoto();
-          break;
-        case "ArrowRight":
-          nextPhoto();
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showPhotoGallery, galleryPhotos.length]);
-
   // Filter and sort logic
   const filteredRequests = requests
     ?.filter((request) => {
@@ -203,19 +181,6 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
         Flexible
       </Badge>
     );
-  };
-
-  const getCategoryIcon = (serviceType: string) => {
-    switch (serviceType.toLowerCase()) {
-      case "plumbing":
-        return <Wrench className="h-5 w-5 text-blue-600" />;
-      case "electrical":
-        return <Wrench className="h-5 w-5 text-yellow-600" />;
-      case "heating":
-        return <Wrench className="h-5 w-5 text-red-600" />;
-      default:
-        return <Wrench className="h-5 w-5 text-gray-600" />;
-    }
   };
 
   // Photo Gallery Modal Component
@@ -316,7 +281,10 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
           useState(false);
         const description = request.description || "Aucune description";
         const isLongDescription = description.length > 150; // Consider long if over 150 characters
-
+        const categoryConfig = getCategoryConfig(
+          request.serviceType,
+          "h-5 w-5 "
+        );
         return (
           <Card
             className={cn(
@@ -349,7 +317,7 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                     {request.title}
                   </h3>
                   <p className="text-sm text-gray-500 flex items-center gap-1">
-                    {getCategoryIcon(request.serviceType)} {request.serviceType}
+                    {categoryConfig.icon} {categoryConfig.type}
                   </p>
                 </div>
 

@@ -312,14 +312,6 @@ export function AddressAutocomplete({
             </div>
           )}
       </div>
-
-      {/* Address validation indicator */}
-      {selectedAddress && (
-        <div className="text-xs text-green-600 flex items-center">
-          <MapPin className="h-3 w-3 mr-1" />
-          Adresse validée
-        </div>
-      )}
     </div>
   );
 }

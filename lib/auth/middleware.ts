@@ -1,7 +1,7 @@
-import { z } from 'zod';
-import { TeamDataWithMembers, User } from '@/lib/db/schema';
-import { getTeamForUser, getUser } from '@/lib/db/queries';
-import { redirect } from 'next/navigation';
+import { getTeamForUser, getUser } from "@/lib/db/queries/common";
+import { TeamDataWithMembers, User } from "@/lib/db/schema";
+import { redirect } from "next/navigation";
+import { z } from "zod";
 
 export type ActionState = {
   error?: string;
@@ -22,9 +22,10 @@ export function validatedAction<S extends z.ZodType<any, any>, T>(
     const formDataEntries = Object.fromEntries(formData);
     const result = schema.safeParse(formDataEntries);
     if (!result.success) {
-      return { 
+      console.log("Validation failed:", result.error.errors);
+      return {
         error: result.error.errors[0].message,
-        ...formDataEntries // Preserve all form data when validation fails
+        ...formDataEntries, // Preserve all form data when validation fails
       };
     }
 
@@ -45,15 +46,15 @@ export function validatedActionWithUser<S extends z.ZodType<any, any>, T>(
   return async (prevState: ActionState, formData: FormData) => {
     const user = await getUser();
     if (!user) {
-      throw new Error('User is not authenticated');
+      throw new Error("User is not authenticated");
     }
 
     const formDataEntries = Object.fromEntries(formData);
     const result = schema.safeParse(formDataEntries);
     if (!result.success) {
-      return { 
+      return {
         error: result.error.errors[0].message,
-        ...formDataEntries // Preserve all form data when validation fails
+        ...formDataEntries, // Preserve all form data when validation fails
       };
     }
 
@@ -70,12 +71,12 @@ export function withTeam<T>(action: ActionWithTeamFunction<T>) {
   return async (formData: FormData): Promise<T> => {
     const user = await getUser();
     if (!user) {
-      redirect('/sign-in');
+      redirect("/sign-in");
     }
 
     const team = await getTeamForUser();
     if (!team) {
-      throw new Error('Team not found');
+      throw new Error("Team not found");
     }
 
     return action(formData, team);

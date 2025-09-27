@@ -4,7 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 
+import type { BillingEstimateBreakdownItem } from "@/app/workspace/components/types";
 import { useArtisanBillingEstimate } from "@/hooks/use-billing-estimate";
+import { getCategoryConfig } from "@/lib/utils";
 import {
   AlertTriangle,
   Building,
@@ -17,14 +19,6 @@ import {
 } from "lucide-react";
 import moment from "moment";
 import { useParams } from "next/navigation";
-import type {
-  BillingEstimateBreakdownItem,
-  BillingEstimateForClient,
-} from "../../../components/types";
-
-interface EstimatedBillProps {
-  estimate: BillingEstimateForClient;
-}
 
 type UserWithClientProfile = {
   id: number;
@@ -39,8 +33,6 @@ type UserWithClientProfile = {
     addressCity?: string;
   };
 };
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function EstimatedBill() {
   const params = useParams();
@@ -145,6 +137,11 @@ export default function EstimatedBill() {
     estimate.createdAt
   ).getFullYear()}-${String(estimate.id).padStart(4, "0")}`;
 
+  const categoryConfig = getCategoryConfig(
+    estimate.serviceRequest?.serviceType || "",
+    "h-4 w-4"
+  );
+
   return (
     <div
       className="min-h-screen bg-white pt-3"
@@ -160,7 +157,6 @@ export default function EstimatedBill() {
         } as React.CSSProperties
       }
     >
-      {/* Top Status Bar */}
       {estimate.status === "pending" && (
         <div className="bg-gradient-to-r from-orange-100 to-yellow-100 border-b border-orange-200 py-3 absolute top-0 left-0 right-0">
           <div className="max-w-7xl mx-auto flex items-center px-4 gap-4 justify-center">
@@ -213,7 +209,6 @@ export default function EstimatedBill() {
                     estimate.status
                   )} text-xs font-medium px-3 py-1`}
                 >
-                  <Clock className="h-4 w-4 text-orange-600 mr-1" />
                   {getStatusLabel(estimate.status)}
                 </Badge>
               </div>
@@ -291,10 +286,11 @@ export default function EstimatedBill() {
                   Détails du projet
                 </h3>
                 <Badge
-                  className="ml- 2 bg-blue-100 text-blue-800"
+                  className={`ml- 2  flex items-center gap-2 ${categoryConfig.colors.bg} ${categoryConfig.colors.text}`}
                   variant="outline"
                 >
-                  {estimate.serviceRequest?.serviceType}
+                  {categoryConfig.icon}
+                  {categoryConfig.type}
                 </Badge>
               </div>
 
@@ -317,33 +313,6 @@ export default function EstimatedBill() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Project Description */}
-        <div className="bg-blue-50 rounded-lg p-4 mb-6">
-          <div className="rounded-lg flex align-center gap-2 items-center mb-3">
-            <FileText className="h-4 w-4 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-900  ">
-              Description du projet
-            </h3>
-          </div>
-
-          <p className="text-gray-700 leading-relaxed text-xs">
-            {estimate.description}
-          </p>
-
-          {/* <div className="flex items-center text-sm text-gray-600 gap-2 mt-3">
-            <span className="inline-flex items-center  rounded-full text-xs font-medium">
-              <Tag className="h-3 w-3  mr-2 text-blue-800" /> Développement web
-            </span>
-            <span className="inline-flex items-center rounded-full text-xs font-medium  ">
-              <Tag className="h-3 w-3  mr-2 text-blue-800" /> Plateforme
-              e-commerce
-            </span>
-            <span className="inline-flex items-center rounded-full text-xs font-medium ">
-              <Tag className="h-3 w-3  mr-2 text-blue-800" /> Full-Stack
-            </span>
-          </div> */}
         </div>
 
         {/* Budget Breakdown */}
@@ -373,53 +342,73 @@ export default function EstimatedBill() {
                 </tr>
               </thead>
               <tbody>
-                {breakdownData.map((item, index) => (
-                  <tr key={index}>
-                    <td className="px-4 py-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <ReceiptText className="h-4 w-4 text-blue-600" />
+                {breakdownData.length > 0 ? (
+                  breakdownData.map((item, index) => (
+                    <tr key={index}>
+                      <td className="px-4 py-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <ReceiptText className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {item.description}
+                            </div>
+
+                            {(item as any).phase && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                                {(item as any).phase} • {item.quantity || 80}{" "}
+                                heures estimées
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className="text-gray-900 font-medium">
+                          {item.quantity || 80}
+                        </span>
+                        <div className="text-xs text-gray-500">
+                          {(item as any).unit || ""}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="text-gray-900 font-medium">
+                          {((item.unitPrice || 12500) / 100).toFixed(2)}€
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="text-gray-900 font-bold">
+                          {(
+                            (item.total ||
+                              Math.round(
+                                estimate.estimatedPrice / breakdownData.length
+                              )) / 100
+                          ).toFixed(2)}
+                          €
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center border">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <ReceiptText className="h-8 w-8 text-gray-400" />
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900">
-                            {item.description}
+                          <div className="font-medium text-gray-900 mb-1">
+                            Aucune ligne budgétaire disponible
                           </div>
-
-                          {(item as any).phase && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
-                              {(item as any).phase} • {item.quantity || 80}{" "}
-                              heures estimées
-                            </span>
-                          )}
+                          <div className="text-sm text-gray-500">
+                            Aucun détail n'a été ajouté au devis
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className="text-gray-900 font-medium">
-                        {item.quantity || 80}
-                      </span>
-                      <div className="text-xs text-gray-500">
-                        {(item as any).unit || ""}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <span className="text-gray-900 font-medium">
-                        {((item.unitPrice || 12500) / 100).toFixed(2)}€
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <span className="text-gray-900 font-bold">
-                        {(
-                          (item.total ||
-                            Math.round(
-                              estimate.estimatedPrice / breakdownData.length
-                            )) / 100
-                        ).toFixed(2)}
-                        €
-                      </span>
-                    </td>
                   </tr>
-                ))}
+                )}
               </tbody>
 
               {/* Total Row */}

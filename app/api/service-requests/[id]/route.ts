@@ -1,8 +1,13 @@
-import { NextResponse } from 'next/server';
-import { getUser } from '@/lib/db/queries';
-import { db } from '@/lib/db/drizzle';
-import { serviceRequests, billingEstimates, users, professionalProfiles } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { db } from "@/lib/db/drizzle";
+import { getUser } from "@/lib/db/queries/common";
+import {
+  billingEstimates,
+  professionalProfiles,
+  serviceRequests,
+  users,
+} from "@/lib/db/schema";
+import { desc, eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
@@ -10,16 +15,19 @@ export async function GET(
 ) {
   try {
     const user = await getUser();
-    
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
     const requestId = parseInt(id);
-    
+
     if (isNaN(requestId)) {
-      return NextResponse.json({ error: 'Invalid request ID' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid request ID" },
+        { status: 400 }
+      );
     }
 
     // Get the service request with assigned artisan details
@@ -52,20 +60,23 @@ export async function GET(
       .limit(1);
 
     if (serviceRequestResult.length === 0) {
-      return NextResponse.json({ error: 'Service request not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Service request not found" },
+        { status: 404 }
+      );
     }
 
     const request = serviceRequestResult[0];
 
     // Check if user has access to this request
     // User can access if they are the owner, assigned artisan, or admin
-    const hasAccess = 
+    const hasAccess =
       request.userId === user.id || // Owner
       request.assignedArtisan?.id === user.id || // Assigned artisan
-      user.role === 'admin'; // Admin
+      user.role === "admin"; // Admin
 
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Get billing estimates for this request
@@ -91,18 +102,18 @@ export async function GET(
       timeline: {
         created: {
           date: request.createdAt,
-          actor: 'Client',
+          actor: "Client",
         },
         ...(estimates.length > 0 && {
           quote: {
             date: estimates[0].createdAt,
-            actor: 'Admin',
+            actor: "Admin",
           },
         }),
-        ...(estimates.some(e => e.status === 'accepted') && {
+        ...(estimates.some((e) => e.status === "accepted") && {
           accepted: {
-            date: estimates.find(e => e.status === 'accepted')?.createdAt,
-            actor: 'Client',
+            date: estimates.find((e) => e.status === "accepted")?.createdAt,
+            actor: "Client",
           },
         }),
         // TODO: Add completed timeline when status is completed
@@ -111,9 +122,9 @@ export async function GET(
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error fetching service request:', error);
+    console.error("Error fetching service request:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

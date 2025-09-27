@@ -1,92 +1,76 @@
 "use client";
 
-import * as React from "react";
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft,
-  Calendar,
-  MapPin,
-  User as UserIcon,
-  Phone,
-  Mail,
-  Wrench,
-  Save,
-  Eye,
-  MessageSquare,
   AlertCircle,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Settings,
-  FileText,
-  Image as ImageIcon,
-  Send,
-  Euro,
   AlertTriangle,
-  X,
+  ArrowLeft,
+  ArrowRight,
+  Building,
+  Calculator,
+  Check,
+  CheckCircle,
   ChevronLeft,
   ChevronRight,
-  Plus,
-  UserCheck,
-  Play,
-  Check,
-  Zap,
+  Clock,
   Droplets,
-  Flame,
-  Paintbrush,
-  Hammer,
-  Building,
-  Home,
-  Sparkles,
-  Trees,
-  HelpCircle,
-  Edit3,
   Edit2,
-  Star,
-  ExternalLink,
-  ArrowRight,
+  Edit3,
+  Eye,
+  FileText,
+  Flame,
+  Hammer,
+  HelpCircle,
+  Home,
+  Image as ImageIcon,
+  MapPin,
+  MessageSquare,
+  Paintbrush,
+  Play,
+  Plus,
+  Save,
+  Send,
+  Settings,
+  Sparkles,
   SquareArrowOutUpRight,
-  Calculator,
+  Star,
+  Trees,
+  UserCheck,
+  User as UserIcon,
+  Wrench,
+  X,
+  XCircle,
+  Zap,
 } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import * as React from "react";
+import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
+import {
+  AddressAutocomplete,
+  AddressData,
+} from "@/components/ui/address-autocomplete";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  AddressAutocomplete,
-  AddressData,
-} from "@/components/ui/address-autocomplete";
-import {
-  getStatusConfig,
-  getCategoryConfig,
-  getPriorityConfig,
-} from "@/lib/utils";
+import { cn, getStatusConfig } from "@/lib/utils";
 import { BillingEstimateForm } from "../../../(admin)/BillingEstimateCreation";
 
 interface ServiceRequestDetail {
@@ -796,6 +780,8 @@ export function Request({
     request.updatedAt
   );
 
+  const statusConfig = getStatusConfig(request.status, "");
+
   return (
     <TooltipProvider>
       <div className="space-y-6 p-5 max-w-7xl mx-auto">
@@ -815,11 +801,10 @@ export function Request({
                   Requête #{request.id}
                 </h1>
                 <Badge
-                  className={`${
-                    getStatusConfig(request.status, "").color
-                  } text-sm`}
+                  className={`${statusConfig.colors.color} text-sm ${statusConfig.colors.bg} ${statusConfig.colors.text}`}
                 >
-                  {getStatusConfig(request.status, "").label}
+                  {statusConfig.icon}
+                  {statusConfig.label}
                 </Badge>
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-500">
@@ -883,9 +868,11 @@ export function Request({
               <Button
                 onClick={saveRequest}
                 disabled={saving || modifiedFields.size === 0}
-                className={
-                  modifiedFields.size > 0 ? "bg-blue-600 hover:bg-blue-700" : ""
-                }
+                className={cn(
+                  "text-white",
+                  modifiedFields.size > 0 &&
+                    "bg-fixeo-main-600 hover:bg-fixeo-main-700"
+                )}
               >
                 <Save className="h-4 w-4 mr-2" />
                 {saving
@@ -973,7 +960,7 @@ export function Request({
                             className="h-7 w-7 p-0"
                             disabled={!tempTitle.trim()}
                           >
-                            <Check className="h-3 w-3" />
+                            <Check className="h-3 w-3 text-white" />
                           </Button>
                           <Button
                             size="sm"
@@ -999,7 +986,9 @@ export function Request({
                           <HelpCircle className="h-4 w-4 text-gray-400" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Définit la priorité de traitement de la demande</p>
+                          <p className="text-white">
+                            Définit la priorité de traitement de la demande
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                       {modifiedFields.has("urgency") && (
@@ -1050,7 +1039,7 @@ export function Request({
                             <HelpCircle className="h-4 w-4 text-gray-400" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>
+                            <p className="text-white">
                               Sélectionnez la catégorie qui correspond le mieux
                               au type d'intervention demandée
                             </p>
@@ -1102,7 +1091,7 @@ export function Request({
                           <AlertTriangle className="h-4 w-4 text-amber-500" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>
+                          <p className="text-white">
                             Attention : Changer le statut affecte le workflow et
                             les notifications
                           </p>
@@ -1157,7 +1146,7 @@ export function Request({
                           <HelpCircle className="h-4 w-4 text-gray-400" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>
+                          <p className="text-white">
                             Décrivez le problème de manière détaillée pour aider
                             l'artisan à comprendre la situation
                           </p>
@@ -1211,7 +1200,7 @@ export function Request({
                           <Button
                             size="sm"
                             onClick={saveDescription}
-                            className="h-7 px-3"
+                            className="h-7 px-3 text-white"
                             disabled={!tempDescription.trim()}
                           >
                             <Check className="h-3 w-3 mr-1" />
@@ -1251,7 +1240,7 @@ export function Request({
                           <HelpCircle className="h-4 w-4 text-gray-400" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>
+                          <p className="text-white">
                             Utilisez l'autocomplétion pour sélectionner
                             l'adresse exacte et améliorer la précision
                           </p>

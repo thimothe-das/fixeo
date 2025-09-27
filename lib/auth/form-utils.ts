@@ -105,6 +105,7 @@ export interface SignUpFormFields extends BaseFormFields {
 }
 
 export interface ServiceRequestFormFields extends BaseFormFields {
+  title?: string;
   serviceType?: string;
   urgency?: string;
   description?: string;

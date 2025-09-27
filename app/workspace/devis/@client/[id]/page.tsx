@@ -16,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useBillingEstimate } from "@/hooks/use-billing-estimate";
+import { getCategoryConfig } from "@/lib/utils";
 import {
   AlertTriangle,
   Building,
@@ -205,6 +206,11 @@ export default function EstimatedBill() {
     estimate.createdAt
   ).getFullYear()}-${String(estimate.id).padStart(4, "0")}`;
 
+  const categoryConfig = getCategoryConfig(
+    estimate.serviceRequest?.serviceType,
+    "h-4 w-4"
+  );
+
   return (
     <div
       className="min-h-screen bg-white pt-3"
@@ -222,7 +228,7 @@ export default function EstimatedBill() {
     >
       {/* Top Status Bar */}
       {estimate.status === "pending" && (
-        <div className="bg-gradient-to-r from-orange-100 to-yellow-100 border-b border-orange-200 py-3 absolute top-0 left-0 right-0">
+        <div className="bg-gradient-to-r from-orange-100 to-yellow-100 border-b border-orange-200 py-3 absolute top-0 left-0 right-0 ">
           <div className="max-w-7xl mx-auto flex items-center px-4 gap-4 justify-center">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-orange-500" />
@@ -237,7 +243,7 @@ export default function EstimatedBill() {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-8 pb-24">
         {/* Header */}
         <div className="rounded-lg p-4 mb-6">
           <div className="flex items-start justify-between">
@@ -349,10 +355,11 @@ export default function EstimatedBill() {
                   Détails du projet
                 </h3>
                 <Badge
-                  className="ml- 2 bg-blue-100 text-blue-800"
+                  className={`ml- 2  flex items-center gap-2 ${categoryConfig.colors.bg} ${categoryConfig.colors.text}`}
                   variant="outline"
                 >
-                  {estimate.serviceRequest?.serviceType}
+                  {categoryConfig.icon}
+                  {categoryConfig.type}
                 </Badge>
               </div>
 
@@ -375,33 +382,6 @@ export default function EstimatedBill() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Project Description */}
-        <div className="bg-blue-50 rounded-lg p-4 mb-6">
-          <div className="rounded-lg flex align-center gap-2 items-center mb-3">
-            <FileText className="h-4 w-4 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-900  ">
-              Description du projet
-            </h3>
-          </div>
-
-          <p className="text-gray-700 leading-relaxed text-xs">
-            {estimate.description}
-          </p>
-
-          {/* <div className="flex items-center text-sm text-gray-600 gap-2 mt-3">
-            <span className="inline-flex items-center  rounded-full text-xs font-medium">
-              <Tag className="h-3 w-3  mr-2 text-blue-800" /> Développement web
-            </span>
-            <span className="inline-flex items-center rounded-full text-xs font-medium  ">
-              <Tag className="h-3 w-3  mr-2 text-blue-800" /> Plateforme
-              e-commerce
-            </span>
-            <span className="inline-flex items-center rounded-full text-xs font-medium ">
-              <Tag className="h-3 w-3  mr-2 text-blue-800" /> Full-Stack
-            </span>
-          </div> */}
         </div>
 
         {/* Budget Breakdown */}
@@ -431,53 +411,73 @@ export default function EstimatedBill() {
                 </tr>
               </thead>
               <tbody>
-                {breakdownData.map((item, index) => (
-                  <tr key={index}>
-                    <td className="px-4 py-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <ReceiptText className="h-4 w-4 text-blue-600" />
+                {breakdownData.length > 0 ? (
+                  breakdownData.map((item, index) => (
+                    <tr key={index}>
+                      <td className="px-4 py-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <ReceiptText className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {item.description}
+                            </div>
+
+                            {(item as any).phase && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                                {(item as any).phase} • {item.quantity || 80}{" "}
+                                heures estimées
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className="text-gray-900 font-medium">
+                          {item.quantity || 80}
+                        </span>
+                        <div className="text-xs text-gray-500">
+                          {(item as any).unit || ""}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="text-gray-900 font-medium">
+                          {((item.unitPrice || 12500) / 100).toFixed(2)}€
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="text-gray-900 font-bold">
+                          {(
+                            (item.total ||
+                              Math.round(
+                                estimate.estimatedPrice / breakdownData.length
+                              )) / 100
+                          ).toFixed(2)}
+                          €
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center border">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <ReceiptText className="h-8 w-8 text-gray-400" />
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900">
-                            {item.description}
+                          <div className="font-medium text-gray-900 mb-1">
+                            Aucune ligne budgétaire disponible
                           </div>
-
-                          {(item as any).phase && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
-                              {(item as any).phase} • {item.quantity || 80}{" "}
-                              heures estimées
-                            </span>
-                          )}
+                          <div className="text-sm text-gray-500">
+                            Aucun détail n'a été ajouté au devis
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className="text-gray-900 font-medium">
-                        {item.quantity || 80}
-                      </span>
-                      <div className="text-xs text-gray-500">
-                        {(item as any).unit || ""}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <span className="text-gray-900 font-medium">
-                        {((item.unitPrice || 12500) / 100).toFixed(2)}€
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <span className="text-gray-900 font-bold">
-                        {(
-                          (item.total ||
-                            Math.round(
-                              estimate.estimatedPrice / breakdownData.length
-                            )) / 100
-                        ).toFixed(2)}
-                        €
-                      </span>
-                    </td>
                   </tr>
-                ))}
+                )}
               </tbody>
 
               {/* Total Row */}
@@ -497,79 +497,6 @@ export default function EstimatedBill() {
               </tfoot>
             </table>
           </div>
-
-          {/* Action buttons for estimate */}
-          {canRespond && (
-            <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">
-              <AlertDialog
-                open={showRejectDialog}
-                onOpenChange={setShowRejectDialog}
-              >
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="flex-1 border-red-300 text-red-700 hover:bg-red-50 py-3 text-base font-medium"
-                    disabled={isLoading}
-                  >
-                    <XCircle className="h-4 w-4" /> Refuser le devis
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Refuser le devis</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir refuser ce devis ? L'artisan sera
-                      notifié de votre décision.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleReject}
-                      disabled={isLoading}
-                      className="bg-rose-600 hover:bg-rose-700"
-                    >
-                      {isLoading ? "En cours..." : "Refuser"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              <AlertDialog
-                open={showAcceptDialog}
-                onOpenChange={setShowAcceptDialog}
-              >
-                <AlertDialogTrigger asChild>
-                  <Button
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 text-base font-medium"
-                    disabled={isLoading}
-                  >
-                    <CheckCircle className="h-4 w-4" /> Accepter le devis
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Accepter le devis</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir accepter ce devis de{" "}
-                      {(estimate.estimatedPrice / 100).toFixed(2)}€ ? Cette
-                      action déclenchera le début des travaux.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleAccept}
-                      disabled={isLoading}
-                      className="bg-emerald-600 hover:bg-emerald-700"
-                    >
-                      {isLoading ? "En cours..." : "Accepter"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          )}
 
           {estimate.status === "accepted" && (
             <div className="mt-6 pt-6 border-t border-gray-200">
@@ -621,6 +548,84 @@ export default function EstimatedBill() {
           </div>
         )}
       </div>
+
+      {/* Sticky Action Buttons */}
+      {canRespond && (
+        <div
+          className="fixed bottom-0 bg-white  p-4 mx-5 z-1"
+          style={{ left: "var(--sidebar-width, 250px)", right: "0" }}
+        >
+          <div className="max-w-6xl mx-auto px-6 flex gap-3">
+            <AlertDialog
+              open={showRejectDialog}
+              onOpenChange={setShowRejectDialog}
+            >
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex-1 border-red-300 text-red-700 hover:bg-red-50 py-3 text-base font-medium"
+                  disabled={isResponding}
+                >
+                  <XCircle className="h-4 w-4" /> Refuser le devis
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Refuser le devis</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Êtes-vous sûr de vouloir refuser ce devis ? L'artisan sera
+                    notifié de votre décision.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleReject}
+                    disabled={isResponding}
+                    className="bg-rose-600 hover:bg-rose-700 text-white"
+                  >
+                    {isResponding ? "En cours..." : "Refuser"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog
+              open={showAcceptDialog}
+              onOpenChange={setShowAcceptDialog}
+            >
+              <AlertDialogTrigger asChild>
+                <Button
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 text-base font-medium"
+                  disabled={isResponding}
+                >
+                  <CheckCircle className="h-4 w-4" /> Accepter le devis
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Accepter le devis</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Êtes-vous sûr de vouloir accepter ce devis de{" "}
+                    {(estimate.estimatedPrice / 100).toFixed(2)}€ ? Cette action
+                    déclenchera le début des travaux.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleAccept}
+                    disabled={isResponding}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {isResponding ? "En cours..." : "Accepter"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

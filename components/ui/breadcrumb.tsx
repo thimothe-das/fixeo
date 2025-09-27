@@ -59,7 +59,7 @@ export const createBreadcrumbs = {
   dashboard: (additionalItems: BreadcrumbItem[] = []): BreadcrumbItem[] => [
     {
       label: "Tableau de bord",
-      href: "/workspace",
+      href: "/workspace/dashboard",
       icon: <Home className="w-4 h-4" />,
     },
     ...additionalItems,
@@ -71,12 +71,12 @@ export const createBreadcrumbs = {
   ): BreadcrumbItem[] => [
     {
       label: "Tableau de bord",
-      href: "/workspace",
+      href: "/workspace/dashboard",
       icon: <Home className="w-4 h-4" />,
     },
     {
       label: "Mes demandes",
-      href: "/workspace",
+      href: "/workspace/requests",
     },
     {
       label: requestTitle,

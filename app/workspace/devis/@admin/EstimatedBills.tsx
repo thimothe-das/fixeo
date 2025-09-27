@@ -1,15 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,25 +11,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Calculator,
-  Search,
-  Calendar,
-  FileText,
   AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Filter,
-  Plus,
-  DollarSign,
-  ChevronDown,
-  Euro,
   Building2,
+  Calculator,
+  CheckCircle,
+  Clock,
+  Euro,
+  Search,
+  XCircle,
 } from "lucide-react";
-import type { BillingEstimateForClient } from "../../components/types";
-import useSWR from "swr";
 import moment from "moment";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import useSWR from "swr";
+import type { BillingEstimateForClient } from "../../components/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 

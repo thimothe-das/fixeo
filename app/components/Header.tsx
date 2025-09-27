@@ -33,11 +33,14 @@ function UserMenu() {
   if (!user || !user.id) {
     return (
       <>
-        <Button asChild className="rounded-full bg-blue-600 text-white">
-          <Link href="/sign-in">Sign In</Link>
+        <Button
+          asChild
+          className="rounded-full bg-white border border-fixeo-main-500 text-fixeo-main-500 hover:bg-gray-100 hover:text-fixeo-main-500"
+        >
+          <Link href="/sign-in">Se connecter</Link>
         </Button>
-        <Button asChild className="rounded-full">
-          <Link href="/sign-up">Sign Up</Link>
+        <Button asChild className="rounded-full bg-fixeo-main-500 text-white">
+          <Link href="/sign-up">S'inscrire</Link>
         </Button>
       </>
     );

@@ -93,7 +93,7 @@ function SignUpArtisanForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
+    <div className="min-h-screen">
       <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardHeader className="text-center">
@@ -299,7 +299,7 @@ function SignUpArtisanForm() {
 
               <Button
                 type="submit"
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full bg-fixeo-accent-500 hover:bg-fixeo-accent-400 text-white cursor-pointer"
                 disabled={pending}
               >
                 {pending ? (
@@ -319,7 +319,7 @@ function SignUpArtisanForm() {
               <p className="text-sm text-gray-600">Déjà partenaire ?</p>
               <Link
                 href="/sign-in/artisan"
-                className="text-green-600 hover:text-green-700 font-medium"
+                className="text-fixeo-accent-500 hover:text-fixeo-accent-400 font-medium"
               >
                 Se connecter
               </Link>

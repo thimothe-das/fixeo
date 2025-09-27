@@ -1,5 +1,5 @@
 import { isProfessional } from "@/lib/auth/roles";
-import { getUser } from "@/lib/db/queries";
+import { getUser } from "@/lib/db/queries/common";
 import { redirect } from "next/navigation";
 import { ArtisanLayout } from "../(artisan)/ArtisanLayout";
 

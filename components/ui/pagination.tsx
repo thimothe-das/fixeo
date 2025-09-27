@@ -1,7 +1,7 @@
-import * as React from "react";
-import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import * as React from "react";
 
 interface PaginationProps {
   currentPage: number;
@@ -119,7 +119,10 @@ const PaginationNav = ({
               variant={page === currentPage ? "default" : "outline"}
               size="sm"
               onClick={() => onPageChange(page as number)}
-              className="h-8 w-8 p-0"
+              className={cn(
+                "h-8 w-8 p-0",
+                page === currentPage && "text-white"
+              )}
             >
               {page}
             </Button>

@@ -1,3 +1,4 @@
+import { setGuestToken } from "@/app/suivi/[token]/token-storage";
 import {
   AddressAutocomplete,
   AddressData,
@@ -21,12 +22,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ActionState } from "@/lib/auth/middleware";
-import { cn } from "@/lib/utils";
+import { User } from "@/lib/db/schema";
+import { cn, fetcher, getCategoryConfig, ServiceType } from "@/lib/utils";
 import { Loader2, Plus, Upload, X } from "lucide-react";
-import { useActionState, useState, useTransition } from "react";
-import { toast } from "sonner";
-import { createServiceRequest } from "../actions";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { Controller, SubmitHandler, useForm, useWatch } from "react-hook-form";
+import useSWR from "swr";
+import { CreateRequestType, createServiceRequest } from "../actions";
 
 interface NewRequestProps {
   onRequestCreated: () => void;
@@ -40,124 +43,91 @@ export function NewRequest({
   className,
 }: NewRequestProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [serviceType, setServiceType] = useState("");
-  const [urgency, setUrgency] = useState("");
-  const [location, setLocation] = useState("");
-  const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(
-    null
-  );
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const { data: user } = useSWR<User>("/api/user", fetcher);
+  const userEmail = user?.email;
   const [isPending, startTransition] = useTransition();
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(
-    createServiceRequest,
-    { error: "" }
-  );
+  const router = useRouter();
 
-  const handleAddressChange = (
-    address: AddressData | null,
-    rawValue: string
-  ) => {
-    setSelectedAddress(address);
-    setLocation(rawValue);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateRequestType>({
+    defaultValues: {
+      title: "",
+      serviceType: "",
+      urgency: "",
+      description: "",
+      clientEmail: userEmail,
+      photos: [],
+      location: "",
+      location_housenumber: "",
+      location_street: "",
+      location_postcode: "",
+      location_city: "",
+      location_citycode: "",
+      location_district: "",
+      location_coordinates: "",
+      location_context: "",
+    },
+  });
+  const photos = useWatch({ control, name: "photos" });
+
+  const onSubmit: SubmitHandler<CreateRequestType> = async (data) => {
+    const serviceRequestResult = await createServiceRequest(data);
+    if ("success" in serviceRequestResult && serviceRequestResult.success) {
+      if (serviceRequestResult.guestToken) {
+        setGuestToken(serviceRequestResult.guestToken);
+      }
+      setIsOpen(false);
+      router.push(`/workspace/requests/${serviceRequestResult.requestId}`);
+    }
   };
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length + selectedFiles.length > 5) {
-      alert("Maximum 5 photos allowed");
-      return;
-    }
-    setSelectedFiles((prev) => [...prev, ...files]);
+    setValue("photos", [...photos, ...files]);
   };
 
   const removePhoto = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setValue(
+      "photos",
+      photos.filter((_, i) => i !== index)
+    );
   };
 
-  const uploadPhotos = async (): Promise<string[]> => {
-    if (selectedFiles.length === 0) return [];
-
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      selectedFiles.forEach((file) => {
-        formData.append("photos", file);
-      });
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Upload failed");
-      }
-
-      const result = await response.json();
-      return result.photos;
-    } catch (error) {
-      console.error("Upload error:", error);
-      throw error;
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleSubmit = async (formData: FormData) => {
-    try {
-      // Upload photos first if any are selected
-      let photoUrls: string[] = [];
-      if (selectedFiles.length > 0) {
-        photoUrls = await uploadPhotos();
-      }
-
-      // Add photo URLs to form data
-      formData.set("photos", JSON.stringify(photoUrls));
-
-      // Call the form action within a transition
-      startTransition(async () => {
-        formAction(formData);
-
-        // Reset form on success (check state after action completes)
-        setTimeout(() => {
-          if (!state?.error) {
-            setTitle("");
-            setSelectedFiles([]);
-            setServiceType("");
-            setUrgency("");
-            setLocation("");
-            setSelectedAddress(null);
-            setIsOpen(false); // Close modal after successful creation
-            toast.success("Demande créée avec succès !", {
-              description:
-                "Vous recevrez bientôt des devis de nos artisans qualifiés.",
-            });
-            onRequestCreated();
-          }
-        }, 100);
-      });
-    } catch (error) {
-      console.error("Form submission error:", error);
-    }
+  const handleAddressChange = (value: AddressData | null): void => {
+    setValue("location_housenumber", value?.housenumber || "");
+    setValue("location_street", value?.street || "");
+    setValue("location_postcode", value?.postcode || "");
+    setValue("location_city", value?.city || "");
+    setValue("location_citycode", value?.citycode || "");
+    setValue("location_district", value?.district || "");
+    setValue("location_coordinates", value?.coordinates.join(",") || "");
+    setValue("location_context", value?.context || "");
+    setValue("location", value?.label || "");
   };
 
   const formContent = (
-    <form action={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Titre de la demande *
         </label>
-        <Input
+        <Controller
+          control={control}
           name="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Donnez un titre court à votre demande..."
-          required
-          className="w-full"
-          maxLength={100}
+          render={({ field }) => (
+            <Input
+              {...field}
+              placeholder="Donnez un titre court à votre demande..."
+              required
+              className="w-full"
+              maxLength={100}
+            />
+          )}
         />
         <p className="text-xs text-gray-500 mt-1">Maximum 100 caractères</p>
       </div>
@@ -167,44 +137,54 @@ export function NewRequest({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Type de service *
           </label>
-          <Select
+          <Controller
+            control={control}
             name="serviceType"
-            value={serviceType}
-            onValueChange={setServiceType}
-            required
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Choisir..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="plomberie">🔧 Plomberie</SelectItem>
-              <SelectItem value="electricite">⚡ Électricité</SelectItem>
-              <SelectItem value="menuiserie">🔨 Menuiserie</SelectItem>
-              <SelectItem value="peinture">🎨 Peinture</SelectItem>
-              <SelectItem value="renovation">🏠 Rénovation</SelectItem>
-              <SelectItem value="depannage">⚙️ Dépannage</SelectItem>
-            </SelectContent>
-          </Select>
+            render={({ field }) => {
+              return (
+                <Select {...field} onValueChange={field.onChange} required>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choisir..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(ServiceType).map((serviceType) => {
+                      const categoryConfig = getCategoryConfig(
+                        serviceType,
+                        "h-4 w-4"
+                      );
+                      return (
+                        <SelectItem key={serviceType} value={serviceType}>
+                          {categoryConfig.icon}
+                          {categoryConfig.type}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              );
+            }}
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Urgence *
           </label>
-          <Select
+          <Controller
+            control={control}
             name="urgency"
-            value={urgency}
-            onValueChange={setUrgency}
-            required
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Quand ?" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="urgent">🚨 Urgent (24h)</SelectItem>
-              <SelectItem value="week">📅 Cette semaine</SelectItem>
-              <SelectItem value="flexible">⏰ Flexible</SelectItem>
-            </SelectContent>
-          </Select>
+            render={({ field }) => (
+              <Select {...field} onValueChange={field.onChange} required>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Quand ?" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="urgent">🚨 Urgent (24h)</SelectItem>
+                  <SelectItem value="week">📅 Cette semaine</SelectItem>
+                  <SelectItem value="flexible">⏰ Flexible</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
       </div>
 
@@ -221,12 +201,18 @@ export function NewRequest({
       </div>
 
       <div>
-        <AddressAutocomplete
+        <Controller
+          control={control}
           name="location"
-          placeholder="Entrez votre adresse..."
-          onChange={handleAddressChange}
-          value={location}
-          required
+          render={({ field }) => (
+            <AddressAutocomplete
+              onChange={handleAddressChange}
+              label="📍 Adresse d'intervention"
+              placeholder="Tapez votre adresse complète..."
+              required
+              className="h-11 focus:border-blue-500 text-sm"
+            />
+          )}
         />
       </div>
 
@@ -240,7 +226,7 @@ export function NewRequest({
             id="photo-upload"
             multiple
             accept="image/*"
-            onChange={handlePhotoSelect}
+            onChange={handlePhotoUpload}
             className="hidden"
           />
           <label
@@ -257,9 +243,9 @@ export function NewRequest({
           </label>
         </div>
 
-        {selectedFiles.length > 0 && (
+        {photos.length > 0 && (
           <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {selectedFiles.map((file, index) => (
+            {photos.map((file, index) => (
               <div key={index} className="relative group">
                 <img
                   src={URL.createObjectURL(file)}
@@ -282,72 +268,68 @@ export function NewRequest({
         )}
       </div>
 
-      {state?.error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600 text-sm">{state?.error}</p>
-        </div>
-      )}
-
       <div className={`flex gap-3 ${isModal ? "pt-4 border-t" : ""}`}>
         <Button
           type="submit"
-          disabled={pending || isPending || isUploading}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+          disabled={isPending}
+          className="flex-1 bg-fixeo-accent-500 hover:bg-fixeo-accent-600 text-white"
         >
-          {pending || isPending || isUploading ? (
+          {isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {isUploading ? "Upload en cours..." : "Création..."}
+              Création et paiement...
             </>
           ) : (
-            "Créer la demande"
+            "Créer la demande et payer"
           )}
         </Button>
       </div>
     </form>
   );
 
-  if (isModal) {
-    return (
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <Button
-            className={cn(
-              className,
-              "w-full bg-fixeo-accent-500 hover:bg-fixeo-accent-500 text-white font-medium py-3 px-4 rounded-lg shadow-sm transition-colors cursor-pointer hover:cursor-pointer"
-            )}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvelle demande
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-gray-900">
-              Créer une nouvelle demande
-            </DialogTitle>
-            <DialogDescription className="text-gray-600">
-              Décrivez votre besoin et recevez des devis personnalisés de nos
-              artisans qualifiés.
-            </DialogDescription>
-          </DialogHeader>
-          {formContent}
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
-    <div className="max-w-2xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Créer une nouvelle demande</CardTitle>
-          <p className="text-sm text-gray-600">
-            Remplissez ce formulaire pour soumettre votre demande de service
-          </p>
-        </CardHeader>
-        <CardContent>{formContent}</CardContent>
-      </Card>
-    </div>
+    <>
+      {isModal ? (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button
+              className={cn(
+                className,
+                "w-full bg-fixeo-accent-500 hover:bg-fixeo-accent-500 text-white font-medium py-3 px-4 rounded-lg shadow-sm transition-colors cursor-pointer hover:cursor-pointer"
+              )}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle demande
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-gray-900">
+                Créer une nouvelle demande
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                Décrivez votre besoin et recevez des devis personnalisés de nos
+                artisans qualifiés.
+              </DialogDescription>
+            </DialogHeader>
+            {formContent}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">
+                Créer une nouvelle demande
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                Remplissez ce formulaire pour soumettre votre demande de service
+              </p>
+            </CardHeader>
+            <CardContent>{formContent}</CardContent>
+          </Card>
+        </div>
+      )}
+    </>
   );
 }

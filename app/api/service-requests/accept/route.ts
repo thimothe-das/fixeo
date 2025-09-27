@@ -1,25 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getUser } from '@/lib/db/queries';
-import { db } from '@/lib/db/drizzle';
-import { serviceRequests, ServiceRequestStatus } from '@/lib/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { db } from "@/lib/db/drizzle";
+import { getUser } from "@/lib/db/queries/common";
+import { serviceRequests, ServiceRequestStatus } from "@/lib/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getUser();
-    
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (user.role !== 'professional') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (user.role !== "professional") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { requestId } = await request.json();
 
     if (!requestId) {
-      return NextResponse.json({ error: 'Request ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Request ID is required" },
+        { status: 400 }
+      );
     }
 
     // Check if the request exists and is still available
@@ -37,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     if (!existingRequest) {
       return NextResponse.json(
-        { error: 'Request not found or already assigned' },
+        { error: "Request not found or already assigned" },
         { status: 404 }
       );
     }
@@ -54,10 +57,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error accepting service request:', error);
+    console.error("Error accepting service request:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
-} 
+}

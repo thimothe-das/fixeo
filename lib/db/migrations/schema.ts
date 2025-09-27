@@ -1,6 +1,9 @@
-import { pgTable, unique, serial, varchar, timestamp, text, foreignKey, integer, boolean } from "drizzle-orm/pg-core"
+import { pgTable, unique, serial, varchar, timestamp, text, foreignKey, integer, boolean, pgEnum } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
+export const billingEstimateStatus = pgEnum("billing_estimate_status", ['pending', 'accepted', 'rejected', 'expired'])
+export const messageSenderType = pgEnum("message_sender_type", ['client', 'artisan', 'admin'])
+export const serviceRequestStatus = pgEnum("service_request_status", ['awaiting_payment', 'awaiting_estimate', 'awaiting_assignation', 'in_progress', 'client_validated', 'artisan_validated', 'completed', 'disputed_by_client', 'disputed_by_artisan', 'disputed_by_both', 'resolved', 'cancelled'])
 
 
 export const teams = pgTable("teams", {
@@ -36,19 +39,6 @@ export const activityLogs = pgTable("activity_logs", {
 			foreignColumns: [users.id],
 			name: "activity_logs_user_id_users_id_fk"
 		}),
-]);
-
-export const users = pgTable("users", {
-	id: serial().primaryKey().notNull(),
-	name: varchar({ length: 100 }),
-	email: varchar({ length: 255 }).notNull(),
-	passwordHash: text("password_hash").notNull(),
-	role: varchar({ length: 20 }).default('member').notNull(),
-	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
-	deletedAt: timestamp("deleted_at", { mode: 'string' }),
-}, (table) => [
-	unique("users_email_unique").on(table.email),
 ]);
 
 export const invitations = pgTable("invitations", {
@@ -91,6 +81,33 @@ export const teamMembers = pgTable("team_members", {
 		}),
 ]);
 
+export const clientProfiles = pgTable("client_profiles", {
+	id: serial().primaryKey().notNull(),
+	userId: integer("user_id").notNull(),
+	firstName: varchar("first_name", { length: 100 }),
+	lastName: varchar("last_name", { length: 100 }),
+	phone: varchar({ length: 20 }),
+	address: text(),
+	preferences: text(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+	addressHousenumber: varchar("address_housenumber", { length: 10 }),
+	addressStreet: varchar("address_street", { length: 255 }),
+	addressPostcode: varchar("address_postcode", { length: 10 }),
+	addressCity: varchar("address_city", { length: 100 }),
+	addressCitycode: varchar("address_citycode", { length: 10 }),
+	addressDistrict: varchar("address_district", { length: 100 }),
+	addressCoordinates: varchar("address_coordinates", { length: 50 }),
+	addressContext: text("address_context"),
+}, (table) => [
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "client_profiles_user_id_users_id_fk"
+		}),
+	unique("client_profiles_user_id_unique").on(table.userId),
+]);
+
 export const professionalProfiles = pgTable("professional_profiles", {
 	id: serial().primaryKey().notNull(),
 	userId: integer("user_id").notNull(),
@@ -123,33 +140,6 @@ export const professionalProfiles = pgTable("professional_profiles", {
 	unique("professional_profiles_user_id_unique").on(table.userId),
 ]);
 
-export const clientProfiles = pgTable("client_profiles", {
-	id: serial().primaryKey().notNull(),
-	userId: integer("user_id").notNull(),
-	firstName: varchar("first_name", { length: 100 }),
-	lastName: varchar("last_name", { length: 100 }),
-	phone: varchar({ length: 20 }),
-	address: text(),
-	preferences: text(),
-	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
-	addressHousenumber: varchar("address_housenumber", { length: 10 }),
-	addressStreet: varchar("address_street", { length: 255 }),
-	addressPostcode: varchar("address_postcode", { length: 10 }),
-	addressCity: varchar("address_city", { length: 100 }),
-	addressCitycode: varchar("address_citycode", { length: 10 }),
-	addressDistrict: varchar("address_district", { length: 100 }),
-	addressCoordinates: varchar("address_coordinates", { length: 50 }),
-	addressContext: text("address_context"),
-}, (table) => [
-	foreignKey({
-			columns: [table.userId],
-			foreignColumns: [users.id],
-			name: "client_profiles_user_id_users_id_fk"
-		}),
-	unique("client_profiles_user_id_unique").on(table.userId),
-]);
-
 export const billingEstimates = pgTable("billing_estimates", {
 	id: serial().primaryKey().notNull(),
 	serviceRequestId: integer("service_request_id").notNull(),
@@ -158,7 +148,7 @@ export const billingEstimates = pgTable("billing_estimates", {
 	description: text().notNull(),
 	breakdown: text(),
 	validUntil: timestamp("valid_until", { mode: 'string' }),
-	status: varchar({ length: 20 }).default('pending').notNull(),
+	status: billingEstimateStatus().default('pending').notNull(),
 	clientResponse: text("client_response"),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
@@ -175,6 +165,42 @@ export const billingEstimates = pgTable("billing_estimates", {
 		}),
 ]);
 
+export const conversations = pgTable("conversations", {
+	id: serial().primaryKey().notNull(),
+	serviceRequestId: integer("service_request_id").notNull(),
+	senderId: integer("sender_id").notNull(),
+	senderType: messageSenderType("sender_type").notNull(),
+	message: text().notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	readAt: timestamp("read_at", { mode: 'string' }),
+}, (table) => [
+	foreignKey({
+			columns: [table.serviceRequestId],
+			foreignColumns: [serviceRequests.id],
+			name: "conversations_service_request_id_service_requests_id_fk"
+		}),
+	foreignKey({
+			columns: [table.senderId],
+			foreignColumns: [users.id],
+			name: "conversations_sender_id_users_id_fk"
+		}),
+]);
+
+export const users = pgTable("users", {
+	id: serial().primaryKey().notNull(),
+	name: varchar({ length: 100 }),
+	email: varchar({ length: 255 }).notNull(),
+	passwordHash: text("password_hash").notNull(),
+	role: varchar({ length: 20 }).default('member').notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+	deletedAt: timestamp("deleted_at", { mode: 'string' }),
+	stripeCustomerId: text("stripe_customer_id"),
+}, (table) => [
+	unique("users_email_unique").on(table.email),
+	unique("users_stripe_customer_id_unique").on(table.stripeCustomerId),
+]);
+
 export const serviceRequests = pgTable("service_requests", {
 	id: serial().primaryKey().notNull(),
 	serviceType: varchar("service_type", { length: 50 }).notNull(),
@@ -184,7 +210,7 @@ export const serviceRequests = pgTable("service_requests", {
 	photos: text(),
 	clientEmail: varchar("client_email", { length: 255 }),
 	userId: integer("user_id"),
-	status: varchar({ length: 20 }).default('awaiting_estimate').notNull(),
+	status: serviceRequestStatus().default('awaiting_payment').notNull(),
 	assignedArtisanId: integer("assigned_artisan_id"),
 	estimatedPrice: integer("estimated_price"),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
@@ -198,6 +224,8 @@ export const serviceRequests = pgTable("service_requests", {
 	locationDistrict: varchar("location_district", { length: 100 }),
 	locationCoordinates: varchar("location_coordinates", { length: 50 }),
 	locationContext: text("location_context"),
+	title: varchar({ length: 100 }),
+	downPaymentPaid: boolean("down_payment_paid").default(false).notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.userId],

@@ -1,4 +1,8 @@
-import { getServiceRequestWithUser, getUser, updateServiceRequestStatus } from "@/lib/db/queries";
+import {
+  getServiceRequestWithUser,
+  updateServiceRequestStatus,
+} from "@/lib/db/queries";
+import { getUser } from "@/lib/db/queries/common";
 import { ServiceRequestStatus } from "@/lib/db/schema";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -16,8 +20,7 @@ export async function POST(
     const { action, disputeReason, disputeDetails } = await request.json();
     const resolvedParams = await params;
     const requestId = parseInt(resolvedParams.id);
-    if (!requestId || !action || !['approve', 'dispute'].includes(action)) {
-
+    if (!requestId || !action || !["approve", "dispute"].includes(action)) {
       return NextResponse.json(
         { error: "Invalid request data" },
         { status: 400 }
@@ -27,13 +30,17 @@ export async function POST(
     // Get the service request and verify ownership
     const serviceRequestData = await getServiceRequestWithUser(requestId);
     if (!serviceRequestData) {
-      return NextResponse.json({ error: "Service request not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Service request not found" },
+        { status: 404 }
+      );
     }
 
     // Verify the user is either the client who created the request or the assigned artisan
     const isClient = serviceRequestData.request.userId === user.id;
-    const isAssignedArtisan = serviceRequestData.request.assignedArtisanId === user.id;
-    
+    const isAssignedArtisan =
+      serviceRequestData.request.assignedArtisanId === user.id;
+
     if (!isClient && !isAssignedArtisan) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
@@ -43,10 +50,14 @@ export async function POST(
       ServiceRequestStatus.IN_PROGRESS,
       ServiceRequestStatus.ARTISAN_VALIDATED,
       ServiceRequestStatus.CLIENT_VALIDATED,
-      ServiceRequestStatus.RESOLVED
+      ServiceRequestStatus.RESOLVED,
     ];
-    
-    if (!validStatesForValidation.includes(serviceRequestData.request.status as ServiceRequestStatus)) {
+
+    if (
+      !validStatesForValidation.includes(
+        serviceRequestData.request.status as ServiceRequestStatus
+      )
+    ) {
       return NextResponse.json(
         { error: "This request cannot be validated in its current state" },
         { status: 400 }
@@ -58,14 +69,20 @@ export async function POST(
     if (action === "approve") {
       if (isClient) {
         // Client is validating
-        if (serviceRequestData.request.status === ServiceRequestStatus.ARTISAN_VALIDATED) {
+        if (
+          serviceRequestData.request.status ===
+          ServiceRequestStatus.ARTISAN_VALIDATED
+        ) {
           newStatus = ServiceRequestStatus.COMPLETED; // Both have validated
         } else {
           newStatus = ServiceRequestStatus.CLIENT_VALIDATED; // Client validated, waiting for artisan
         }
       } else if (isAssignedArtisan) {
         // Artisan is validating
-        if (serviceRequestData.request.status === ServiceRequestStatus.CLIENT_VALIDATED) {
+        if (
+          serviceRequestData.request.status ===
+          ServiceRequestStatus.CLIENT_VALIDATED
+        ) {
           newStatus = ServiceRequestStatus.COMPLETED; // Both have validated
         } else {
           newStatus = ServiceRequestStatus.ARTISAN_VALIDATED; // Artisan validated, waiting for client
@@ -88,10 +105,7 @@ export async function POST(
         );
       }
     } else {
-      return NextResponse.json(
-        { error: "Invalid action" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
     console.log("Mission validation request:", {
@@ -99,31 +113,35 @@ export async function POST(
       action,
       disputeReason,
       disputeDetails,
-      newStatus
+      newStatus,
     });
 
     // Update the service request status
-    const updatedRequest = await updateServiceRequestStatus(requestId, newStatus, {
-      disputeReason,
-      disputeDetails
-    });
+    const updatedRequest = await updateServiceRequestStatus(
+      requestId,
+      newStatus,
+      {
+        disputeReason,
+        disputeDetails,
+      }
+    );
 
     // Send notifications
     await sendValidationNotifications(serviceRequestData, action, {
       disputeReason,
       disputeDetails,
-      user
+      user,
     });
 
     return NextResponse.json({
       success: true,
-      message: action === "approve" 
-        ? "Mission validated successfully" 
-        : "Dispute created successfully",
+      message:
+        action === "approve"
+          ? "Mission validated successfully"
+          : "Dispute created successfully",
       newStatus,
-      updatedRequest
+      updatedRequest,
     });
-
   } catch (error) {
     console.error("Error validating mission:", error);
     return NextResponse.json(
@@ -136,7 +154,7 @@ export async function POST(
 // Email notification function
 async function sendValidationNotifications(
   serviceRequestData: any,
-  action: 'approve' | 'dispute',
+  action: "approve" | "dispute",
   details: {
     disputeReason?: string;
     disputeDetails?: string;
@@ -144,14 +162,16 @@ async function sendValidationNotifications(
   }
 ) {
   try {
-    const { sendValidationNotification } = await import('@/lib/email/notifications');
-    
+    const { sendValidationNotification } = await import(
+      "@/lib/email/notifications"
+    );
+
     // Send to admin
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@fixeo.com';
-    
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@fixeo.com";
+
     await sendValidationNotification(
       adminEmail,
-      serviceRequestData.client?.name || details.user.name || 'Client',
+      serviceRequestData.client?.name || details.user.name || "Client",
       serviceRequestData.request.serviceType,
       action,
       details.disputeReason,
@@ -161,10 +181,12 @@ async function sendValidationNotifications(
     // If there's an assigned artisan, notify them too
     if (serviceRequestData.request.assignedArtisanId) {
       // TODO: Get artisan email and send notification
-      console.log(`Should notify artisan ${serviceRequestData.request.assignedArtisanId} about validation: ${action}`);
+      console.log(
+        `Should notify artisan ${serviceRequestData.request.assignedArtisanId} about validation: ${action}`
+      );
     }
   } catch (error) {
-    console.error('Failed to send validation notifications:', error);
+    console.error("Failed to send validation notifications:", error);
     // Don't fail the main operation if email fails
   }
 }

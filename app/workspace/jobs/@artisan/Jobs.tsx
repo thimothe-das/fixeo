@@ -254,19 +254,11 @@ export default function Jobs({ assignedRequests }: JobsProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <Badge
-                      className={`${statusConfig.color} shrink-0 text-xs font-medium`}
+                      className={`${statusConfig.color} ${statusConfig.colors.bg} ${statusConfig.colors.text} flex items-center gap-2 shrink-0 text-xs font-medium`}
                     >
                       {statusConfig.icon}
                       {statusConfig.label}
                     </Badge>
-                    {unreadMessages > 0 && (
-                      <div className="relative flex items-center shrink-0">
-                        <MessageCircle className="h-5 w-5 text-gray-600" />
-                        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg border-2 border-white">
-                          {unreadMessages}
-                        </div>
-                      </div>
-                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-lg font-bold text-gray-900">
@@ -383,7 +375,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
 
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <div className="flex space-x-2 w-full justify-between items-center">
+                  <div className="flex space-x-2 gap-2 w-full justify-between items-center">
                     {/* Validation buttons for specific statuses */}
                     {mission.status === ServiceRequestStatus.IN_PROGRESS ||
                     mission.status === ServiceRequestStatus.CLIENT_VALIDATED ? (
@@ -417,7 +409,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
                     ) : (
                       <Button
                         variant="outline"
-                        className="w-full h-11 bg-transparent hover:bg-gray-50 border-gray-200 font-medium text-sm touch-manipulation"
+                        className="flex-1 h-11 bg-transparent hover:bg-gray-50 border-gray-200 font-medium text-sm touch-manipulation"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/workspace/jobs/${mission.id}`);
@@ -426,6 +418,14 @@ export default function Jobs({ assignedRequests }: JobsProps) {
                         <Eye className="h-4 w-4 mr-2" />
                         Voir détails
                       </Button>
+                    )}
+                    {unreadMessages > 0 && (
+                      <div className="relative flex items-center shrink-0">
+                        <MessageCircle className="h-5 w-5 text-gray-600" />
+                        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg border-2 border-white">
+                          {unreadMessages}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -473,10 +473,18 @@ export default function Jobs({ assignedRequests }: JobsProps) {
             variant={filterStatus === status.value ? "default" : "outline"}
             size="sm"
             onClick={() => setFilterStatus(status.value)}
-            className="flex items-center gap-2"
+            className={cn(
+              "flex items-center gap-2",
+              filterStatus === status.value
+                ? "bg-black text-white hover:bg-black"
+                : "text-gray-700"
+            )}
           >
             {status.label}
-            <Badge variant="secondary" className={`ml-1 ${status.color}`}>
+            <Badge
+              variant="secondary"
+              className={cn("ml-1", status.color, "pointer-events-none")}
+            >
               {status.count}
             </Badge>
           </Button>

@@ -1,23 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,27 +9,32 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Calculator,
-  Search,
-  Calendar,
-  FileText,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getCategoryConfig, getStatusConfig } from "@/lib/utils";
+import {
   AlertTriangle,
+  Calculator,
   CheckCircle,
-  XCircle,
   Clock,
-  Filter,
-  Plus,
-  DollarSign,
-  ChevronDown,
   Euro,
+  FileText,
+  XCircle,
 } from "lucide-react";
-import type { BillingEstimateForClient } from "../../components/types";
-import useSWR from "swr";
 import moment from "moment";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import useSWR from "swr";
+import type { BillingEstimateForClient } from "../../components/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -312,7 +299,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-2xl font-semibold text-gray-900 whitespace-nowrap">
                   {(totalAmount / 100).toFixed(2)} €
                 </p>
               </div>
@@ -384,7 +371,14 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                   new Date(estimate.validUntil) < new Date();
                 const needsResponse =
                   estimate.status === "pending" && !isExpired;
-
+                const statusConfig = getStatusConfig(
+                  estimate.status,
+                  "h-4 w-4 "
+                );
+                const categoryConfig = getCategoryConfig(
+                  estimate.serviceRequest?.serviceType,
+                  "h-4 w-4"
+                );
                 return (
                   <div
                     key={estimate.id}
@@ -396,8 +390,9 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-medium text-gray-900">
-                            {estimate.serviceRequest?.serviceType}
+                          <h3 className="font-medium text-gray-900 flex items-center gap-2">
+                            {categoryConfig.icon}
+                            {categoryConfig.type}
                           </h3>
                           <Badge
                             className={`${getStatusColor(
@@ -412,10 +407,6 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                         </div>
                         <p className="text-sm text-gray-600 mb-1">
                           {estimate.description}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Créé le :{" "}
-                          {moment(estimate.createdAt).format("DD/MM/YYYY")}
                         </p>
                       </div>
 
@@ -505,7 +496,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
             <AlertDialogAction
               onClick={handleAcceptQuote}
               disabled={isResponding}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {isResponding ? "En cours..." : "Accepter"}
             </AlertDialogAction>
@@ -527,7 +518,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
             <AlertDialogAction
               onClick={handleRejectQuote}
               disabled={isResponding}
-              className="bg-rose-600 hover:bg-rose-700"
+              className="bg-rose-600 hover:bg-rose-700 text-white"
             >
               {isResponding ? "En cours..." : "Refuser"}
             </AlertDialogAction>

@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ServiceRequest, ServiceRequestStatus } from "@/lib/db/schema";
+import { ServiceRequest } from "@/lib/db/schema";
 import {
-  AlertCircle,
-  AlertTriangle,
+  getCategoryConfig,
+  getPriorityConfig,
+  getStatusConfig,
+} from "@/lib/utils";
+import {
   Calendar,
   CheckCircle,
   ChevronRight,
@@ -14,7 +17,6 @@ import {
   Paperclip,
   Plus,
   TriangleAlert,
-  Zap,
 } from "lucide-react";
 import moment from "moment";
 import { useRouter } from "next/navigation";
@@ -40,107 +42,6 @@ export function Dashboard({
   openNewRequestModal,
 }: ClientOverviewComponentProps) {
   const router = useRouter();
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "accepted":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "completed":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "cancelled":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Clock className="h-3 w-3" />;
-      case "accepted":
-        return <CheckCircle className="h-3 w-3" />;
-      case "completed":
-        return <CheckCircle className="h-3 w-3" />;
-      case "cancelled":
-        return <AlertCircle className="h-3 w-3" />;
-      default:
-        return <AlertCircle className="h-3 w-3" />;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case ServiceRequestStatus.AWAITING_ESTIMATE:
-        return "En attente";
-      case ServiceRequestStatus.AWAITING_ASSIGNATION:
-        return "Acceptée";
-      case ServiceRequestStatus.COMPLETED:
-        return "Terminée";
-      case ServiceRequestStatus.CANCELLED:
-        return "Annulée";
-      case ServiceRequestStatus.DISPUTED_BY_CLIENT:
-        return "En litige (client)";
-      case ServiceRequestStatus.DISPUTED_BY_ARTISAN:
-        return "En litique (artisan)";
-      case ServiceRequestStatus.DISPUTED_BY_BOTH:
-        return "En litige (client et artisan)";
-      case ServiceRequestStatus.RESOLVED:
-        return "Résolue";
-      case ServiceRequestStatus.IN_PROGRESS:
-        return "En cours";
-      case ServiceRequestStatus.CLIENT_VALIDATED:
-        return "Validée (client)";
-      case ServiceRequestStatus.ARTISAN_VALIDATED:
-        return "Validée (artisan)";
-
-      default:
-        return status;
-    }
-  };
-
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency.toLowerCase()) {
-      case "urgent":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "normal":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "low":
-        return "bg-gray-100 text-gray-800 border-gray-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getUrgencyIcon = (urgency: string) => {
-    switch (urgency.toLowerCase()) {
-      case "urgent":
-        return <AlertTriangle className="h-3 w-3" />;
-      case "normal":
-        return <Clock className="h-3 w-3" />;
-      case "low":
-        return <Zap className="h-3 w-3" />;
-      default:
-        return <Clock className="h-3 w-3" />;
-    }
-  };
-
-  const getUrgencyText = (urgency: string) => {
-    switch (urgency.toLowerCase()) {
-      case "urgent":
-        return "Urgent";
-      case "normal":
-        return "Normal";
-      case "low":
-        return "Faible";
-      case "week":
-        return "Cette semaine";
-
-      default:
-        return urgency;
-    }
-  };
 
   const getAttachmentCount = (photos?: string) => {
     if (!photos) return 0;
@@ -274,7 +175,18 @@ export function Dashboard({
                 const attachmentCount = getAttachmentCount(
                   request.photos || ""
                 );
-
+                const categoryConfig = getCategoryConfig(
+                  request.serviceType,
+                  "h-4 w-4 "
+                );
+                const statusConfig = getStatusConfig(
+                  request.status,
+                  "h-4 w-4 "
+                );
+                const urgencyConfig = getPriorityConfig(
+                  request.urgency,
+                  "h-4 w-4 "
+                );
                 return (
                   <div
                     onClick={() =>
@@ -287,31 +199,24 @@ export function Dashboard({
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h4 className="text-base font-semibold text-gray-900 group-hover:text-blue-900">
-                            {request.serviceType}
+                          <h4 className="text-base font-semibold text-gray-900 group-hover:text-blue-900 flex items-center gap-2">
+                            {categoryConfig.icon}
+                            {categoryConfig.type}
                           </h4>
                           <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                              request.status
-                            ).replace("border-", "border ")}`}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.colors.bg} ${statusConfig.colors.text}`}
                           >
-                            {getStatusIcon(request.status)}
-                            <span className="ml-1">
-                              {getStatusText(request.status)}
-                            </span>
+                            {statusConfig.icon}
+                            <span className="ml-1">{statusConfig.label}</span>
                           </span>
                           <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getUrgencyColor(
-                              request.urgency
-                            ).replace("border-", "border ")}`}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${urgencyConfig.color}`}
                           >
-                            {getUrgencyIcon(request.urgency)}
-                            <span className="ml-1">
-                              {getUrgencyText(request.urgency)}
-                            </span>
+                            {urgencyConfig.icon}
+                            <span className="ml-1">{urgencyConfig.label}</span>
                           </span>
                           {attachmentCount > 0 && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">

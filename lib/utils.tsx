@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx";
 import {
   AlertCircle,
   AlertTriangle,
+  Calculator,
   Calendar,
   CheckCircle,
   CircleDot,
@@ -9,18 +10,21 @@ import {
   Cog,
   CreditCard,
   Fence,
+  FileQuestion,
   Flag,
   LucideWrench,
   PaintBucket,
   PiIcon,
   Settings,
   UserCheck,
+  UserRoundSearch,
   Wrench,
   XCircle,
   Zap,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { ServiceRequestStatus } from "./db/schema";
+import { checkoutAction } from "./payments/actions";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -35,18 +39,39 @@ export enum ServiceType {
   RENOVATION = "renovation",
 }
 
+export const DOWN_PAYMENT_PERCENTAGE = 0.3;
+
 export const getStatusConfig = (status: string, iconClassName: string) => {
   switch (status) {
+    case ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION:
+      return {
+        icon: (
+          <Calculator className={cn("text-amber-500 h-5 w-5", iconClassName)} />
+        ),
+        label: "En attente de l'acceptation du devis",
+        colors: {
+          color: "amber-500",
+          bg: "bg-amber-100 hover:bg-amber-100",
+          text: "text-amber-700",
+          ring: "ring 1 ring-amber-200",
+          accent: "border-amber-500",
+          borderTop: "border-t-amber-200",
+        },
+      };
     case ServiceRequestStatus.AWAITING_PAYMENT:
       return {
-        color: "bg-red-100 text-red-700 ring-1 ring-red-200 hover:bg-red-100",
-        label: "En attente de paiement",
-        borderTop: "border-t-red-200",
         icon: (
-          <CreditCard
-            className={cn("mr-2 h-5 w-5 text-red-500", iconClassName)}
-          />
+          <CreditCard className={cn("text-red-500 h-5 w-5", iconClassName)} />
         ),
+        label: "En attente de paiement",
+        colors: {
+          color: "red-500",
+          bg: "bg-red-100 hover:bg-red-100",
+          text: "text-red-700",
+          ring: "ring 1 ring-red-200",
+          accent: "border-red-500",
+          borderTop: "border-t-red-200",
+        },
       };
 
     case ServiceRequestStatus.AWAITING_ESTIMATE:
@@ -55,158 +80,206 @@ export const getStatusConfig = (status: string, iconClassName: string) => {
           "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100",
         label: "En attente de devis",
         borderTop: "border-t-slate-200",
-        icon: (
-          <Clock className={cn("mr-2 h-5 w-5 text-gray-500", iconClassName)} />
-        ),
+        icon: <Clock className={cn("text-gray-500 h-5 w-5", iconClassName)} />,
+        colors: {
+          color: "slate-500",
+          bg: "bg-slate-100 hover:bg-slate-100",
+          text: "text-slate-500",
+          ring: "ring 1 ring-slate-200",
+          accent: "border-slate-500",
+          borderTop: "border-t-slate-200",
+        },
       };
     case ServiceRequestStatus.AWAITING_ASSIGNATION:
       return {
-        color:
-          "bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200 hover:bg-yellow-100",
-        label: "En attente d'assignation",
+        label: "Assignation en cours",
         borderTop: "border-t-yellow-200",
         icon: (
-          <Clock
-            className={cn("mr-2 h-5 w-5 text-yellow-500", iconClassName)}
+          <UserRoundSearch
+            className={cn("text-yellow-500 h-5 w-5", iconClassName)}
           />
         ),
+        colors: {
+          color: "yellow-500",
+          bg: "bg-yellow-100 hover:bg-yellow-100",
+          text: "text-yellow-500",
+          ring: "ring 1 ring-yellow-200",
+          accent: "border-yellow-500",
+          borderTop: "border-t-yellow-200",
+        },
       };
     case ServiceRequestStatus.IN_PROGRESS:
       return {
-        color:
-          "bg-blue-100 text-blue-700 ring-1 ring-blue-200 hover:bg-blue-100",
         label: "En cours",
         borderTop: "border-t-blue-600",
         icon: (
-          <Clock className={cn("mr-2 h-5 w-5 text-blue-500", iconClassName)} />
+          <Cog
+            className={cn(
+              "text-blue-500 h-5 w-5 animate-spin-slow ",
+              iconClassName
+            )}
+          />
         ),
+        colors: {
+          color: "blue-500",
+          bg: "bg-blue-100 hover:bg-blue-100",
+          text: "text-blue-500",
+          ring: "ring 1 ring-blue-200",
+          accent: "border-blue-500",
+          borderTop: "border-t-blue-200",
+        },
       };
     case ServiceRequestStatus.CLIENT_VALIDATED:
       return {
-        color:
-          "bg-orange-100 text-orange-700 ring-1 ring-orange-200 hover:bg-orange-100",
         label: "À valider",
         borderTop: "border-t-orange-500",
-        icon: (
-          <Flag className={cn("mr-2 h-5 w-5 text-orange-500", iconClassName)} />
-        ),
+        icon: <Flag className={cn("text-orange-500 h-5 w-5", iconClassName)} />,
+        colors: {
+          color: "orange-500",
+          bg: "bg-orange-100 hover:bg-orange-100",
+          text: "text-orange-500",
+          ring: "ring 1 ring-orange-200",
+          accent: "border-orange-500",
+          borderTop: "border-t-orange-500",
+        },
       };
     case ServiceRequestStatus.ARTISAN_VALIDATED:
       return {
-        color:
-          "bg-cyan-100 text-cyan-700 ring-1 ring-cyan-200 hover:bg-cyan-100",
         label: "Validée",
         borderTop: "border-t-cyan-800",
         icon: (
-          <UserCheck
-            className={cn("mr-2 h-5 w-5 text-cyan-500", iconClassName)}
-          />
+          <UserCheck className={cn("text-cyan-500 h-5 w-5", iconClassName)} />
         ),
+        colors: {
+          color: "cyan-500",
+          bg: "bg-cyan-100 hover:bg-cyan-100",
+          text: "text-cyan-500",
+          ring: "ring 1 ring-cyan-200",
+          accent: "border-cyan-500",
+          borderTop: "border-t-cyan-800",
+        },
       };
     case ServiceRequestStatus.COMPLETED:
       return {
-        color:
-          "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100",
         label: "Terminée",
         borderTop: "border-t-green-500",
         icon: (
           <CheckCircle
-            className={cn("mr-2 h-5 w-5 text-emerald-500", iconClassName)}
+            className={cn("text-emerald-500 h-5 w-5", iconClassName)}
           />
         ),
+        colors: {
+          color: "emerald-500",
+          bg: "bg-emerald-100 hover:bg-emerald-100",
+          text: "text-emerald-500",
+          ring: "ring 1 ring-emerald-200",
+          accent: "border-emerald-500",
+          borderTop: "border-t-green-500",
+        },
       };
     case ServiceRequestStatus.DISPUTED_BY_CLIENT:
       return {
-        color: "bg-red-100 text-red-700 ring-1 ring-red-200 hover:bg-red-100",
         label: "Litige client",
         borderTop: "border-t-red-500",
         icon: (
           <AlertTriangle
-            className={cn("mr-2  h-5 w-5 text-red-500", iconClassName)}
+            className={cn("text-red-500 h-5 w-5", iconClassName)}
           />
         ),
+        colors: {
+          color: "red-500",
+          bg: "bg-red-100 hover:bg-red-100",
+          text: "text-red-500",
+          ring: "ring 1 ring-red-200",
+          accent: "border-red-500",
+          borderTop: "border-t-red-500",
+        },
       };
     case ServiceRequestStatus.DISPUTED_BY_ARTISAN:
       return {
-        color:
-          "bg-orange-100 text-orange-700 ring-1 ring-orange-200 hover:bg-orange-100",
         label: "Litige artisan",
         borderTop: "border-t-red-500",
         icon: (
-          <AlertCircle
-            className={cn("mr-2 h-5 w-5 text-red-500", iconClassName)}
-          />
+          <AlertCircle className={cn("text-red-500 h-5 w-5", iconClassName)} />
         ),
+        colors: {
+          color: "red-500",
+          bg: "bg-red-100 hover:bg-red-100",
+          text: "text-red-500",
+          ring: "ring 1 ring-red-200",
+          accent: "border-red-500",
+          borderTop: "border-t-red-500",
+        },
       };
     case ServiceRequestStatus.DISPUTED_BY_BOTH:
       return {
-        color:
-          "bg-purple-100 text-purple-700 ring-1 ring-purple-200 hover:bg-purple-100",
         label: "Litige des deux parties",
         borderTop: "border-t-red-500",
         icon: (
-          <AlertCircle
-            className={cn("mr-2 h-5 w-5 text-red-500", iconClassName)}
-          />
+          <AlertCircle className={cn("text-red-500 h-5 w-5", iconClassName)} />
         ),
+
+        colors: {
+          color: "red-500",
+          bg: "bg-red-100 hover:bg-red-100",
+          text: "text-red-500",
+          ring: "ring 1 ring-red-200",
+          accent: "border-red-500",
+          borderTop: "border-t-red-500",
+        },
       };
+
     case ServiceRequestStatus.RESOLVED:
       return {
-        color:
-          "bg-green-100 text-green-700 ring-1 ring-green-200 hover:bg-green-100",
         label: "Litige résolu",
         borderTop: "border-t-green-800",
         icon: (
           <CheckCircle
-            className={cn("mr-2 h-5 w-5 text-green-500", iconClassName)}
+            className={cn("text-green-500 h-5 w-5", iconClassName)}
           />
         ),
+        colors: {
+          color: "green-500",
+          bg: "bg-green-100 hover:bg-green-100",
+          text: "text-green-700",
+          ring: "ring 1 ring-green-200",
+          accent: "border-green-500",
+          borderTop: "border-t-green-800",
+        },
       };
+
     case ServiceRequestStatus.CANCELLED:
       return {
-        color:
-          "bg-slate-100 text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100",
         label: "Annulée",
         borderTop: "",
         icon: (
-          <XCircle
-            className={cn("mr-2 h-5 w-5 text-gray-500", iconClassName)}
-          />
+          <XCircle className={cn("text-gray-500 h-5 w-5", iconClassName)} />
         ),
+        colors: {
+          color: "gray-500",
+          bg: "bg-gray-100 hover:bg-gray-100",
+          text: "text-gray-700",
+          ring: "ring 1 ring-gray-200",
+          accent: "border-gray-500",
+          borderTop: "border-t-gray-500",
+        },
       };
 
     default:
       return {
-        color:
-          "bg-slate-100 text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100",
         label: status,
         borderTop: "border-t-gray-400",
-        icon: (
-          <PiIcon className={cn("mt-2 h-5 w-5 text-gray-500", iconClassName)} />
-        ),
+        icon: <PiIcon className={cn("text-gray-500 h-5 w-5", iconClassName)} />,
+        colors: {
+          color: "gray-500",
+          bg: "bg-gray-100 hover:bg-gray-100",
+          text: "text-gray-700",
+          ring: "ring 1 ring-gray-200",
+          accent: "border-gray-500",
+          borderTop: "border-t-gray-500",
+        },
       };
   }
-};
-
-export const getServiceTypeIcon = (category: string): string => {
-  const icons: Record<string, string> = {
-    plumbing: "Wrench",
-    electricity: "Zap",
-    painting: "Paintbrush",
-    carpentry: "Hammer",
-  };
-  return icons[category] || "Wrench";
-};
-
-export const getStatusBadgeColor = (category: string): string => {
-  const colors: Record<string, string> = {
-    plumbing: "border-t-blue-500",
-    electricity: "border-t-yellow-500",
-    painting: "border-t-amber-700",
-    carpentry: "border-t-indigo-500",
-    tiling: "border-t-orange-500",
-  };
-  return colors[category] || "border-t-gray-400";
 };
 
 export const getPriorityConfig = (
@@ -277,9 +350,23 @@ export const getPriorityConfig = (
 };
 
 export const getCategoryConfig = (
-  serviceType: string,
+  serviceType: string | null | undefined,
   iconClassName: string
 ) => {
+  if (!serviceType) {
+    return {
+      type: "Inconnu",
+      icon: <FileQuestion className={cn("text-slate-700", iconClassName)} />,
+      colors: {
+        color: "slate-500",
+        bg: "bg-slate-50",
+        text: "text-slate-700",
+        ring: "ring-slate-200",
+        accent: "border-slate-500",
+        borderTop: "border-t-slate-500",
+      },
+    };
+  }
   if (serviceType === ServiceType.PLOMBERIE) {
     return {
       type: "Plomberie",
@@ -476,3 +563,58 @@ export function isWithinServiceRadius(
 
   return distance <= radiusKm;
 }
+
+export const handleAcceptQuote = async (
+  requestId: number,
+  cancelUrl: string,
+  estimatedPrice: number
+) => {
+  if (!requestId) return;
+  try {
+    // Calculate 30% of the estimated price (keeping in cents)
+    const downPaymentAmount = Math.round(
+      estimatedPrice * DOWN_PAYMENT_PERCENTAGE
+    );
+
+    const formData = new FormData();
+    formData.set("amount", downPaymentAmount.toString());
+    formData.set("requestId", requestId.toString());
+    formData.set("cancelUrl", cancelUrl);
+    await checkoutAction(formData);
+  } catch (error) {
+    console.error("Error accepting quote:", error);
+    alert("Erreur lors de l'acceptation du devis");
+  }
+};
+
+export const rejectQuote = async (
+  estimateId: number,
+  onSuccess?: () => void
+) => {
+  if (!estimateId) return;
+
+  try {
+    const response = await fetch("/api/client/billing-estimates/respond", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        estimateId: estimateId,
+        action: "reject",
+      }),
+    });
+
+    if (response.ok) {
+      onSuccess?.();
+      return response;
+    } else {
+      const error = await response.json();
+      alert(`Erreur: ${error.error}`);
+      return error;
+    }
+  } catch (error) {
+    console.error("Error rejecting quote:", error);
+    alert("Erreur lors du refus du devis");
+  }
+};
+
+export const fetcher = (url: string) => fetch(url).then((res) => res.json());

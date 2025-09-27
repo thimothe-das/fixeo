@@ -1,4 +1,4 @@
-import { handleSubscriptionChange, stripe } from '@/lib/payments/stripe';
+import { handlePaymentIntentSucceeded, handleSubscriptionChange, handleSuccessfulPayment, stripe } from '@/lib/payments/stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
@@ -25,6 +25,14 @@ export async function POST(request: NextRequest) {
     case 'customer.subscription.deleted':
       const subscription = event.data.object as Stripe.Subscription;
       await handleSubscriptionChange(subscription);
+      break;
+    case 'checkout.session.completed':
+      const session = event.data.object as Stripe.Checkout.Session;
+      await handleSuccessfulPayment(session);
+      break;
+    case 'payment_intent.succeeded':
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      await handlePaymentIntentSucceeded(paymentIntent);
       break;
     default:
       console.log(`Unhandled event type ${event.type}`);

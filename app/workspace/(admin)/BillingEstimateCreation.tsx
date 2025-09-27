@@ -1,10 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -12,7 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Plus, Trash2, Calculator, Calendar } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Calculator, Calendar, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import type { BillingEstimateBreakdownItem } from "../components/types";
 
@@ -261,7 +261,7 @@ export function BillingEstimateForm({
             <Button type="button" variant="outline" onClick={onCancel}>
               Annuler
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="text-white">
               {isLoading ? "Création..." : "Créer le devis"}
             </Button>
           </div>

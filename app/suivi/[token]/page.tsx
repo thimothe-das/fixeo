@@ -19,7 +19,6 @@ import {
 import moment from "moment";
 import Link from "next/link";
 import { PhotoGallery } from "./photo-gallery";
-import { TokenStorage } from "./token-storage";
 
 export async function generateMetadata({
   params,
@@ -98,12 +97,11 @@ export default async function TrackingPage({
         return serviceType;
     }
   };
-
+  console.log("request", request);
   const photos = request.photos ? JSON.parse(request.photos) : [];
   const statusConfig = getStatusConfig(request.status, "h-4 w-4");
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <TokenStorage token={token} />
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">

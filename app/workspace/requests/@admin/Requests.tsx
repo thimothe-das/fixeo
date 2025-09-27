@@ -1,10 +1,11 @@
 "use client";
 
-import * as React from "react";
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Pagination } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -14,38 +15,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Eye,
-  Calendar,
-  MapPin,
-  User,
-  Phone,
-  Mail,
-  Zap,
-  Wrench,
-  Calculator,
-  Plus,
-} from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Pagination } from "@/components/ui/pagination";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  getStatusConfig,
   getCategoryConfig,
   getPriorityConfig,
+  getStatusConfig,
 } from "@/lib/utils";
+import {
+  Calculator,
+  Eye,
+  Mail,
+  MapPin,
+  Phone,
+  User,
+  Wrench,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import moment from "moment";
+import { useEffect, useState } from "react";
 import { BillingEstimateForm } from "../../(admin)/BillingEstimateCreation";
 
 interface ServiceRequest {
@@ -291,172 +281,179 @@ export function Requests({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {requests.map((request) => (
-                    <TableRow key={request.id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">
-                        #{request.id}
-                      </TableCell>
+                  {requests.map((request) => {
+                    const statusConfig = getStatusConfig(request.status, "");
+                    const priorityConfig = getPriorityConfig(
+                      request.urgency,
+                      "h-4 w-4"
+                    );
+                    const categoryConfig = getCategoryConfig(
+                      request.serviceType,
+                      "h-4 w-4"
+                    );
+                    return (
+                      <TableRow key={request.id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">
+                          #{request.id}
+                        </TableCell>
 
-                      <TableCell>
-                        <div className="max-w-[200px]">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-sm truncate cursor-help block">
-                                {truncateText(request.description, 40)}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="max-w-md">
-                                <p className="text-sm">{request.description}</p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {
-                            getCategoryConfig(request.serviceType, "h-4 w-4")
-                              .icon
-                          }
-                          <span className="font-medium">
-                            {getCategoryConfig(request.serviceType, "").type}
-                          </span>
-                        </div>
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="space-y-1">
-                          {request.client?.name && (
-                            <div className="flex items-center gap-1 text-sm">
-                              <User className="h-3 w-3 text-gray-400" />
-                              <span>{request.client.name}</span>
-                            </div>
-                          )}
-                          {request.clientEmail && (
-                            <div className="flex items-center gap-1 text-xs text-gray-600">
-                              <Mail className="h-3 w-3 text-gray-400" />
-                              <span>{request.clientEmail}</span>
-                            </div>
-                          )}
-                          {request.client?.phone && (
-                            <div className="flex items-center gap-1 text-xs text-gray-600">
-                              <Phone className="h-3 w-3 text-gray-400" />
-                              <span>{request.client.phone}</span>
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="flex items-center gap-1 max-w-[200px]">
-                          <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-sm truncate cursor-help">
-                                {request.client?.addressPostcode ||
-                                  truncateText(request.location, 10)}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="max-w-xs">
-                                <p className="text-sm">
-                                  {[
-                                    request.client?.addressHousenumber,
-                                    request.client?.addressStreet,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(" ")}
-                                  {[
-                                    request.client?.addressHousenumber,
-                                    request.client?.addressStreet,
-                                  ].filter(Boolean).length > 0 && <br />}
-                                  {[
-                                    request.client?.addressPostcode,
-                                    request.client?.addressCity,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(" ")}
-                                  {request.client?.addressDistrict && (
-                                    <>
-                                      <br />
-                                      {request.client.addressDistrict}
-                                    </>
-                                  )}
-                                  {!request.client?.addressCity &&
-                                    request.location}
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </TableCell>
-
-                      <TableCell>
-                        <Badge
-                          className={`${
-                            getStatusConfig(request.status, "").color
-                          } text-xs border`}
-                        >
-                          {getStatusConfig(request.status, "").label}
-                        </Badge>
-                      </TableCell>
-
-                      <TableCell>
-                        <Badge
-                          className={`${
-                            getPriorityConfig(request.urgency).color
-                          } text-xs border`}
-                        >
-                          <span className="mr-1">
-                            {getPriorityConfig(request.urgency, "h-3 w-3").icon}
-                          </span>
-                          {getPriorityConfig(request.urgency).label}
-                        </Badge>
-                      </TableCell>
-
-                      <TableCell>
-                        <span className="font-medium">
-                          {formatCurrency(request.estimatedPrice)}
-                        </span>
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            title="Voir les détails"
-                            onClick={() =>
-                              router.push(`/workspace/requests/${request.id}`)
-                            }
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {!request.estimatedPrice && (
+                        <TableCell>
+                          <div className="max-w-[200px]">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                  title="Créer un devis"
-                                  onClick={() => openEstimateModal(request.id)}
-                                >
-                                  <Calculator className="h-3.5 w-3.5" />
-                                </Button>
+                                <span className="text-sm truncate cursor-help block">
+                                  {truncateText(request.description, 40)}
+                                </span>
                               </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Créer un devis</p>
+                              <TooltipContent className="text-white">
+                                <div className="max-w-md">
+                                  <p className="text-sm">
+                                    {request.description}
+                                  </p>
+                                </div>
                               </TooltipContent>
                             </Tooltip>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {categoryConfig.icon}
+                            <span className="font-medium">
+                              {categoryConfig.type}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="space-y-1">
+                            {request.client?.name && (
+                              <div className="flex items-center gap-1 text-sm">
+                                <User className="h-3 w-3 text-gray-400" />
+                                <span>{request.client.name}</span>
+                              </div>
+                            )}
+                            {request.clientEmail && (
+                              <div className="flex items-center gap-1 text-xs text-gray-600">
+                                <Mail className="h-3 w-3 text-gray-400" />
+                                <span>{request.clientEmail}</span>
+                              </div>
+                            )}
+                            {request.client?.phone && (
+                              <div className="flex items-center gap-1 text-xs text-gray-600">
+                                <Phone className="h-3 w-3 text-gray-400" />
+                                <span>{request.client.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center gap-1 max-w-[200px]">
+                            <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-sm truncate cursor-help">
+                                  {request.client?.addressPostcode ||
+                                    truncateText(request.location, 10)}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent className="text-white">
+                                <div className="max-w-xs">
+                                  <p className="text-sm">
+                                    {[
+                                      request.client?.addressHousenumber,
+                                      request.client?.addressStreet,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" ")}
+                                    {[
+                                      request.client?.addressHousenumber,
+                                      request.client?.addressStreet,
+                                    ].filter(Boolean).length > 0 && <br />}
+                                    {[
+                                      request.client?.addressPostcode,
+                                      request.client?.addressCity,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" ")}
+                                    {request.client?.addressDistrict && (
+                                      <>
+                                        <br />
+                                        {request.client.addressDistrict}
+                                      </>
+                                    )}
+                                    {!request.client?.addressCity &&
+                                      request.location}
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <Badge
+                            className={`${statusConfig.colors.bg} text-xs border truncate gap-2 ${statusConfig.colors.text}`}
+                          >
+                            {statusConfig.icon}
+                            {statusConfig.label}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell>
+                          <Badge
+                            className={`${priorityConfig.color} text-xs border truncate`}
+                          >
+                            <span className="mr-1">{priorityConfig.icon}</span>
+                            {priorityConfig.label}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell>
+                          <span className="font-medium">
+                            {formatCurrency(request.estimatedPrice)}
+                          </span>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              title="Voir les détails"
+                              onClick={() =>
+                                router.push(`/workspace/requests/${request.id}`)
+                              }
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {!request.estimatedPrice && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    title="Créer un devis"
+                                    onClick={() =>
+                                      openEstimateModal(request.id)
+                                    }
+                                  >
+                                    <Calculator className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-white">
+                                  <p>Créer un devis</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { teams, activityLogs, users, invitations, teamMembers, professionalProfiles, clientProfiles, serviceRequests, billingEstimates } from "./schema";
+import { teams, activityLogs, users, invitations, teamMembers, clientProfiles, professionalProfiles, serviceRequests, billingEstimates, conversations } from "./schema";
 
 export const activityLogsRelations = relations(activityLogs, ({one}) => ({
 	team: one(teams, {
@@ -22,9 +22,10 @@ export const usersRelations = relations(users, ({many}) => ({
 	activityLogs: many(activityLogs),
 	invitations: many(invitations),
 	teamMembers: many(teamMembers),
-	professionalProfiles: many(professionalProfiles),
 	clientProfiles: many(clientProfiles),
+	professionalProfiles: many(professionalProfiles),
 	billingEstimates: many(billingEstimates),
+	conversations: many(conversations),
 	serviceRequests_userId: many(serviceRequests, {
 		relationName: "serviceRequests_userId_users_id"
 	}),
@@ -55,16 +56,16 @@ export const teamMembersRelations = relations(teamMembers, ({one}) => ({
 	}),
 }));
 
-export const professionalProfilesRelations = relations(professionalProfiles, ({one}) => ({
+export const clientProfilesRelations = relations(clientProfiles, ({one}) => ({
 	user: one(users, {
-		fields: [professionalProfiles.userId],
+		fields: [clientProfiles.userId],
 		references: [users.id]
 	}),
 }));
 
-export const clientProfilesRelations = relations(clientProfiles, ({one}) => ({
+export const professionalProfilesRelations = relations(professionalProfiles, ({one}) => ({
 	user: one(users, {
-		fields: [clientProfiles.userId],
+		fields: [professionalProfiles.userId],
 		references: [users.id]
 	}),
 }));
@@ -82,6 +83,7 @@ export const billingEstimatesRelations = relations(billingEstimates, ({one}) => 
 
 export const serviceRequestsRelations = relations(serviceRequests, ({one, many}) => ({
 	billingEstimates: many(billingEstimates),
+	conversations: many(conversations),
 	user_userId: one(users, {
 		fields: [serviceRequests.userId],
 		references: [users.id],
@@ -91,5 +93,16 @@ export const serviceRequestsRelations = relations(serviceRequests, ({one, many})
 		fields: [serviceRequests.assignedArtisanId],
 		references: [users.id],
 		relationName: "serviceRequests_assignedArtisanId_users_id"
+	}),
+}));
+
+export const conversationsRelations = relations(conversations, ({one}) => ({
+	serviceRequest: one(serviceRequests, {
+		fields: [conversations.serviceRequestId],
+		references: [serviceRequests.id]
+	}),
+	user: one(users, {
+		fields: [conversations.senderId],
+		references: [users.id]
 	}),
 }));

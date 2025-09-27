@@ -1,9 +1,9 @@
-import { ClientLayout } from "../(client)/ClientLayout";
-import { ArtisanLayout } from "../(artisan)/ArtisanLayout";
 import { isAdmin, isClient, isProfessional, ROLES } from "@/lib/auth/roles";
-import { getUser } from "@/lib/db/queries";
+import { getUser } from "@/lib/db/queries/common";
 import { redirect } from "next/navigation";
 import { AdminLayout } from "../(admin)/AdminLayout";
+import { ArtisanLayout } from "../(artisan)/ArtisanLayout";
+import { ClientLayout } from "../(client)/ClientLayout";
 
 export default async function Layout({
   client, // content from app/dashboard/@client

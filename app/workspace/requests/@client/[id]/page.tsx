@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, createBreadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,10 +9,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ServiceRequestStatus } from "@/lib/db/schema";
-import { getStatusConfig } from "@/lib/utils";
+import { getStatusConfig, handleAcceptQuote, rejectQuote } from "@/lib/utils";
 import {
   AlertCircle,
   Calculator,
+  Camera,
   CheckCircle2,
   Clock as ClockIcon,
   FileText as DocumentIcon,
@@ -22,7 +24,7 @@ import {
   Star,
   User,
 } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import useSWR from "swr";
 
@@ -136,6 +138,7 @@ export default function RequestDetailPage() {
   const [disputeReason, setDisputeReason] = React.useState("");
   const [disputeDetails, setDisputeDetails] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
+  const pathname = usePathname();
   const [isSubmittingValidation, setIsSubmittingValidation] =
     React.useState(false);
   // Fetch request data from API
@@ -266,65 +269,6 @@ export default function RequestDetailPage() {
   const priorityConfig = getPriorityConfig(request.priority);
   const statusConfig = getStatusConfig(request.status, "h-4 w-4");
 
-  // Action handlers
-  const handleAcceptQuote = async () => {
-    if (!relevantEstimate) return;
-
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/client/billing-estimates/respond", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          estimateId: relevantEstimate.id,
-          action: "accept",
-        }),
-      });
-
-      if (response.ok) {
-        setShowAcceptDialog(false);
-        // Refresh would happen here in real implementation
-      } else {
-        const error = await response.json();
-        alert(`Erreur: ${error.error}`);
-      }
-    } catch (error) {
-      console.error("Error accepting quote:", error);
-      alert("Erreur lors de l'acceptation du devis");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRejectQuote = async () => {
-    if (!relevantEstimate) return;
-
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/client/billing-estimates/respond", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          estimateId: relevantEstimate.id,
-          action: "reject",
-        }),
-      });
-
-      if (response.ok) {
-        setShowRejectDialog(false);
-        // Refresh would happen here in real implementation
-      } else {
-        const error = await response.json();
-        alert(`Erreur: ${error.error}`);
-      }
-    } catch (error) {
-      console.error("Error rejecting quote:", error);
-      alert("Erreur lors du refus du devis");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleValidateCompletion = async () => {
     setIsSubmittingValidation(true);
     try {
@@ -365,12 +309,19 @@ export default function RequestDetailPage() {
     setDisputeReason("");
     setDisputeDetails("");
   };
+
+  const handleRejectQuote = async () => {
+    if (!relevantEstimate) return;
+    setIsLoading(true);
+    await rejectQuote(relevantEstimate.id, () => {
+      setShowRejectDialog(false);
+    });
+    setIsLoading(false);
+  };
+
   return (
     <div className="bg-gray-100">
-      {/* Header */}
-
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Breadcrumb */}
         <Breadcrumb
           items={createBreadcrumbs.serviceRequest(
             request.title || `Demande #${request.id}`,
@@ -401,7 +352,7 @@ export default function RequestDetailPage() {
                             <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent side="bottom">
-                            <p>
+                            <p className="text-white">
                               Prix estimé incluant main d'œuvre, matériaux et
                               déplacement
                             </p>
@@ -412,12 +363,12 @@ export default function RequestDetailPage() {
                     <div className="h-8 w-px bg-gray-300"></div>
                   </>
                 )}
-                <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusConfig.color} ${statusConfig.borderTop}`}
+                <Badge
+                  className={`items-center gap-2 rounded-full text-sm font-medium ${statusConfig.color} ${statusConfig.colors.bg} ${statusConfig.colors.text}`}
                 >
                   {statusConfig.icon}
                   {statusConfig.label}
-                </span>
+                </Badge>
               </div>
             </div>
           </div>
@@ -605,20 +556,34 @@ export default function RequestDetailPage() {
               <h2 className="text-xl font-semibold text-gray-900 mb-6">
                 Photos du problème
               </h2>
-              <div className="grid grid-cols-3 gap-4">
-                {photos.map((photo: string, index: number) => (
-                  <div
-                    key={index}
-                    className="aspect-square rounded-lg overflow-hidden"
-                  >
-                    <img
-                      src={photo}
-                      alt={`Photo ${index + 1}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                    />
+              {photos.length > 0 ? (
+                <div className="grid grid-cols-3 gap-4">
+                  {photos.map((photo: string, index: number) => (
+                    <div
+                      key={index}
+                      className="aspect-square rounded-lg overflow-hidden"
+                    >
+                      <img
+                        src={photo}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="rounded-full bg-gray-100 p-4 mb-4">
+                    <Camera className="h-8 w-8 text-gray-400" />
                   </div>
-                ))}
-              </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Aucune photo disponible
+                  </h3>
+                  <p className="text-gray-500 text-sm max-w-sm">
+                    Aucune photo n'a été fournie pour cette demande de service.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -845,13 +810,19 @@ export default function RequestDetailPage() {
               {relevantEstimate.status === "pending" && (
                 <div className="flex gap-3 mt-6">
                   <Button
-                    onClick={() => setShowAcceptDialog(true)}
+                    onClick={() =>
+                      handleAcceptQuote(
+                        request.id,
+                        pathname,
+                        relevantEstimate.estimatedPrice
+                      )
+                    }
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                   >
                     Accepter le devis
                   </Button>
                   <Button
-                    onClick={() => setShowRejectDialog(true)}
+                    onClick={handleRejectQuote}
                     variant="outline"
                     className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
                   >

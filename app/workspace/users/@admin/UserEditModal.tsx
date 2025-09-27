@@ -39,6 +39,7 @@ import {
 import moment from "moment";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface UserData {
   id: number;
@@ -348,11 +349,17 @@ export function UserEditModal({ userId, setUserId }: UserEditModalProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
+        toast.error(
+          errorData.error ||
+            "Une erreur est survenue lors de la mise à jour de l'utilisateur"
+        );
+
         throw new Error(errorData.error || "Failed to update user");
       }
 
       // Navigate back to the users list
-      router.push("/workspace/users");
+      setUserId(null);
+      toast.success("Utilisateur mis à jour avec succès");
     } catch (err) {
       console.error("Error updating user:", err);
       setModalError(
@@ -746,7 +753,7 @@ export function UserEditModal({ userId, setUserId }: UserEditModalProps) {
           >
             Annuler
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} className="text-white">
             {saving ? (
               <>
                 <Loader2 className="animate-spin mr-2 h-4 w-4" />
