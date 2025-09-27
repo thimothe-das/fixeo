@@ -72,14 +72,14 @@ function UserMenu() {
         <DropdownMenuItem className="cursor-pointer">
           <Link href="/account" className="flex w-full items-center">
             <Users className="mr-2 h-4 w-4" />
-            <span>Account</span>
+            <span>Compte</span>
           </Link>
         </DropdownMenuItem>
         <form action={handleSignOut} className="w-full">
           <button type="submit" className="flex w-full">
             <DropdownMenuItem className="w-full flex-1 cursor-pointer">
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Sign out</span>
+              <span>Déconnexion</span>
             </DropdownMenuItem>
           </button>
         </form>
