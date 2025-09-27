@@ -191,12 +191,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                     <Settings className="h-4 w-4 mr-2" />
                     Paramètres
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={async () => {
-                      await signOut();
-                      router.push("/sign-in");
-                    }}
-                  >
+                  <DropdownMenuItem onClick={() => signOut()}>
                     <Power className="h-4 w-4 mr-2" />
                     Déconnexion
                   </DropdownMenuItem>

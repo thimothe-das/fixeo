@@ -345,6 +345,7 @@ export async function signOut() {
   const userWithTeam = await getUserWithTeam(user.id);
   await logActivity(userWithTeam?.teamId, user.id, ActivityType.SIGN_OUT);
   (await cookies()).delete("session");
+  redirect("/sign-in");
 }
 
 const updatePasswordSchema = z.object({

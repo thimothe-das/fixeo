@@ -2,35 +2,15 @@
 
 import { db } from "@/lib/db/drizzle";
 import { updateServiceRequest } from "@/lib/db/queries";
-import { getUser, uploadPhotosToS3 } from "@/lib/db/queries/common";
+import { getUser } from "@/lib/db/queries/common";
+import { uploadPhotosToS3 } from "@/lib/db/queries/upload";
 import {
   serviceRequests,
   ServiceRequestStatus,
   type NewServiceRequest,
 } from "@/lib/db/schema";
 import { randomUUID } from "crypto";
-import { z } from "zod";
 import { CreateRequestType } from "../workspace/actions";
-
-const createServiceRequestSchema = z.object({
-  serviceType: z.string().min(1, "Type de service requis"),
-  urgency: z.string().min(1, "Niveau d'urgence requis"),
-  description: z
-    .string()
-    .min(10, "Description doit contenir au moins 10 caractères"),
-  location: z.string().min(5, "Adresse d'intervention requise"),
-  // Structured address fields
-  location_housenumber: z.string().optional(),
-  location_street: z.string().optional(),
-  location_postcode: z.string().optional(),
-  location_city: z.string().optional(),
-  location_citycode: z.string().optional(),
-  location_district: z.string().optional(),
-  location_coordinates: z.string().optional(),
-  location_context: z.string().optional(),
-  clientEmail: z.string().email("Email invalide"),
-  photos: z.string().optional(), // JSON string array of photo URLs
-});
 
 export const createServiceRequest = async (data: CreateRequestType) => {
   const {

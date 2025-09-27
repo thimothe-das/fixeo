@@ -1,4 +1,4 @@
-import { uploadPhotosToS3 } from "@/lib/db/queries/common";
+import { uploadPhotosToS3 } from "@/lib/db/queries/upload";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {

@@ -2,7 +2,8 @@
 
 import { db } from "@/lib/db/drizzle";
 import { updateServiceRequest } from "@/lib/db/queries";
-import { getUser, uploadPhotosToS3 } from "@/lib/db/queries/common";
+import { getUser } from "@/lib/db/queries/common";
+import { uploadPhotosToS3 } from "@/lib/db/queries/upload";
 import {
   serviceRequests,
   ServiceRequestStatus,
