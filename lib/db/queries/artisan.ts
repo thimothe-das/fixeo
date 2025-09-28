@@ -105,7 +105,6 @@ export async function getServiceRequestsForArtisan(userId: number) {
     )
     .orderBy(desc(serviceRequests.createdAt))
     .limit(20);
-
   // Filter by specialties and location
   const filteredAvailable = availableRequests.filter((request) => {
     const matchesSpecialty =
@@ -126,15 +125,21 @@ export async function getServiceRequestsForArtisan(userId: number) {
       user.professionalProfile.serviceAreaCoordinates,
       request.locationCoordinates
     );
+    console.log(
+      "matchesLocation",
+      user.professionalProfile.serviceAreaCoordinates
+    );
+    console.log("matchesSpecialty", request.locationCoordinates);
     return matchesSpecialty && matchesLocation;
   });
 
   // Add the isAssigned flag and construct client name after querying
   const assignedWithFlag = assignedRequests.map((req) => {
-    const clientName = req.client?.firstName && req.client?.lastName 
-      ? `${req.client.firstName} ${req.client.lastName}`.trim()
-      : req.client?.name || null;
-    
+    const clientName =
+      req.client?.firstName && req.client?.lastName
+        ? `${req.client.firstName} ${req.client.lastName}`.trim()
+        : req.client?.name || null;
+
     return {
       ...req,
       clientName,
@@ -142,12 +147,13 @@ export async function getServiceRequestsForArtisan(userId: number) {
       isAssigned: true,
     };
   });
-  
+
   const availableWithFlag = filteredAvailable.map((req) => {
-    const clientName = req.client?.firstName && req.client?.lastName 
-      ? `${req.client.firstName} ${req.client.lastName}`.trim()
-      : req.client?.name || null;
-    
+    const clientName =
+      req.client?.firstName && req.client?.lastName
+        ? `${req.client.firstName} ${req.client.lastName}`.trim()
+        : req.client?.name || null;
+
     return {
       ...req,
       clientName,

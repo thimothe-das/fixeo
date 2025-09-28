@@ -211,6 +211,96 @@ export async function getAllUsersPaginated(
   };
 }
 
+export async function deleteClient(userId: number) {
+  await db.delete(clientProfiles).where(eq(clientProfiles.userId, userId));
+}
+
+export async function deleteArtisan(userId: number) {
+  await db
+    .delete(professionalProfiles)
+    .where(eq(professionalProfiles.userId, userId));
+}
+
+export async function createClient(
+  userId: number,
+  data: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    address: string;
+  }
+) {
+  await db.insert(clientProfiles).values({ userId, ...data });
+}
+
+export async function createArtisan(
+  userId: number,
+  data: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    siret: string;
+    serviceArea: string;
+    specialties: string;
+    isVerified: boolean;
+    experience: string;
+    description: string;
+  }
+) {
+  await db.insert(professionalProfiles).values({ userId, ...data });
+}
+
+export async function updateClient(
+  userId: number,
+  data: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    address: string;
+  }
+) {
+  return await db
+    .update(clientProfiles)
+    .set(data)
+    .where(eq(clientProfiles.userId, userId));
+}
+
+export async function updateArtisan(
+  userId: number,
+  data: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    siret: string;
+    serviceArea: string;
+    specialties: string;
+    isVerified: boolean;
+    experience: string;
+    description: string;
+  }
+) {
+  return await db
+    .update(professionalProfiles)
+    .set(data)
+    .where(eq(professionalProfiles.userId, userId));
+}
+
+export async function updateUser(
+  userId: number,
+  data: {
+    name: string;
+    email: string;
+    role: string;
+  }
+) {
+  return await db.update(users).set(data).where(eq(users.id, userId));
+}
+
+export async function getUserById(userId: number) {
+  const result = await db.select().from(users).where(eq(users.id, userId));
+  return result.length > 0 ? result[0] : null;
+}
+
 export async function getUserByIdWithProfiles(userId: number) {
   const result = await db
     .select({
@@ -221,23 +311,23 @@ export async function getUserByIdWithProfiles(userId: number) {
       createdAt: users.createdAt,
       updatedAt: users.updatedAt,
       deletedAt: users.deletedAt,
-      clientProfile: {
-        firstName: clientProfiles.firstName,
-        lastName: clientProfiles.lastName,
-        phone: clientProfiles.phone,
-        address: clientProfiles.address,
-      },
-      professionalProfile: {
-        firstName: professionalProfiles.firstName,
-        lastName: professionalProfiles.lastName,
-        phone: professionalProfiles.phone,
-        siret: professionalProfiles.siret,
-        serviceArea: professionalProfiles.serviceArea,
-        specialties: professionalProfiles.specialties,
-        isVerified: professionalProfiles.isVerified,
-        experience: professionalProfiles.experience,
-        description: professionalProfiles.description,
-      },
+      address: sql<string>`COALESCE(${professionalProfiles.serviceArea}, ${clientProfiles.address})`,
+      firstName: sql<string>`COALESCE(${professionalProfiles.firstName}, ${clientProfiles.firstName})`,
+      lastName: sql<string>`COALESCE(${professionalProfiles.lastName}, ${clientProfiles.lastName})`,
+      phone: sql<string>`COALESCE(${professionalProfiles.phone}, ${clientProfiles.phone})`,
+      addressHousenumber: sql<string>`COALESCE(${professionalProfiles.serviceAreaHousenumber}, ${clientProfiles.addressHousenumber})`,
+      addressStreet: sql<string>`COALESCE(${professionalProfiles.serviceAreaStreet}, ${clientProfiles.addressStreet})`,
+      addressPostcode: sql<string>`COALESCE(${professionalProfiles.serviceAreaPostcode}, ${clientProfiles.addressPostcode})`,
+      addressCity: sql<string>`COALESCE(${professionalProfiles.serviceAreaCity}, ${clientProfiles.addressCity})`,
+      addressCitycode: sql<string>`COALESCE(${professionalProfiles.serviceAreaCitycode}, ${clientProfiles.addressCitycode})`,
+      addressDistrict: sql<string>`COALESCE(${professionalProfiles.serviceAreaDistrict}, ${clientProfiles.addressDistrict})`,
+      addressCoordinates: sql<string>`COALESCE(${professionalProfiles.serviceAreaCoordinates}, ${clientProfiles.addressCoordinates})`,
+      addressContext: sql<string>`COALESCE(${professionalProfiles.serviceAreaContext}, ${clientProfiles.addressContext})`,
+      siret: professionalProfiles.siret,
+      specialties: professionalProfiles.specialties,
+      isVerified: professionalProfiles.isVerified,
+      experience: professionalProfiles.experience,
+      description: professionalProfiles.description,
     })
     .from(users)
     .leftJoin(clientProfiles, eq(users.id, clientProfiles.userId))
@@ -246,179 +336,6 @@ export async function getUserByIdWithProfiles(userId: number) {
     .limit(1);
 
   return result.length > 0 ? result[0] : null;
-}
-
-export async function updateUserWithProfiles(
-  userId: number,
-  updateData: {
-    name?: string;
-    email?: string;
-    role?: string;
-    oldRole?: string;
-    clientProfile?: {
-      firstName?: string;
-      lastName?: string;
-      phone?: string;
-      address?: string;
-    };
-    professionalProfile?: {
-      firstName?: string;
-      lastName?: string;
-      phone?: string;
-      siret?: string;
-      serviceArea?: string;
-      specialties?: string;
-      experience?: string;
-      description?: string;
-      isVerified?: boolean;
-    };
-  }
-) {
-  // Start transaction to update user and profiles
-  const result = await db.transaction(async (tx) => {
-    // Check if email already exists for another user
-    if (updateData.email) {
-      const existingUser = await tx
-        .select({ id: users.id })
-        .from(users)
-        .where(and(eq(users.email, updateData.email), sql`id != ${userId}`))
-        .limit(1);
-
-      if (existingUser.length > 0) {
-        throw new Error("Cet email est déjà utilisé par un autre utilisateur");
-      }
-    }
-
-    // Update main user table
-    const userUpdateData: any = {};
-    if (updateData.name !== undefined) userUpdateData.name = updateData.name;
-    if (updateData.email !== undefined) userUpdateData.email = updateData.email;
-    if (updateData.role !== undefined) userUpdateData.role = updateData.role;
-
-    if (Object.keys(userUpdateData).length > 0) {
-      userUpdateData.updatedAt = new Date();
-      await tx.update(users).set(userUpdateData).where(eq(users.id, userId));
-    }
-
-    // Handle role changes - clean up old profiles if role changed
-    if (
-      updateData.role &&
-      updateData.oldRole &&
-      updateData.role !== updateData.oldRole
-    ) {
-      // Delete old profile based on previous role
-      if (updateData.oldRole === "client") {
-        await tx
-          .delete(clientProfiles)
-          .where(eq(clientProfiles.userId, userId));
-      } else if (updateData.oldRole === "professional") {
-        await tx
-          .delete(professionalProfiles)
-          .where(eq(professionalProfiles.userId, userId));
-      }
-    }
-
-    // Update client profile if provided
-    if (updateData.clientProfile) {
-      const clientUpdateData = {
-        ...updateData.clientProfile,
-        updatedAt: new Date(),
-      };
-
-      // Remove null/undefined values
-      Object.keys(clientUpdateData).forEach((key) => {
-        if (
-          clientUpdateData[key as keyof typeof clientUpdateData] === null ||
-          clientUpdateData[key as keyof typeof clientUpdateData] ===
-            undefined ||
-          clientUpdateData[key as keyof typeof clientUpdateData] === ""
-        ) {
-          delete clientUpdateData[key as keyof typeof clientUpdateData];
-        }
-      });
-
-      // Check if client profile exists
-      const existingClientProfile = await tx
-        .select({ id: clientProfiles.id })
-        .from(clientProfiles)
-        .where(eq(clientProfiles.userId, userId))
-        .limit(1);
-
-      if (existingClientProfile.length > 0) {
-        await tx
-          .update(clientProfiles)
-          .set(clientUpdateData)
-          .where(eq(clientProfiles.userId, userId));
-      } else {
-        await tx.insert(clientProfiles).values({
-          userId,
-          ...clientUpdateData,
-          createdAt: new Date(),
-        });
-      }
-    }
-
-    // Update professional profile if provided
-    if (updateData.professionalProfile) {
-      const professionalUpdateData = {
-        ...updateData.professionalProfile,
-        updatedAt: new Date(),
-      };
-
-      // Remove null/undefined values
-      Object.keys(professionalUpdateData).forEach((key) => {
-        if (
-          professionalUpdateData[key as keyof typeof professionalUpdateData] ===
-            null ||
-          professionalUpdateData[key as keyof typeof professionalUpdateData] ===
-            undefined ||
-          professionalUpdateData[key as keyof typeof professionalUpdateData] ===
-            ""
-        ) {
-          delete professionalUpdateData[
-            key as keyof typeof professionalUpdateData
-          ];
-        }
-      });
-
-      // Validate specialties JSON
-      if (professionalUpdateData.specialties) {
-        try {
-          const parsed = JSON.parse(professionalUpdateData.specialties);
-          if (!Array.isArray(parsed)) {
-            throw new Error("Specialties must be an array");
-          }
-        } catch (error) {
-          throw new Error("Format des spécialités invalide");
-        }
-      }
-
-      // Check if professional profile exists
-      const existingProfessionalProfile = await tx
-        .select({ id: professionalProfiles.id })
-        .from(professionalProfiles)
-        .where(eq(professionalProfiles.userId, userId))
-        .limit(1);
-
-      if (existingProfessionalProfile.length > 0) {
-        await tx
-          .update(professionalProfiles)
-          .set(professionalUpdateData)
-          .where(eq(professionalProfiles.userId, userId));
-      } else {
-        await tx.insert(professionalProfiles).values({
-          userId,
-          ...professionalUpdateData,
-          createdAt: new Date(),
-        });
-      }
-    }
-
-    // Return updated user with profiles
-    return await getUserByIdWithProfiles(userId);
-  });
-
-  return result;
 }
 
 export async function getRequestsTimeSeriesData(days: number = 30) {

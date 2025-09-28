@@ -47,11 +47,9 @@ export const signUpSchema = z.object({
   password: passwordSchema,
   role: z.enum(["client", "artisan"]).optional(),
   inviteId: z.string().optional(),
-  // Common fields - Required
   firstName: firstNameSchema,
   lastName: lastNameSchema,
   phone: phoneSchema,
-  // Address fields - Required
   address: addressSchema,
   address_housenumber: z.string().optional(),
   address_street: z.string().optional(),
@@ -171,3 +169,74 @@ export const createServiceRequestSchema = z.object({
 });
 
 export type CreateRequestType = z.infer<typeof createServiceRequestSchema>;
+
+export enum UserRole {
+  USER = "user",
+  PROFESSIONAL = "professional",
+  CLIENT = "client",
+}
+
+export const userSchema = z.object({
+  name: z.string().min(1, "Nom requis"),
+  email: z.string().email("Email invalide"),
+  firstName: z.string().min(1, "Prénom requis"),
+  lastName: z.string().min(1, "Nom requis"),
+  role: z.nativeEnum(UserRole),
+});
+
+export type UserType = z.infer<typeof userSchema>;
+
+export const artisanSchema = z.object({
+  name: z.string().min(1, "Nom requis"),
+  email: emailSchema,
+  firstName: firstNameSchema,
+  lastName: lastNameSchema,
+  role: z.nativeEnum(UserRole),
+  serviceAreaHousenumber: z.string().trim(),
+  serviceAreaStreet: z.string().trim(),
+  serviceAreaPostcode: z.string().trim(),
+  serviceAreaCity: z.string().trim(),
+  serviceAreaCitycode: z.string().trim(),
+  serviceAreaDistrict: z.string().trim(),
+  serviceAreaCoordinates: z.string().trim(),
+  serviceAreaContext: z.string().trim(),
+  phone: phoneSchema,
+  serviceArea: addressSchema,
+  specialties: z.string().trim().min(4, "Spécialités requises"),
+  experience: z.string().trim().min(1, "Années d'expérience requises"),
+  description: z
+    .string()
+    .trim()
+    .min(10, "Description requise (min 10 caractères)"),
+  siret: z.string().min(14, "SIRET requis").max(14, "SIRET trop long"),
+  createdAt: z.date().optional().nullable(),
+  updatedAt: z.date().optional().nullable(),
+  deletedAt: z.date().optional().nullable(),
+});
+
+export type ArtisanType = z.infer<typeof artisanSchema>;
+
+export const clientSchema = z.object({
+  name: z.string().min(1, "Nom requis"),
+  email: emailSchema,
+  firstName: firstNameSchema,
+  lastName: lastNameSchema,
+  role: z.nativeEnum(UserRole),
+  addressHousenumber: z.string(),
+  addressStreet: z.string(),
+  addressPostcode: z.string(),
+  addressCity: z.string(),
+  addressCitycode: z.string(),
+  addressDistrict: z.string(),
+  addressCoordinates: z.string(),
+  addressContext: z.string(),
+  phone: phoneSchema,
+  address: addressSchema,
+  createdAt: z.date().optional().nullable(),
+  updatedAt: z.date().optional().nullable(),
+  deletedAt: z.date().optional().nullable(),
+});
+
+export type ClientType = z.infer<typeof clientSchema>;
+
+export type AnyUserType = UserType | ArtisanType | ClientType;

@@ -43,8 +43,6 @@ interface DashboardProps {
 
 export function Dashboard({ stats, assignedRequests }: DashboardProps) {
   const router = useRouter();
-  // Calculate monthly revenue from completed assigned requests in current month
-  console.debug("assignedRequests");
   const monthlyRevenue = useMemo(() => {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
@@ -62,7 +60,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
       .reduce((total, request) => total + (request.estimatedPrice || 0), 0);
   }, [assignedRequests]);
 
-  // Calculate current missions (in progress)
   const currentMissions = useMemo(() => {
     const activeMissionStatuses = [
       ServiceRequestStatus.IN_PROGRESS,
@@ -97,7 +94,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
       .reduce((total, request) => total + (request.estimatedPrice || 0), 0);
   }, [assignedRequests]);
 
-  // Calculate percentage change from previous month
   const revenueChangePercentage = useMemo(() => {
     if (previousMonthRevenue === 0) {
       return monthlyRevenue > 0 ? "+100%" : "0%";
@@ -108,7 +104,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
     return `${sign}${change.toFixed(1)}%`;
   }, [monthlyRevenue, previousMonthRevenue]);
 
-  // Calculate completed and in progress for the subtitle
   const { completedMissions, inProgressMissions, urgentInProgressMissions } =
     useMemo(() => {
       const completed = assignedRequests.filter(
@@ -135,7 +130,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
       };
     }, [assignedRequests]);
 
-  // Calculate specific alerts
   const alertsData = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -153,7 +147,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
         ].includes(request.status as ServiceRequestStatus)
     );
 
-    // Disputed assigned requests
     const disputedRequests = assignedRequests.filter((request) =>
       [
         ServiceRequestStatus.DISPUTED_BY_BOTH,
@@ -162,7 +155,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
       ].includes(request.status as ServiceRequestStatus)
     );
 
-    // Client validated requests from today
     const clientValidatedTodayRequests = assignedRequests.filter((request) => {
       const requestDate = new Date(request.createdAt);
       return (
@@ -179,16 +171,13 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
     };
   }, [assignedRequests]);
 
-  // Calculate upcoming missions (IN_PROGRESS only, sorted by urgent first then oldest)
   const upcomingMissions = useMemo(() => {
     return assignedRequests
       .filter((request) => request.status === ServiceRequestStatus.IN_PROGRESS)
       .sort((a, b) => {
-        // Sort by urgency first (urgent first)
         if (a.urgency === "urgent" && b.urgency !== "urgent") return -1;
         if (b.urgency === "urgent" && a.urgency !== "urgent") return 1;
 
-        // Then sort by creation date (oldest first)
         return moment(b.createdAt).unix() - moment(a.createdAt).unix();
       });
   }, [assignedRequests]);
@@ -266,7 +255,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
         </Card>
       </div>
 
-      {/* Alerts */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -275,7 +263,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Urgent in-progress missions */}
           {alertsData.urgentInProgressRequests.map((request) => (
             <div
               key={`urgent-${request.id}`}
@@ -305,7 +292,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
             </div>
           ))}
 
-          {/* Disputed missions */}
           {alertsData.disputedRequests.map((request) => (
             <div
               key={`disputed-${request.id}`}
@@ -338,7 +324,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
             </div>
           ))}
 
-          {/* Client validated today */}
           {alertsData.clientValidatedTodayRequests.map((request) => (
             <div
               key={`validated-${request.id}`}
@@ -373,7 +358,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
             </div>
           ))}
 
-          {/* No alerts message */}
           {alertsData.urgentInProgressRequests.length === 0 &&
             alertsData.disputedRequests.length === 0 &&
             alertsData.clientValidatedTodayRequests.length === 0 && (
@@ -388,7 +372,6 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
         </CardContent>
       </Card>
 
-      {/* Assigned Jobs */}
       <Card>
         <CardHeader>
           <CardTitle>Mes prochaines missions</CardTitle>

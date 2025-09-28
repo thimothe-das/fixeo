@@ -47,8 +47,6 @@ import { ServiceRequestForArtisan } from "../../../components/types";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function Job() {
-  // Mission Detail View - Integrated from RenderMissionDetail.tsx
-
   const [filterStatus, setFilterStatus] = useState("all");
   const params = useParams();
   const requestId = parseInt(params.id as string);
@@ -58,10 +56,8 @@ export default function Job() {
   const [showChat, setShowChat] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
 
-  // Quick Actions States
   const [showQuickActions, setShowQuickActions] = useState(true);
 
-  // Mobile and UI States
   const isMobile = useIsMobile();
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
     null
@@ -69,11 +65,9 @@ export default function Job() {
   const [showMobileActions, setShowMobileActions] = useState(false);
   const [activeTab, setActiveTab] = useState<"mission" | "chat">("mission");
 
-  // Chat notification states
   const [unreadMessageCount, setUnreadMessageCount] = useState(3); // Fake data for now
   const [hasViewedChat, setHasViewedChat] = useState(false);
 
-  // Completion validation states
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [completionType, setCompletionType] = useState<
@@ -204,7 +198,6 @@ export default function Job() {
 
       if (response.ok) {
         mission.status = "in-progress";
-        // In a real app, you would refresh the data
       } else {
         const error = await response.json();
         alert(`Erreur: ${error.error}`);
@@ -224,7 +217,6 @@ export default function Job() {
         createdAt: new Date().toISOString(),
       };
 
-      // In a real app, this would update the backend
       if (selectedMission.messages) {
         selectedMission.messages.push(newMessage);
       } else {
@@ -270,7 +262,6 @@ export default function Job() {
       );
 
       if (response.ok) {
-        // Update mission status locally
         if (validationType === "approve") {
           mission.status =
             mission.status === "client_validated"
@@ -296,7 +287,6 @@ export default function Job() {
     }
   };
 
-  // Helper function for phone calls
   const handleCallClient = () => {
     if (mission.clientPhone) {
       window.location.href = `tel:${mission.clientPhone}`;
@@ -305,7 +295,6 @@ export default function Job() {
     }
   };
 
-  // Get primary action based on status
   const getPrimaryAction = () => {
     switch (mission.status) {
       case "scheduled":
@@ -350,7 +339,6 @@ export default function Job() {
     }
   };
 
-  // Get timeline steps based on mission status
   const getTimelineSteps = () => {
     const steps = [
       {
@@ -414,7 +402,6 @@ export default function Job() {
     return steps;
   };
 
-  // Photo lightbox handlers
   const openPhotoLightbox = (index: number) => {
     setSelectedPhotoIndex(index);
   };
@@ -437,23 +424,20 @@ export default function Job() {
     }
   };
 
-  // Handle tab switching and mark messages as read
   const handleTabSwitch = (tab: "mission" | "chat") => {
     setActiveTab(tab);
     if (tab === "chat") {
       setHasViewedChat(true);
-      setUnreadMessageCount(0); // Mark all messages as read when viewing chat
+      setUnreadMessageCount(0);
     }
   };
 
-  // Simulate receiving new messages (for demo purposes)
   const simulateNewMessage = () => {
     if (activeTab !== "chat") {
       setUnreadMessageCount((prev) => prev + 1);
     }
   };
 
-  // Get action banner based on mission status
   const getActionBanner = () => {
     switch (mission.status) {
       case "in-progress":
@@ -542,7 +526,7 @@ export default function Job() {
   };
 
   const actionBanner = getActionBanner();
-  console.debug(mission);
+
   return (
     <>
       {actionBanner && (

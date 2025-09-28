@@ -16,8 +16,6 @@ import {
   type NewActivityLog,
   type NewClientProfile,
   type NewProfessionalProfile,
-  type NewTeam,
-  type NewTeamMember,
   type NewUser,
 } from "@/lib/db/schema";
 import { SignInType, SignUpType } from "@/lib/validation/schemas";
@@ -172,7 +170,7 @@ export const signUp = async (data: SignUpType) => {
     email,
     passwordHash,
     name: firstName && lastName ? `${firstName} ${lastName}` : undefined,
-    role: newUserRole, // Set role based on logic above
+    role: newUserRole,
   };
 
   const [createdUser] = await db.insert(users).values(newUser).returning();
@@ -225,77 +223,6 @@ export const signUp = async (data: SignUpType) => {
     };
     await db.insert(professionalProfiles).values(professionalProfile);
   }
-
-  let teamId: number;
-  let userRole: string;
-  let createdTeam: typeof teams.$inferSelect | null = null;
-
-  if (inviteId) {
-    // Check if there's a valid invitation
-    const [invitation] = await db
-      .select()
-      .from(invitations)
-      .where(
-        and(
-          eq(invitations.id, parseInt(inviteId)),
-          eq(invitations.email, email),
-          eq(invitations.status, "pending")
-        )
-      )
-      .limit(1);
-
-    if (invitation) {
-      teamId = invitation.teamId;
-      userRole = invitation.role;
-
-      await db
-        .update(invitations)
-        .set({ status: "accepted" })
-        .where(eq(invitations.id, invitation.id));
-
-      await logActivity(teamId, createdUser.id, ActivityType.ACCEPT_INVITATION);
-
-      [createdTeam] = await db
-        .select()
-        .from(teams)
-        .where(eq(teams.id, teamId))
-        .limit(1);
-    } else {
-      return {
-        error: "Invitation invalide ou expirée.",
-      };
-    }
-  } else {
-    // Create a new team if there's no invitation
-    const newTeam: NewTeam = {
-      name: `${email}'s Team`,
-    };
-
-    [createdTeam] = await db.insert(teams).values(newTeam).returning();
-
-    if (!createdTeam) {
-      return {
-        error: "Échec de la création de l'équipe. Veuillez réessayer.",
-      };
-    }
-
-    teamId = createdTeam.id;
-    userRole = "owner";
-
-    await logActivity(teamId, createdUser.id, ActivityType.CREATE_TEAM);
-  }
-
-  const newTeamMember: NewTeamMember = {
-    userId: createdUser.id,
-    teamId: teamId,
-    role: userRole,
-  };
-
-  await Promise.all([
-    db.insert(teamMembers).values(newTeamMember),
-    logActivity(teamId, createdUser.id, ActivityType.SIGN_UP),
-    setSession(createdUser),
-  ]);
 
   redirect("/workspace/dashboard");
 };

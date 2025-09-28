@@ -1,7 +1,7 @@
 "use client";
+import { Requests } from "@/app/workspace/requests/@admin/Requests";
+import { UserEditModal } from "@/app/workspace/users/@admin/UserEditModal";
 import { useState } from "react";
-import { UserEditModal } from "../../users/@admin/UserEditModal";
-import { Requests } from "./Requests";
 
 export default function AdminRequestsPage() {
   const [userId, setUserId] = useState<string | null>(null);

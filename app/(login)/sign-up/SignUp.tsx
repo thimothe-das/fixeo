@@ -82,21 +82,18 @@ export function SignUp({ role = null }: { role?: UserRole }) {
   }, [password, passwordConfirmation]);
 
   const onSubmit = async (data: SignUpFormFields | SignInType) => {
-    // Check password confirmation match before submitting
     const isPasswordValid = validatePasswordMatch(
       passwordConfirmation,
       password
     );
     if (!isPasswordValid) {
-      return; // Don't submit if passwords don't match
+      return;
     }
 
-    // If we reach here, all react-hook-form validations have passed
     try {
       await signUp(data as SignUpType);
     } catch (error) {
       console.error("Sign up error:", error);
-      // Handle submission error if needed
     }
   };
 

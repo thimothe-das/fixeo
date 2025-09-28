@@ -12,6 +12,7 @@ import {
   Power,
   Settings,
   User,
+  UserSearch,
   Wrench,
 } from "lucide-react";
 import * as React from "react";
@@ -48,8 +49,8 @@ import useSWR from "swr";
 
 const sidebarItems = [
   { title: "Vue d'ensemble", icon: Home, id: "dashboard", route: "dashboard" },
-  { title: "Missions", icon: Wrench, id: "jobs", route: "jobs" },
-  { title: "Demandes", icon: Bell, id: "requests", route: "missions" },
+  { title: "Mes chantiers", icon: Wrench, id: "jobs", route: "jobs" },
+  { title: "Demandes", icon: UserSearch, id: "requests", route: "missions" },
   { title: "Devis", icon: FileText, id: "quotes", route: "devis" },
   {
     title: "Messages",

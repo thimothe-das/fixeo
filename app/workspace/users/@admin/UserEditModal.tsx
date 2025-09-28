@@ -7,8 +7,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -23,7 +21,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { getCategoryConfig, ServiceType } from "@/lib/utils";
+import { cn, getCategoryConfig, ServiceType } from "@/lib/utils";
+import {
+  AnyUserType,
+  artisanSchema,
+  clientSchema,
+  UserRole,
+  userSchema,
+} from "@/lib/validation/schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Briefcase,
   Building,
@@ -32,93 +38,22 @@ import {
   Mail,
   Phone,
   Save,
-  Settings,
   Shield,
   User,
 } from "lucide-react";
 import moment from "moment";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
-
-interface UserData {
-  id: number;
-  name: string | null;
-  email: string;
-  role: string;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-  clientProfile: {
-    firstName: string | null;
-    lastName: string | null;
-    phone: string | null;
-    address: string | null;
-  } | null;
-  professionalProfile: {
-    firstName: string | null;
-    lastName: string | null;
-    phone: string | null;
-    siret: string | null;
-    serviceArea: string | null;
-    specialties: string | null;
-    isVerified: boolean | null;
-    experience: string | null;
-    description: string | null;
-  } | null;
-}
 
 interface UserEditModalProps {
   userId: string | null;
   setUserId: (userId: string | null) => void;
+  user: AnyUserType;
+  mutate: () => void;
 }
 
-const formatRole = (role: string) => {
-  return role.charAt(0).toUpperCase() + role.slice(1);
-};
-
-const getDisplayName = (user: UserData) => {
-  if (!user) return "";
-  if (user.name) return user.name;
-
-  const profile = user.clientProfile || user.professionalProfile;
-  if (profile?.firstName && profile?.lastName) {
-    return `${profile.firstName} ${profile.lastName}`;
-  }
-  if (profile?.firstName) return profile.firstName;
-  if (profile?.lastName) return profile.lastName;
-
-  return user.email.split("@")[0];
-};
-
 const specialties = Object.values(ServiceType);
-
-const getSpecialtyConfig = (specialty: string) => {
-  switch (specialty) {
-    case ServiceType.PLOMBERIE:
-      return getCategoryConfig(ServiceType.PLOMBERIE, "h-4 w-4");
-    case ServiceType.ELECTRICITE:
-      return getCategoryConfig(ServiceType.ELECTRICITE, "h-4 w-4");
-    case ServiceType.PEINTURE:
-      return getCategoryConfig(ServiceType.PEINTURE, "h-4 w-4");
-    case ServiceType.MENUISERIE:
-      return getCategoryConfig(ServiceType.MENUISERIE, "h-4 w-4");
-
-    default:
-      return {
-        type: specialty,
-        icon: <Settings className="h-4 w-4 text-gray-700" />,
-        colors: {
-          color: "gray-500",
-          bg: "bg-gray-50",
-          text: "text-gray-700",
-          ring: "ring-gray-200",
-          accent: "border-gray-500",
-          borderTop: "border-t-gray-500",
-        },
-      };
-  }
-};
 
 const experienceOptions = [
   { value: "0-1", label: "Moins d'1 an" },
@@ -128,358 +63,201 @@ const experienceOptions = [
   { value: "10+", label: "Plus de 10 ans" },
 ];
 
-export function UserEditModal({ userId, setUserId }: UserEditModalProps) {
-  const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
+export function UserEditModal({
+  userId,
+  setUserId,
+  user,
+  mutate,
+}: UserEditModalProps) {
   const [saving, setSaving] = useState(false);
-  const [modalError, setModalError] = useState<string | null>(null);
-
-  // Form state
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    firstName: "",
-    lastName: "",
-    role: "",
-    phone: "",
-    address: "",
-    serviceArea: "",
-    siret: "",
-    experience: "",
-    specialties: [] as string[],
-    description: "",
-    isVerified: false,
+  const getSchema = (role: UserRole) => {
+    return role === "professional"
+      ? artisanSchema
+      : role === "client"
+      ? clientSchema
+      : userSchema;
+  };
+  const {
+    control,
+    setValue,
+    trigger,
+    handleSubmit,
+    getValues,
+    formState: { errors, isValid },
+  } = useForm<AnyUserType>({
+    mode: "onChange", // Revalidate on change
+    defaultValues: {
+      name: user?.name,
+      email: user?.email,
+      firstName: user?.firstName,
+      lastName: user?.lastName,
+      role: user?.role,
+      phone: user?.phone || "",
+      serviceArea: user?.address || "",
+      address: user?.address || "",
+      addressHousenumber: user?.addressHousenumber || "",
+      addressStreet: user?.addressStreet || "",
+      addressPostcode: user?.addressPostcode || "",
+      addressCity: user?.addressCity || "",
+      addressCitycode: user?.addressCitycode || "",
+      addressDistrict: user?.addressDistrict || "",
+      addressCoordinates: user?.addressCoordinates || "",
+      addressContext: user?.addressContext || "",
+      serviceAreaHousenumber: user?.addressHousenumber || "",
+      serviceAreaStreet: user?.addressStreet || "",
+      serviceAreaPostcode: user?.addressPostcode || "",
+      serviceAreaCity: user?.addressCity || "",
+      serviceAreaCitycode: user?.addressCitycode || "",
+      serviceAreaDistrict: user?.addressDistrict || "",
+      serviceAreaCoordinates: user?.addressCoordinates || "",
+      serviceAreaContext: user?.addressContext || "",
+      specialties: user?.specialties || "",
+      experience: user?.experience || "",
+      description: user?.description || "",
+      siret: user?.siret || "",
+    },
+    resolver: zodResolver(getSchema(user?.role)),
   });
 
-  const fetchUser = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/admin/users/${userId}`);
+  const selectedRole = useWatch({ control, name: "role" });
+  const selectedSpecialtiesJson = useWatch({ control, name: "specialties" });
+  const selectedSpecialties = selectedSpecialtiesJson
+    ? JSON.parse(selectedSpecialtiesJson)
+    : [];
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch user");
-      }
-
-      const userData: UserData = await response.json();
-      setUser(userData);
-
-      // Populate form data
-      const profile = userData.clientProfile || userData.professionalProfile;
-      let userSpecialties: string[] = [];
-
-      // Safe JSON parsing for specialties
-      if (userData.professionalProfile?.specialties) {
-        try {
-          const parsed = JSON.parse(userData.professionalProfile.specialties);
-          userSpecialties = Array.isArray(parsed)
-            ? parsed.filter((s) => typeof s === "string")
-            : [];
-        } catch (error) {
-          console.warn("Invalid specialties JSON for user", userData.id, error);
-          userSpecialties = [];
-        }
-      }
-
-      setFormData({
-        name: userData.name || "",
-        email: userData.email || "",
-        firstName: profile?.firstName || "",
-        lastName: profile?.lastName || "",
-        role: userData.role || "",
-        phone: profile?.phone || "",
-        address: userData.clientProfile?.address || "",
-        serviceArea: userData.professionalProfile?.serviceArea || "",
-        siret: userData.professionalProfile?.siret || "",
-        experience: userData.professionalProfile?.experience || "",
-        specialties: userSpecialties,
-        description: userData.professionalProfile?.description || "",
-        isVerified: userData.professionalProfile?.isVerified || false,
-      });
-    } catch (err) {
-      console.error("Error fetching user:", err);
-      setModalError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (userId) {
-      fetchUser();
-    }
-  }, [userId]);
-
-  // Handle role changes and clear role-specific data
-  const handleRoleChange = (newRole: string) => {
-    setFormData((prev) => {
-      const updated = { ...prev, role: newRole };
-
-      // Clear role-specific fields when role changes
-      if (newRole !== prev.role) {
-        if (newRole === "client") {
-          // Clear professional-specific fields
-          updated.siret = "";
-          updated.serviceArea = "";
-          updated.experience = "";
-          updated.specialties = [];
-          updated.description = "";
-          updated.isVerified = false;
-        } else if (newRole === "professional") {
-          // Clear client-specific fields
-          updated.address = "";
-        }
-      }
-
-      return updated;
-    });
-  };
-
-  const validateForm = () => {
-    const errors: string[] = [];
-
-    // Basic validation
-    if (!formData.email?.trim()) {
-      errors.push("Email est requis");
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.push("Format d'email invalide");
-    }
-
-    if (!formData.firstName?.trim()) {
-      errors.push("Prénom est requis");
-    }
-
-    if (!formData.lastName?.trim()) {
-      errors.push("Nom est requis");
-    }
-
-    if (!formData.role) {
-      errors.push("Rôle est requis");
-    }
-
-    // Role-specific validation
-    if (formData.role === "professional") {
-      if (!formData.siret?.trim()) {
-        errors.push("SIRET est requis pour les professionnels");
-      } else if (!/^\d{14}$/.test(formData.siret.replace(/\s/g, ""))) {
-        errors.push("SIRET doit contenir exactement 14 chiffres");
-      }
-
-      if (!formData.serviceArea?.trim()) {
-        errors.push("Zone d'intervention est requise pour les professionnels");
-      }
-
-      if (formData.specialties.length === 0) {
-        errors.push(
-          "Au moins une spécialité est requise pour les professionnels"
-        );
-      }
-    }
-
-    if (formData.role === "client" && !formData.address?.trim()) {
-      errors.push("Adresse est requise pour les clients");
-    }
-
-    return errors;
-  };
-
-  const handleSave = async () => {
-    if (!user) return;
+  const onSubmit = async (data: AnyUserType) => {
+    setSaving(true);
 
     try {
-      setSaving(true);
-      setModalError(null);
-
-      // Validate form
-      const validationErrors = validateForm();
-      if (validationErrors.length > 0) {
-        setModalError(validationErrors.join(", "));
-        return;
-      }
-
-      // Check if role is changing to warn about data loss
-      const roleChanged = user.role !== formData.role;
-      if (roleChanged) {
-        const confirmed = window.confirm(
-          `Vous êtes sur le point de changer le rôle de "${formatRole(
-            user.role
-          )}" vers "${formatRole(formData.role)}". ` +
-            `Cela supprimera les données spécifiques à l'ancien rôle. Continuer ?`
-        );
-        if (!confirmed) {
-          return;
-        }
-      }
-
-      const payload = {
-        name: formData.name?.trim(),
-        email: formData.email?.trim().toLowerCase(),
-        role: formData.role,
-        oldRole: user.role, // Send old role for cleanup
-        ...(formData.role === "professional" && {
-          professionalProfile: {
-            firstName: formData.firstName?.trim(),
-            lastName: formData.lastName?.trim(),
-            phone: formData.phone?.trim(),
-            siret: formData.siret?.replace(/\s/g, ""), // Remove spaces from SIRET
-            serviceArea: formData.serviceArea?.trim(),
-            experience: formData.experience,
-            specialties: JSON.stringify(formData.specialties || []),
-            description: formData.description?.trim(),
-            isVerified: formData.isVerified,
-          },
-        }),
-        ...(formData.role === "client" && {
-          clientProfile: {
-            firstName: formData.firstName?.trim(),
-            lastName: formData.lastName?.trim(),
-            phone: formData.phone?.trim(),
-            address: formData.address?.trim(),
-          },
-        }),
-      };
-
-      const response = await fetch(`/api/admin/users/${user.id}`, {
+      const response = await fetch(`/api/admin/users/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        toast.error(
-          errorData.error ||
-            "Une erreur est survenue lors de la mise à jour de l'utilisateur"
+        throw new Error(
+          errorData.error || "Failed to update user. Please try again."
         );
-
-        throw new Error(errorData.error || "Failed to update user");
       }
-
-      // Navigate back to the users list
+      console.log("response", response);
       setUserId(null);
+      mutate();
       toast.success("Utilisateur mis à jour avec succès");
-    } catch (err) {
-      console.error("Error updating user:", err);
-      setModalError(
-        err instanceof Error ? err.message : "Une erreur est survenue"
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Une erreur est survenue"
       );
+      console.error("Error updating user:", error);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSpecialtyToggle = (specialty: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      specialties: prev.specialties.includes(specialty)
-        ? prev.specialties.filter((s) => s !== specialty)
-        : [...prev.specialties, specialty],
-    }));
+  const handleAddressChange = (value: AddressData | null): void => {
+    setValue("addressHousenumber", value?.housenumber || "");
+    setValue("addressStreet", value?.street || "");
+    setValue("addressPostcode", value?.postcode || "");
+    setValue("addressCity", value?.city || "");
+    setValue("addressCitycode", value?.citycode || "");
+    setValue("addressDistrict", value?.district || "");
+    setValue("addressCoordinates", value?.coordinates.join(",") || "");
+    setValue("addressContext", value?.context || "");
+    setValue("address", value?.label || "");
+    trigger("address");
   };
 
-  const handleServiceAreaChange = (
-    address: AddressData | null,
-    rawValue: string
-  ) => {
-    -setFormData((prev) => ({ ...prev, serviceArea: rawValue }));
+  const handleServiceAreaChange = (value: AddressData | null): void => {
+    setValue("serviceAreaHousenumber", value?.housenumber || "");
+    setValue("serviceAreaStreet", value?.street || "");
+    setValue("serviceAreaPostcode", value?.postcode || "");
+    setValue("serviceAreaCity", value?.city || "");
+    setValue("serviceAreaCitycode", value?.citycode || "");
+    setValue("serviceAreaDistrict", value?.district || "");
+    setValue("serviceAreaCoordinates", value?.coordinates.join(",") || "");
+    setValue("serviceAreaContext", value?.context || "");
+    setValue("serviceArea", value?.label || "");
+    trigger("serviceArea");
   };
 
-  const handleClientAddressChange = (
-    address: AddressData | null,
-    rawValue: string
-  ) => {
-    setFormData((prev) => ({ ...prev, address: rawValue }));
+  const handleClickSpecialty = (specialty: string) => {
+    if (selectedSpecialties?.includes(specialty)) {
+      setValue(
+        "specialties",
+        JSON.stringify(selectedSpecialties?.filter((s) => s !== specialty))
+      );
+    } else {
+      setValue(
+        "specialties",
+        JSON.stringify([...selectedSpecialties, specialty])
+      );
+    }
   };
-
-  if (loading) {
-    return (
-      <Dialog open={userId !== null}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Chargement...</DialogTitle>
-          </DialogHeader>
-          <div className="p-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   if (!user) {
-    return (
-      <Dialog open={userId !== null}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Erreur</DialogTitle>
-          </DialogHeader>
-          <div className="p-8 text-center">
-            <p className="text-red-600">Utilisateur non trouvé</p>
-          </div>
-          <DialogFooter>
-            <Button>Fermer</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
+    return null;
   }
 
   return (
-    <Dialog open={userId !== null} onOpenChange={() => setUserId(null)}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src="" alt={getDisplayName(user)} />
-              <AvatarFallback className="bg-blue-100 text-blue-600 font-semibold">
-                {getDisplayName(user).charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="text-lg font-semibold">
-                Modifier l'utilisateur "{getDisplayName(user)}"
-              </h2>
-              <p className="text-sm text-gray-500">
-                ID #{user.id} • Créé le{" "}
-                {moment(user.createdAt).format("DD/MM/YYYY")}
-              </p>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src="" alt={user?.name} />
+            <AvatarFallback className="bg-blue-100 text-blue-600 font-semibold">
+              {user?.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="text-lg font-semibold">
+              Modifier l'utilisateur "{user?.name}"
+            </h2>
+            <p className="text-sm text-gray-500">
+              ID #{(user as any)?.id} • Créé le{" "}
+              {moment((user as any)?.createdAt).format("DD/MM/YYYY")}
+            </p>
+          </div>
+        </DialogTitle>
+      </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Basic Information - Firstname and Lastname first */}
-          <div className="space-y-4">
-            <div className="space-y-3 py-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {[
-                  {
-                    value: "client",
-                    label: "Client",
-                    icon: User,
-                    color: "green",
-                  },
-                  {
-                    value: "professional",
-                    label: "Professionnel",
-                    icon: Briefcase,
-                    color: "blue",
-                  },
-                  {
-                    value: "admin",
-                    label: "Administrateur",
-                    icon: Shield,
-                    color: "red",
-                  },
-                ].map((role) => {
-                  const Icon = role.icon;
-                  const isSelected = formData.role === role.value;
-                  return (
-                    <div
-                      key={role.value}
-                      className={`
+      <form
+        id="user-edit-form"
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-6"
+      >
+        {/* Basic Information - Firstname and Lastname first */}
+        <div className="space-y-4">
+          <div className="space-y-3 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {[
+                {
+                  value: "client",
+                  label: "Client",
+                  icon: User,
+                  color: "green",
+                },
+                {
+                  value: "professional",
+                  label: "Professionnel",
+                  icon: Briefcase,
+                  color: "blue",
+                },
+                {
+                  value: "admin",
+                  label: "Administrateur",
+                  icon: Shield,
+                  color: "red",
+                },
+              ].map((role) => {
+                const Icon = role.icon;
+                const isSelected = selectedRole === role.value;
+                return (
+                  <div
+                    key={role.value}
+                    className={`
                         relative p-4 border-2 rounded-lg cursor-pointer transition-all
                         ${
                           isSelected
@@ -487,149 +265,196 @@ export function UserEditModal({ userId, setUserId }: UserEditModalProps) {
                             : "border-gray-200 hover:border-gray-300"
                         }
                       `}
-                      onClick={() => handleRoleChange(role.value)}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <Icon
-                          className={`h-5 w-5 ${
+                    onClick={() => setValue("role", role.value as UserRole)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Icon
+                        className={`h-5 w-5 ${
+                          isSelected
+                            ? `text-${role.color}-600`
+                            : "text-gray-400"
+                        }`}
+                      />
+                      <div>
+                        <p
+                          className={`font-medium ${
                             isSelected
-                              ? `text-${role.color}-600`
-                              : "text-gray-400"
+                              ? `text-${role.color}-900`
+                              : "text-gray-900"
                           }`}
-                        />
-                        <div>
-                          <p
-                            className={`font-medium ${
-                              isSelected
-                                ? `text-${role.color}-900`
-                                : "text-gray-900"
-                            }`}
-                          >
-                            {role.label}
-                          </p>
-                        </div>
+                        >
+                          {role.label}
+                        </p>
                       </div>
-                      {isSelected && (
-                        <CheckCircle
-                          className={`absolute top-2 right-2 h-4 w-4 text-${role.color}-600`}
-                        />
-                      )}
                     </div>
-                  );
-                })}
-              </div>
+                    {isSelected && (
+                      <CheckCircle
+                        className={`absolute top-2 right-2 h-4 w-4 text-${role.color}-600`}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Prénom *</Label>
-                <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      firstName: e.target.value,
-                    }))
-                  }
-                  placeholder="Prénom"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Nom *</Label>
-                <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      lastName: e.target.value,
-                    }))
-                  }
-                  placeholder="Nom"
-                  required
-                />
-              </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">Prénom *</Label>
+              <Controller
+                control={control}
+                name="firstName"
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    id="firstName"
+                    placeholder="Prénom"
+                    className={
+                      errors.firstName
+                        ? "border-red-500 focus:border-red-500"
+                        : ""
+                    }
+                  />
+                )}
+              />
+              {errors.firstName && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.firstName.message}
+                </p>
+              )}
             </div>
 
-            {/* Email and Phone on same line - Email wider */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2 space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Nom *</Label>
+              <Controller
+                control={control}
+                name="lastName"
+                render={({ field }) => (
                   <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
+                    {...field}
+                    id="lastName"
+                    placeholder="Nom"
+                    className={
+                      errors.lastName
+                        ? "border-red-500 focus:border-red-500"
+                        : ""
                     }
-                    className="pl-10"
-                    placeholder="Email"
-                    required
                   />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Téléphone</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        phone: e.target.value,
-                      }))
-                    }
-                    className="pl-10"
-                    placeholder="Téléphone"
-                  />
-                </div>
-              </div>
+                )}
+              />
+              {errors.lastName && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.lastName.message}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Client-specific fields */}
-          {formData.role === "client" && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Informations client</h3>
-
-              <div className="space-y-2">
-                <AddressAutocomplete
-                  label="Adresse"
-                  placeholder="Adresse complète"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleClientAddressChange}
+          {/* Email and Phone on same line - Email wider */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      id="email"
+                      type="email"
+                      placeholder="Email"
+                      className={`pl-10 ${
+                        errors.email
+                          ? "border-red-500 focus:border-red-500"
+                          : ""
+                      }`}
+                    />
+                  )}
                 />
               </div>
+              {errors.email && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
-          )}
+            {console.log("errors", errors, user, getValues())}
+            <div className="space-y-2">
+              <Label htmlFor="phone">Téléphone</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Controller
+                  control={control}
+                  name="phone"
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      id="phone"
+                      placeholder="Téléphone"
+                      className={`pl-10 ${
+                        errors.phone
+                          ? "border-red-500 focus:border-red-500"
+                          : ""
+                      }`}
+                    />
+                  )}
+                />
+              </div>
+              {errors.phone && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.phone.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
 
-          {/* Professional-specific fields */}
-          {formData.role === "professional" && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">
-                Informations professionnelles
-              </h3>
-              <div className="space-y-3">
-                <Label>Spécialités</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {specialties.map((specialty) => {
-                    const isSelected = formData.specialties.includes(specialty);
-                    const config = getSpecialtyConfig(specialty);
-                    return (
-                      <div
-                        key={specialty}
-                        className={`
+        {/* Client-specific fields */}
+        {selectedRole === "client" && (
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Informations client</h3>
+
+            <div className="space-y-2">
+              <Controller
+                control={control}
+                name="address"
+                render={({ field }) => (
+                  <AddressAutocomplete
+                    {...field}
+                    label="Adresse"
+                    placeholder="Adresse complète"
+                    value={field?.value}
+                    onChange={handleAddressChange}
+                    className={errors.address ? "border-red-500" : ""}
+                  />
+                )}
+              />
+              {errors.address && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.address.message}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Professional-specific fields */}
+        {selectedRole === "professional" && (
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg">
+              Informations professionnelles
+            </h3>
+            <div className="space-y-3">
+              <Label>Spécialités *</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {specialties.map((specialty) => {
+                  const isSelected = selectedSpecialties?.includes(specialty);
+                  const config = getCategoryConfig(specialty, "h-5 w-5");
+                  return (
+                    <div
+                      key={specialty}
+                      className={`
                           relative p-3 border-2 rounded-lg cursor-pointer transition-all
                           ${
                             isSelected
@@ -637,137 +462,170 @@ export function UserEditModal({ userId, setUserId }: UserEditModalProps) {
                               : "border-gray-200 hover:border-gray-300"
                           }
                         `}
-                        onClick={() => handleSpecialtyToggle(specialty)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            {config.icon}
-                            <span
-                              className={`font-medium text-sm ${
-                                isSelected
-                                  ? config.colors.text
-                                  : "text-gray-900"
-                              }`}
-                            >
-                              {specialty}
-                            </span>
-                          </div>
-                          {isSelected && (
-                            <CheckCircle
-                              className={`h-4 w-4 ${config.colors.text}`}
-                            />
-                          )}
+                      onClick={() => handleClickSpecialty(specialty)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          {config.icon}
+                          <span
+                            className={`font-medium text-sm ${
+                              isSelected ? config.colors.text : "text-gray-900"
+                            }`}
+                          >
+                            {config.type}
+                          </span>
                         </div>
+                        {isSelected && (
+                          <CheckCircle
+                            className={`h-4 w-4 ${config.colors.text}`}
+                          />
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-              {/* Experience and SIRET on same row - Experience smaller */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="experience">Années d'expérience</Label>
-                  <Select
-                    value={formData.experience}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        experience: value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Sélectionnez" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {experienceOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="md:col-span-3 space-y-2">
-                  <Label htmlFor="siret">SIRET</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="siret"
-                      value={formData.siret}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          siret: e.target.value,
-                        }))
-                      }
-                      className="pl-10"
-                      placeholder="Numéro SIRET"
-                      maxLength={14}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <AddressAutocomplete
-                  label="Zone d'intervention"
-                  placeholder="Ville, département..."
-                  name="serviceArea"
-                  value={formData.serviceArea}
-                  onChange={handleServiceAreaChange}
+              {errors.specialties && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.specialties.message}
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="experience">Années d'expérience</Label>
+                <Controller
+                  control={control}
+                  name="experience"
+                  render={({ field }) => (
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field?.value}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sélectionnez" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {experienceOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
+                {errors.experience && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.experience.message}
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description/Présentation</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  placeholder="Décrivez votre expérience, vos compétences..."
-                  rows={3}
-                />
+              <div className="md:col-span-3 space-y-2">
+                <Label htmlFor="siret">SIRET</Label>
+                <div className="relative">
+                  <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Controller
+                    control={control}
+                    name="siret"
+                    render={({ field }) => (
+                      <div>
+                        <Input
+                          {...field}
+                          id="siret"
+                          placeholder="Numéro SIRET"
+                          className={cn(
+                            "pl-10",
+                            errors.siret && "border-red-300"
+                          )}
+                        />
+                        {errors.siret && (
+                          <p className="text-sm text-red-600 mt-1">
+                            {errors.siret.message}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  />
+                </div>
               </div>
             </div>
-          )}
 
-          {modalError && (
-            <div className="text-red-500 text-sm bg-red-50 p-3 rounded-md">
-              {modalError}
+            <div className="space-y-2">
+              <Controller
+                control={control}
+                name="serviceArea"
+                render={({ field }) => (
+                  <AddressAutocomplete
+                    value={field?.value}
+                    label="Zone d'intervention"
+                    placeholder="Ville, département..."
+                    name="serviceArea"
+                    onChange={handleServiceAreaChange}
+                    className={cn(errors.serviceArea && "border-red-300")}
+                  />
+                )}
+              />
+              {errors.serviceArea && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.serviceArea.message}
+                </p>
+              )}
             </div>
-          )}
-        </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setUserId(null)}
-            disabled={saving}
-          >
-            Annuler
-          </Button>
-          <Button onClick={handleSave} disabled={saving} className="text-white">
-            {saving ? (
-              <>
-                <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                Sauvegarde...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Sauvegarder
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description/Présentation</Label>
+              <Controller
+                control={control}
+                name="description"
+                render={({ field }) => (
+                  <Textarea
+                    {...field}
+                    id="description"
+                    placeholder="Décrivez votre expérience, vos compétences..."
+                    rows={3}
+                    className={cn(errors.description && "border-red-300")}
+                  />
+                )}
+              />
+              {errors.description && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.description.message}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </form>
+
+      <DialogFooter>
+        <Button
+          variant="outline"
+          onClick={() => setUserId(null)}
+          disabled={saving}
+        >
+          Annuler
+        </Button>
+        <Button
+          type="submit"
+          form="user-edit-form"
+          disabled={saving}
+          className="text-white"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="animate-spin mr-2 h-4 w-4" />
+              Sauvegarde...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Sauvegarder
+            </>
+          )}
+        </Button>
+      </DialogFooter>
+    </>
   );
 }
