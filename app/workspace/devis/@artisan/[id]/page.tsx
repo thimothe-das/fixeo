@@ -236,8 +236,8 @@ export default function EstimatedBill() {
               </h3>
               <div className="space-y-2">
                 <div className="font-medium text-gray-900">Fixeo</div>
-                <div className="text-gray-500 text-xs">Dijon, France</div>
-                <div className="text-gray-500 text-xs">New York, NY 10001</div>
+                <div className="text-gray-500 text-xs">32 rue de la paix</div>
+                <div className="text-gray-500 text-xs">Angoulême, 16000</div>
                 <div className="text-gray-500 text-xs">contact@fixeo.fr</div>
                 <div className="text-gray-500 text-xs">+33 6 51 36 66 84</div>
               </div>

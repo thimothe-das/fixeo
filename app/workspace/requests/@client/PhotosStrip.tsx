@@ -43,19 +43,16 @@ export default function PhotosStrip({
     }
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "ArrowLeft") navigateLightbox("prev");
-    if (event.key === "ArrowRight") navigateLightbox("next");
-    if (event.key === "Escape") setLightboxOpen(false);
-  };
-
   return (
     <>
       <div className="flex gap-2">
         {displayedPhotos.map((photo, index) => (
           <div key={index} className="relative">
             <button
-              onClick={() => openLightbox(index)}
+              onClick={(e) => {
+                e.stopPropagation();
+                openLightbox(index);
+              }}
               className="relative w-12 h-12 rounded-lg overflow-hidden group hover:ring-2 hover:ring-blue-300 transition-all"
             >
               <img
@@ -76,7 +73,10 @@ export default function PhotosStrip({
       </div>
 
       <AlertDialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <AlertDialogContent className="max-w-4xl p-0" onKeyDown={handleKeyDown}>
+        <AlertDialogContent
+          className="max-w-4xl p-0"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="relative">
             <button
               onClick={() => setLightboxOpen(false)}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { ZoomIn, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Image as ImageIcon, ZoomIn } from "lucide-react";
+import { useState } from "react";
 
 interface PhotoGalleryProps {
   photos: string[];

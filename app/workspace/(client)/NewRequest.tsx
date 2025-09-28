@@ -1,4 +1,5 @@
 import { setGuestToken } from "@/app/suivi/[token]/token-storage";
+import { createServiceRequest } from "@/app/workspace/actions";
 import {
   AddressAutocomplete,
   AddressData,
@@ -22,14 +23,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { User } from "@/lib/db/schema";
 import { cn, fetcher, getCategoryConfig, ServiceType } from "@/lib/utils";
-import { Loader2, Plus, Upload, X } from "lucide-react";
+import {
+  CreateRequestType,
+  createServiceRequestSchema,
+} from "@/lib/validation/schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertCircle, Loader2, Plus, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, SubmitHandler, useForm, useWatch } from "react-hook-form";
 import useSWR from "swr";
-import { CreateRequestType, createServiceRequest } from "../actions";
 
 interface NewRequestProps {
   onRequestCreated: () => void;
@@ -53,14 +63,18 @@ export function NewRequest({
     handleSubmit,
     setValue,
     control,
+    trigger,
     formState: { errors, isSubmitting },
   } = useForm<CreateRequestType>({
+    resolver: zodResolver(createServiceRequestSchema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
     defaultValues: {
       title: "",
       serviceType: "",
       urgency: "",
       description: "",
-      clientEmail: userEmail,
+      clientEmail: userEmail || "",
       photos: [],
       location: "",
       location_housenumber: "",
@@ -88,13 +102,14 @@ export function NewRequest({
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setValue("photos", [...(photos || []), ...files]);
+    setValue("photos", [...(photos || []), ...files], { shouldValidate: true });
   };
 
   const removePhoto = (index: number) => {
     setValue(
       "photos",
-      photos?.filter((_, i) => i !== index)
+      photos?.filter((_, i) => i !== index),
+      { shouldValidate: true }
     );
   };
 
@@ -108,6 +123,7 @@ export function NewRequest({
     setValue("location_coordinates", value?.coordinates.join(",") || "");
     setValue("location_context", value?.context || "");
     setValue("location", value?.label || "");
+    trigger("location");
   };
 
   const formContent = (
@@ -119,17 +135,30 @@ export function NewRequest({
         <Controller
           control={control}
           name="title"
-          render={({ field }) => (
-            <Input
-              {...field}
-              placeholder="Donnez un titre court à votre demande..."
-              required
-              className="w-full"
-              maxLength={100}
-            />
+          render={({ field, fieldState: { error } }) => (
+            <div>
+              <Input
+                {...field}
+                placeholder="Donnez un titre court à votre demande..."
+                className={`w-full ${
+                  error
+                    ? "border-red-300 focus:border-red-500"
+                    : "focus:border-blue-500"
+                }`}
+                maxLength={100}
+              />
+              {error && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {error.message}
+                </p>
+              )}
+            </div>
           )}
         />
-        <p className="text-xs text-gray-500 mt-1">Maximum 100 caractères</p>
+        {!errors.title && (
+          <p className="text-xs text-gray-500 mt-1">Maximum 100 caractères</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -140,10 +169,12 @@ export function NewRequest({
           <Controller
             control={control}
             name="serviceType"
-            render={({ field }) => {
-              return (
-                <Select {...field} onValueChange={field.onChange} required>
-                  <SelectTrigger className="w-full">
+            render={({ field, fieldState: { error } }) => (
+              <div>
+                <Select {...field} onValueChange={field.onChange}>
+                  <SelectTrigger
+                    className={`w-full ${error ? "border-red-300" : ""}`}
+                  >
                     <SelectValue placeholder="Choisir..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -161,8 +192,14 @@ export function NewRequest({
                     })}
                   </SelectContent>
                 </Select>
-              );
-            }}
+                {error && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {error.message}
+                  </p>
+                )}
+              </div>
+            )}
           />
         </div>
         <div>
@@ -172,17 +209,25 @@ export function NewRequest({
           <Controller
             control={control}
             name="urgency"
-            render={({ field }) => (
-              <Select {...field} onValueChange={field.onChange} required>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Quand ?" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="urgent">🚨 Urgent (24h)</SelectItem>
-                  <SelectItem value="week">📅 Cette semaine</SelectItem>
-                  <SelectItem value="flexible">⏰ Flexible</SelectItem>
-                </SelectContent>
-              </Select>
+            render={({ field, fieldState: { error } }) => (
+              <div className="w-full">
+                <Select {...field} onValueChange={field.onChange}>
+                  <SelectTrigger className={error ? "border-red-300" : ""}>
+                    <SelectValue placeholder="Quand ?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="urgent">🚨 Urgent (24h)</SelectItem>
+                    <SelectItem value="week">📅 Cette semaine</SelectItem>
+                    <SelectItem value="flexible">⏰ Flexible</SelectItem>
+                  </SelectContent>
+                </Select>
+                {error && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {error.message}
+                  </p>
+                )}
+              </div>
             )}
           />
         </div>
@@ -192,11 +237,26 @@ export function NewRequest({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Description *
         </label>
-        <Textarea
+        <Controller
+          control={control}
           name="description"
-          placeholder="Décrivez votre problème ou vos besoins en détail..."
-          required
-          className="min-h-[100px] resize-none"
+          render={({ field, fieldState: { error } }) => (
+            <div>
+              <Textarea
+                {...field}
+                placeholder="Décrivez votre problème ou vos besoins en détail..."
+                className={`min-h-[100px] resize-none ${
+                  error ? "border-red-300 focus:border-red-500" : ""
+                }`}
+              />
+              {error && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {error.message}
+                </p>
+              )}
+            </div>
+          )}
         />
       </div>
 
@@ -204,69 +264,175 @@ export function NewRequest({
         <Controller
           control={control}
           name="location"
-          render={({ field }) => (
-            <AddressAutocomplete
-              onChange={handleAddressChange}
-              label="📍 Adresse d'intervention"
-              placeholder="Tapez votre adresse complète..."
-              required
-              className="h-11 focus:border-blue-500 text-sm"
-            />
+          render={({ field, fieldState: { error } }) => (
+            <div>
+              <AddressAutocomplete
+                onChange={handleAddressChange}
+                label="📍 Adresse d'intervention *"
+                placeholder="Tapez votre adresse complète..."
+                className={`text-sm ${
+                  error ? "focus:border-red-500" : "focus:border-blue-500"
+                }`}
+              />
+              {error && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {error.message}
+                </p>
+              )}
+            </div>
           )}
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Photos (optionnel)
-        </label>
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-          <input
-            type="file"
-            id="photo-upload"
-            multiple
-            accept="image/*"
-            onChange={handlePhotoUpload}
-            className="hidden"
-          />
-          <label
-            htmlFor="photo-upload"
-            className="cursor-pointer flex flex-col items-center gap-2"
-          >
-            <Upload className="h-8 w-8 text-gray-400" />
-            <span className="text-sm text-gray-600">
-              Cliquez pour ajouter des photos
-            </span>
-            <span className="text-xs text-gray-500">
-              PNG, JPG jusqu'à 10MB chacune
-            </span>
-          </label>
-        </div>
+      <Controller
+        control={control}
+        name="photos"
+        render={({ fieldState: { error } }) => {
+          // Handle array validation errors properly
+          const getErrorMessage = (error: any) => {
+            if (!error) return null;
 
-        {photos && photos.length > 0 && (
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {photos.map((file, index) => (
-              <div key={index} className="relative group">
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt={`Photo ${index + 1}`}
-                  className="w-full h-20 object-cover rounded-lg border"
-                />
-                <button
-                  type="button"
-                  onClick={() => removePhoto(index)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-                <div className="absolute bottom-1 left-1 right-1 bg-black bg-opacity-50 text-white text-xs p-1 rounded truncate">
-                  {file.name}
+            // Direct error message
+            if (error.message) return error.message;
+
+            // Array validation errors (individual file errors)
+            if (error.root?.message) return error.root.message;
+
+            // Handle array item errors
+            if (Array.isArray(error)) {
+              const firstError = error.find((e) => e?.message);
+              if (firstError) return firstError.message;
+            }
+
+            // Handle nested errors
+            if (typeof error === "object" && error !== null) {
+              const values = Object.values(error);
+              const firstErrorWithMessage = values.find((e: any) => e?.message);
+              if (firstErrorWithMessage)
+                return (firstErrorWithMessage as any).message;
+            }
+
+            return "Erreur de validation";
+          };
+
+          const errorMessage = getErrorMessage(error);
+          const hasError = !!errorMessage;
+
+          return (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                📸 Photos (max 7 photos, 5MB chacune)
+              </label>
+              <div className="space-y-2">
+                {/* Photo Preview Grid */}
+                {photos && photos.length > 0 && (
+                  <div className="grid grid-cols-5 gap-2">
+                    {photos.map((photo: File, index: number) => {
+                      // Check if this specific photo has validation issues
+                      const isPhotoTooLarge = photo.size > 5 * 1024 * 1024;
+                      const isInvalidFormat = ![
+                        "image/jpeg",
+                        "image/jpg",
+                        "image/png",
+                        "image/gif",
+                        "image/webp",
+                      ].includes(photo.type);
+                      const isNameTooLong = photo.name.length > 100;
+                      const hasPhotoError =
+                        isPhotoTooLarge || isInvalidFormat || isNameTooLong;
+
+                      const getPhotoErrorMessage = () => {
+                        if (isPhotoTooLarge) return "Photo trop lourde";
+                        if (isInvalidFormat) return "Format non supporté";
+                        if (isNameTooLong) return "Nom de fichier trop long";
+                        return "";
+                      };
+
+                      const photoContent = (
+                        <div className="relative">
+                          <img
+                            src={URL.createObjectURL(photo)}
+                            alt={`Photo ${index + 1}`}
+                            className={`w-full h-16 object-cover rounded-lg border-2 transition-all ${
+                              hasPhotoError
+                                ? "border-red-500 ring-2 ring-red-200"
+                                : "border-gray-200"
+                            }`}
+                          />
+
+                          {/* Error overlay for problematic photos */}
+                          {hasPhotoError && (
+                            <div className="absolute inset-0 bg-red-500/20 rounded-lg flex items-center justify-center">
+                              <AlertCircle className="h-4 w-4 text-red-600 bg-white rounded-full p-0.5" />
+                            </div>
+                          )}
+                        </div>
+                      );
+
+                      return (
+                        <div key={index} className="relative group">
+                          {hasPhotoError ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                {photoContent}
+                              </TooltipTrigger>
+                              <TooltipContent
+                                side="bottom"
+                                className="text-white"
+                              >
+                                {getPhotoErrorMessage()}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            photoContent
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(index)}
+                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                          >
+                            <X className="h-2 w-2" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div>
+                  <input
+                    type="file"
+                    id="photo-upload"
+                    multiple
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="photo-upload"
+                    className={`flex items-center justify-center w-full h-12 border border-dashed rounded-lg cursor-pointer transition-colors`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Upload className={`h-4 w-4`} />
+                      <span className="text-sm text-gray-700">
+                        Ajouter photo (5MB chacune, max 7)
+                      </span>
+                    </div>
+                  </label>
                 </div>
+                {hasError && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {errorMessage}
+                  </p>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+          );
+        }}
+      />
 
       <div className={`flex gap-3 ${isModal ? "pt-4 border-t" : ""}`}>
         <Button

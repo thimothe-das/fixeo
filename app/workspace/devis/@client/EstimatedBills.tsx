@@ -397,7 +397,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                           <Badge
                             className={`${getStatusColor(
                               estimate.status
-                            )} border text-xs font-medium px-2 py-1`}
+                            )} border text-xs font-medium px-2 py-1 pointer-events-none`}
                           >
                             {getStatusIcon(estimate.status)}
                             <span className="ml-1">

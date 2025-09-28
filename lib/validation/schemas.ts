@@ -83,12 +83,11 @@ export type SignUpType = z.infer<typeof signUpSchema>;
 // Sign-in schema
 export const signInSchema = z.object({
   email: z.string().email().min(3).max(255),
-  password: z.string().min(8).max(100), // Keep simple validation for sign-in
+  password: z.string().min(8).max(100),
 });
 
 export type SignInType = z.infer<typeof signInSchema>;
 
-// Service Request schema with detailed custom error messages
 export const createServiceRequestSchema = z.object({
   title: z
     .string()

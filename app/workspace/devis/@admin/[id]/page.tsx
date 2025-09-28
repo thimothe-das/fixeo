@@ -1,59 +1,26 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-import { Separator } from "@/components/ui/separator";
+import { useAdminBillingEstimate } from "@/hooks/use-billing-estimate";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
+  AlertTriangle,
+  Building,
   Calculator,
   Calendar,
   CheckCircle,
-  XCircle,
   Clock,
-  MapPin,
   FileText,
-  AlertTriangle,
-  Wrench,
-  Zap,
-  Settings,
-  Hammer,
-  PaintBucket,
-  Monitor,
-  Database,
-  CreditCard,
-  Building,
   Info,
-  Tag,
-  ShoppingCart,
-  Phone,
   ReceiptText,
 } from "lucide-react";
-import type {
-  BillingEstimateForClient,
-  BillingEstimateBreakdownItem,
-} from "../../../components/types";
 import moment from "moment";
-import useSWR, { mutate } from "swr";
 import { useParams } from "next/navigation";
-import { useAdminBillingEstimate } from "@/hooks/use-billing-estimate";
+import type {
+  BillingEstimateBreakdownItem,
+  BillingEstimateForClient,
+} from "../../../components/types";
 
 interface EstimatedBillProps {
   estimate: BillingEstimateForClient;
@@ -240,8 +207,8 @@ export default function EstimatedBill() {
               </h3>
               <div className="space-y-2">
                 <div className="font-medium text-gray-900">Fixeo</div>
-                <div className="text-gray-500 text-xs">Dijon, France</div>
-                <div className="text-gray-500 text-xs">New York, NY 10001</div>
+                <div className="text-gray-500 text-xs">32 rue de la paix</div>
+                <div className="text-gray-500 text-xs">Angoulême, 16000</div>
                 <div className="text-gray-500 text-xs">contact@fixeo.fr</div>
                 <div className="text-gray-500 text-xs">+33 6 51 36 66 84</div>
               </div>
