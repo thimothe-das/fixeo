@@ -9,7 +9,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ServiceRequestStatus } from "@/lib/db/schema";
-import { getStatusConfig, handleAcceptQuote, rejectQuote } from "@/lib/utils";
+import {
+  getCategoryConfig,
+  getStatusConfig,
+  handleAcceptQuote,
+  rejectQuote,
+} from "@/lib/utils";
 import {
   AlertCircle,
   Calculator,
@@ -319,6 +324,8 @@ export default function RequestDetailPage() {
     setIsLoading(false);
   };
 
+  const categoryConfig = getCategoryConfig(request.serviceType, "h-4 w-4");
+
   return (
     <div className="max-w-7xl mx-auto">
       <Breadcrumb
@@ -393,9 +400,11 @@ export default function RequestDetailPage() {
                     Catégorie
                   </h4>
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-600">🔧</span>
+                    <span className={`${categoryConfig.colors.text}`}>
+                      {categoryConfig.icon}
+                    </span>
                     <span className="text-gray-900 font-medium">
-                      {request.serviceType}
+                      {categoryConfig.type}
                     </span>
                   </div>
                 </div>
