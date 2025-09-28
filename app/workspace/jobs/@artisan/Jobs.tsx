@@ -26,7 +26,6 @@ import {
   Camera,
   Eye,
   MapPin,
-  MessageCircle,
   Navigation,
   ThumbsDown,
   ThumbsUp,
@@ -210,7 +209,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
         return (
           <Card
             className={cn(
-              `!h-fit rounded-none bord shadow-sm overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 border-t-4`,
+              `!h-fit rounded-none bord shadow-sm cursor-pointer hover:shadow-lg transition-all duration-200 border-t-4 relative`,
               mission.status !== ServiceRequestStatus.DISPUTED_BY_CLIENT &&
                 mission.status !== ServiceRequestStatus.DISPUTED_BY_ARTISAN &&
                 mission.status !== ServiceRequestStatus.DISPUTED_BY_BOTH
@@ -219,6 +218,12 @@ export default function Jobs({ assignedRequests }: JobsProps) {
             )}
             onClick={() => router.push(`/workspace/jobs/${mission.id}`)}
           >
+            {/* Notification Badge */}
+            {unreadMessages > 0 && (
+              <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg border-2 border-white z-10">
+                {unreadMessages}
+              </div>
+            )}
             {/* Dispute Banner */}
             {(mission.status === ServiceRequestStatus.DISPUTED_BY_CLIENT ||
               mission.status === ServiceRequestStatus.DISPUTED_BY_ARTISAN ||
@@ -248,7 +253,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
               </div>
             )}
 
-            <CardContent>
+            <CardContent className="overflow-hidden">
               <div className="flex flex-col space-y-3">
                 {/* Compact Header with Price and Status */}
                 <div className="flex items-center justify-between">
@@ -418,14 +423,6 @@ export default function Jobs({ assignedRequests }: JobsProps) {
                         <Eye className="h-4 w-4 mr-2" />
                         Voir détails
                       </Button>
-                    )}
-                    {unreadMessages > 0 && (
-                      <div className="relative flex items-center shrink-0">
-                        <MessageCircle className="h-5 w-5 text-gray-600" />
-                        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg border-2 border-white">
-                          {unreadMessages}
-                        </div>
-                      </div>
                     )}
                   </div>
                 </div>

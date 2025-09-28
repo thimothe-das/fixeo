@@ -23,7 +23,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn, getCategoryConfig, ServiceType } from "@/lib/utils";
 import {
-  AnyUserType,
   artisanSchema,
   clientSchema,
   UserRole,
@@ -49,7 +48,7 @@ import { toast } from "sonner";
 interface UserEditModalProps {
   userId: string | null;
   setUserId: (userId: string | null) => void;
-  user: AnyUserType;
+  user: any;
   mutate: () => void;
 }
 
@@ -84,7 +83,7 @@ export function UserEditModal({
     handleSubmit,
     getValues,
     formState: { errors, isValid },
-  } = useForm<AnyUserType>({
+  } = useForm<any>({
     mode: "onChange", // Revalidate on change
     defaultValues: {
       name: user?.name,
@@ -125,7 +124,7 @@ export function UserEditModal({
     ? JSON.parse(selectedSpecialtiesJson)
     : [];
 
-  const onSubmit = async (data: AnyUserType) => {
+  const onSubmit = async (data: any) => {
     setSaving(true);
 
     try {
@@ -187,7 +186,9 @@ export function UserEditModal({
     if (selectedSpecialties?.includes(specialty)) {
       setValue(
         "specialties",
-        JSON.stringify(selectedSpecialties?.filter((s) => s !== specialty))
+        JSON.stringify(
+          selectedSpecialties?.filter((s: string) => s !== specialty)
+        )
       );
     } else {
       setValue(
@@ -318,7 +319,7 @@ export function UserEditModal({
               />
               {errors.firstName && (
                 <p className="text-sm text-red-600 mt-1">
-                  {errors.firstName.message}
+                  {errors.firstName.message as string}
                 </p>
               )}
             </div>
@@ -343,7 +344,7 @@ export function UserEditModal({
               />
               {errors.lastName && (
                 <p className="text-sm text-red-600 mt-1">
-                  {errors.lastName.message}
+                  {errors.lastName.message as string}
                 </p>
               )}
             </div>
@@ -375,11 +376,10 @@ export function UserEditModal({
               </div>
               {errors.email && (
                 <p className="text-sm text-red-600 mt-1">
-                  {errors.email.message}
+                  {errors.email.message as string}
                 </p>
               )}
             </div>
-            {console.log("errors", errors, user, getValues())}
             <div className="space-y-2">
               <Label htmlFor="phone">Téléphone</Label>
               <div className="relative">
@@ -403,7 +403,7 @@ export function UserEditModal({
               </div>
               {errors.phone && (
                 <p className="text-sm text-red-600 mt-1">
-                  {errors.phone.message}
+                  {errors.phone.message as string}
                 </p>
               )}
             </div>
@@ -432,7 +432,7 @@ export function UserEditModal({
               />
               {errors.address && (
                 <p className="text-sm text-red-600 mt-1">
-                  {errors.address.message}
+                  {errors.address.message as string}
                 </p>
               )}
             </div>
@@ -487,7 +487,7 @@ export function UserEditModal({
               </div>
               {errors.specialties && (
                 <p className="text-sm text-red-600 mt-1">
-                  {errors.specialties.message}
+                  {errors.specialties.message as string}
                 </p>
               )}
             </div>
@@ -517,7 +517,7 @@ export function UserEditModal({
                 />
                 {errors.experience && (
                   <p className="text-sm text-red-600 mt-1">
-                    {errors.experience.message}
+                    {errors.experience.message as string}
                   </p>
                 )}
               </div>
@@ -542,7 +542,7 @@ export function UserEditModal({
                         />
                         {errors.siret && (
                           <p className="text-sm text-red-600 mt-1">
-                            {errors.siret.message}
+                            {errors.siret.message as string}
                           </p>
                         )}
                       </div>
@@ -569,7 +569,7 @@ export function UserEditModal({
               />
               {errors.serviceArea && (
                 <p className="text-sm text-red-600 mt-1">
-                  {errors.serviceArea.message}
+                  {errors.serviceArea.message as string}
                 </p>
               )}
             </div>
@@ -591,7 +591,7 @@ export function UserEditModal({
               />
               {errors.description && (
                 <p className="text-sm text-red-600 mt-1">
-                  {errors.description.message}
+                  {errors.description.message as string}
                 </p>
               )}
             </div>

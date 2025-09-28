@@ -1,5 +1,6 @@
 "use client";
 
+import { signUp } from "@/app/(login)/actions";
 import {
   AddressAutocomplete,
   AddressData,
@@ -24,13 +25,9 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  FormState,
-  getFormValue,
-  SignUpFormFields,
-  useFormState,
-} from "@/lib/auth/form-utils";
+import { FormState, getFormValue, useFormState } from "@/lib/auth/form-utils";
 import { ServiceType } from "@/lib/utils";
+import { SignUpType } from "@/lib/validation/schemas";
 import {
   Briefcase,
   Loader2,
@@ -43,7 +40,6 @@ import {
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useActionState, useState } from "react";
-import { signUp } from "../../actions";
 
 function SignUpArtisanForm() {
   const specialties = Object.values(ServiceType);
@@ -54,9 +50,17 @@ function SignUpArtisanForm() {
   const [selectedServiceAddress, setSelectedServiceAddress] =
     useState<AddressData | null>(null);
   const [state, formAction, pending] = useActionState<
-    FormState<SignUpFormFields>,
+    FormState<SignUpType>,
     FormData
-  >(signUp, { error: "" });
+  >(signUp as any, {
+    error: "",
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+    address: "",
+  });
 
   // Use the form state hook for automatic controlled input updates
   useFormState(

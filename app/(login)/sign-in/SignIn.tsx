@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SignUpFormFields } from "@/lib/auth/form-utils";
+import { SignInType } from "@/lib/validation/schemas";
 import { DoorOpen, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
-import { signIn, SignInType } from "../actions";
+import { signIn } from "../actions";
 
 type UserRole = "client" | "artisan" | null;
 

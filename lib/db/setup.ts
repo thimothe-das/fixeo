@@ -206,7 +206,7 @@ async function main() {
     POSTGRES_URL,
     STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET,
-    BASE_URL,
+    BASE_URL: BASE_URL || "http://localhost:3000",
     AUTH_SECRET,
   });
 

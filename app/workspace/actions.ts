@@ -12,10 +12,7 @@ import {
 import { CreateRequestType } from "@/lib/validation/schemas";
 import { randomUUID } from "crypto";
 
-// Schema and type now imported from @/lib/validation/schemas
-
 export const createServiceRequest = async (data: CreateRequestType) => {
-  // Check if user is logged in
   let currentUser;
   try {
     currentUser = await getUser();

@@ -1,10 +1,10 @@
+import { SignIn } from "@/app/(login)/sign-in/SignIn";
 import { Suspense } from "react";
-import { LoginComponent } from "../../sign-up/SignUp";
 
 export default function SignInArtisanPage() {
   return (
     <Suspense>
-      <LoginComponent mode="signin" role="artisan" />
+      <SignIn role="artisan" />
     </Suspense>
   );
 }

@@ -9,8 +9,8 @@ import {
   ServiceRequestStatus,
   type NewServiceRequest,
 } from "@/lib/db/schema";
+import { CreateRequestType } from "@/lib/validation/schemas";
 import { randomUUID } from "crypto";
-import { CreateRequestType } from "../workspace/actions";
 
 export const createServiceRequest = async (data: CreateRequestType) => {
   const {
