@@ -222,7 +222,7 @@ export default function RequestCardContainer({
 
       {/* Header */}
       <CardHeader className="p-3">
-        <div className="space-y-2">
+        <div className="space-y-2  overflow-hidden">
           {/* Service type and badge row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -240,7 +240,7 @@ export default function RequestCardContainer({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge
-                    className={`rounded-full text-xs px-3 py-1 font-medium ${statusConfig.color} ml-3 max-w-24 flex items-center gap-1 truncate ${statusConfig.colors.bg} ${statusConfig.colors.text}`}
+                    className={`rounded-full m-1 text-xs px-1 py-1 font-medium ${statusConfig.color} ml-3 max-w-24 flex items-center gap-1 truncate ${statusConfig.colors.bg} ${statusConfig.colors.text}`}
                   >
                     {statusConfig.icon}
                     <span className="truncate min-w-0">
@@ -256,18 +256,16 @@ export default function RequestCardContainer({
           </div>
 
           {/* Title row with tooltip */}
-          <div className="min-w-0">
+          <div className="block ">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <h3 className="text-xl font-semibold text-slate-900 leading-tight group-hover:text-slate-700 transition-colors duration-200 truncate">
-                    {request.title || request.description}
+                    {request.title}
                   </h3>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="max-w-xs text-white">
-                    {request.title || request.description}
-                  </p>
+                  <p className="max-w-xs text-white">{request.title}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

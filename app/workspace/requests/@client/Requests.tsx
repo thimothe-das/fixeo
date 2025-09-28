@@ -52,7 +52,6 @@ export default function ClientRequestsListComponent({
     [
       ServiceRequestStatus.IN_PROGRESS,
       ServiceRequestStatus.ARTISAN_VALIDATED,
-      ServiceRequestStatus.COMPLETED,
     ].includes(req.status as any)
   );
   const awaitingValidationRequests = requests.filter((req) =>
@@ -273,7 +272,19 @@ export default function ClientRequestsListComponent({
       </div>
 
       {/* Requests Accordion */}
-      <Accordion type="multiple" className="space-y-4">
+      <Accordion
+        type="multiple"
+        className="space-y-4"
+        defaultValue={[
+          "awaiting-payment",
+          "awaiting-estimate",
+          "awaiting-estimate-acceptation",
+          "pending",
+          "active",
+          "awaiting-validation",
+          "disputed",
+        ]}
+      >
         {accordionSections.map(
           (section) =>
             section.requests.length > 0 && (

@@ -1,10 +1,10 @@
 "use client";
 
-import * as React from "react";
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Pagination } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -14,22 +14,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Eye,
-  Calendar,
-  User,
-  Phone,
-  Mail,
-  Users as UsersIcon,
-  Shield,
-  MapPin,
   Building,
+  Calendar,
   CheckCircle,
+  Eye,
+  Mail,
+  MapPin,
+  Phone,
+  Shield,
+  User,
+  Users as UsersIcon,
   XCircle,
 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Pagination } from "@/components/ui/pagination";
 import moment from "moment";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface UserData {
   id: number;
@@ -274,7 +272,11 @@ export function Users({ setUserId }: { setUserId: (userId: string) => void }) {
                     </TableCell>
 
                     <TableCell>
-                      <Badge className={`${getRoleColor(user.role)} text-xs`}>
+                      <Badge
+                        className={`${getRoleColor(
+                          user.role
+                        )} text-xs pointer-events-none`}
+                      >
                         <Shield className="h-3 w-3 mr-1" />
                         {formatRole(user.role)}
                       </Badge>

@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import { LoginComponent } from "../../loginComponent";
+import { SignUp } from "../SignUp";
 
 export default function SignUpClientPage() {
   return (
     <Suspense>
-      <LoginComponent mode="signup" role="client" />
+      <SignUp role="client" />
     </Suspense>
   );
 }

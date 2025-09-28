@@ -1,9 +1,6 @@
 "use server";
 
-import {
-  validatedAction,
-  validatedActionWithUser,
-} from "@/lib/auth/middleware";
+import { validatedActionWithUser } from "@/lib/auth/middleware";
 import { comparePasswords, hashPassword, setSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/drizzle";
 import { getUserWithTeam } from "@/lib/db/queries/common";
@@ -23,6 +20,7 @@ import {
   type NewTeamMember,
   type NewUser,
 } from "@/lib/db/schema";
+import { SignInType, SignUpType } from "@/lib/validation/schemas";
 import { and, eq, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -46,12 +44,9 @@ async function logActivity(
   await db.insert(activityLogs).values(newActivity);
 }
 
-const signInSchema = z.object({
-  email: z.string().email().min(3).max(255),
-  password: z.string().min(8).max(100),
-});
+// SignInSchema and SignInType now imported from @/lib/validation/schemas
 
-export const signIn = validatedAction(signInSchema, async (data, formData) => {
+export const signIn = async (data: SignInType) => {
   const { email, password } = data;
 
   const userWithTeam = await db
@@ -90,45 +85,11 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
   ]);
 
   redirect("/workspace/dashboard");
-});
+};
 
-const signUpSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  role: z.enum(["client", "artisan"]).optional(),
-  inviteId: z.string().optional(),
-  // Common fields
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
-  phone: z.string().max(20).optional(),
-  // Client-specific fields
-  address: z.string().optional(),
-  address_housenumber: z.string().optional(),
-  address_street: z.string().optional(),
-  address_postcode: z.string().optional(),
-  address_city: z.string().optional(),
-  address_citycode: z.string().optional(),
-  address_district: z.string().optional(),
-  address_coordinates: z.string().optional(),
-  address_context: z.string().optional(),
-  preferences: z.string().optional(),
-  // Professional-specific fields
-  serviceArea: z.string().optional(),
-  serviceArea_housenumber: z.string().optional(),
-  serviceArea_street: z.string().optional(),
-  serviceArea_postcode: z.string().optional(),
-  serviceArea_city: z.string().optional(),
-  serviceArea_citycode: z.string().optional(),
-  serviceArea_district: z.string().optional(),
-  serviceArea_coordinates: z.string().optional(),
-  serviceArea_context: z.string().optional(),
-  siret: z.string().max(14).optional(),
-  experience: z.string().max(20).optional(),
-  specialties: z.string().optional(), // JSON string of array
-  description: z.string().optional(),
-});
+// SignUpSchema and SignUpType now imported from @/lib/validation/schemas
 
-export const signUp = validatedAction(signUpSchema, async (data, formData) => {
+export const signUp = async (data: SignUpType) => {
   const {
     email,
     password,
@@ -337,11 +298,11 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   ]);
 
   redirect("/workspace/dashboard");
-});
+};
 
 export async function signOut() {
   (await cookies()).delete("session");
-  redirect("/sign-in");
+  redirect("/");
 }
 
 const updatePasswordSchema = z.object({

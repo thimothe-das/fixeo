@@ -1,33 +1,31 @@
 "use client";
 
-import * as React from "react";
-import { Suspense, useState } from "react";
 import {
-  Home,
-  MessageSquare,
-  Settings,
-  User,
-  Shield,
-  Bell,
-  FileText,
-  CreditCard,
   BarChart3,
+  Bell,
+  Calculator,
+  CreditCard,
+  FileText,
+  Home,
   MoreHorizontal,
   Power,
+  Settings,
+  Shield,
+  User,
   Users,
-  Euro,
-  Calculator,
 } from "lucide-react";
+import * as React from "react";
+import { Suspense } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
@@ -42,15 +40,11 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import useSWR from "swr";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-import type { ServiceRequestForAdmin, AdminStats } from "../components/types";
-import { Dashboard } from "../dashboard/@admin/Dashboard";
-import { useRouter } from "next/navigation";
-import { usePathname } from "next/navigation";
 import { signOut } from "@/app/(login)/actions";
+import { usePathname, useRouter } from "next/navigation";
 
 const sidebarItems = [
   {
@@ -137,7 +131,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         disabled={item.disabled}
-                        onClick={() => router.push(`/workspace/${item.route}`)}
+                        onClick={() =>
+                          !item.disabled &&
+                          router.push(`/workspace/${item.route}`)
+                        }
                         isActive={pathname === `/workspace/${item.route}`}
                         className="w-full justify-start cursor-pointer"
                       >

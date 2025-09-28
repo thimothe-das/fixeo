@@ -1,10 +1,10 @@
-import { Suspense } from 'react';
-import { Login } from '../login';
+import { Suspense } from "react";
+import { SignUpRoleSelection } from "./SignUpRoleSelection";
 
 export default function SignUpPage() {
   return (
     <Suspense>
-      <Login mode="signup" />
+      <SignUpRoleSelection mode="signup" />
     </Suspense>
   );
 }

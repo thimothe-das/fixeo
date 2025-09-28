@@ -121,7 +121,10 @@ export function ArtisanLayout({ children }: { children: React.ReactNode }) {
                   {sidebarItems.map((item) => (
                     <SidebarMenuItem
                       key={item.id}
-                      onClick={() => router.push(`/workspace/${item.route}`)}
+                      onClick={() =>
+                        !item.disabled &&
+                        router.push(`/workspace/${item.route}`)
+                      }
                     >
                       <SidebarMenuButton
                         isActive={pathname === `/workspace/${item.route}`}

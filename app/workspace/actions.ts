@@ -9,33 +9,10 @@ import {
   ServiceRequestStatus,
   type NewServiceRequest,
 } from "@/lib/db/schema";
+import { CreateRequestType } from "@/lib/validation/schemas";
 import { randomUUID } from "crypto";
-import { z } from "zod";
 
-export type CreateRequestType = z.infer<typeof createServiceRequestSchema>;
-
-const createServiceRequestSchema = z.object({
-  title: z
-    .string()
-    .min(1, "Titre requis")
-    .max(100, "Le titre ne peut pas dépasser 100 caractères"),
-  serviceType: z.string().min(1, "Type de service requis"),
-  urgency: z.string().min(1, "Niveau d'urgence requis"),
-  description: z
-    .string()
-    .min(10, "Description doit contenir au moins 10 caractères"),
-  location: z.string().min(5, "Adresse d'intervention requise"),
-  location_housenumber: z.string().optional(),
-  location_street: z.string().optional(),
-  location_postcode: z.string().optional(),
-  location_city: z.string().optional(),
-  location_citycode: z.string().optional(),
-  location_district: z.string().optional(),
-  location_coordinates: z.string().optional(),
-  location_context: z.string().optional(),
-  clientEmail: z.string(),
-  photos: z.any().array().optional(),
-});
+// Schema and type now imported from @/lib/validation/schemas
 
 export const createServiceRequest = async (data: CreateRequestType) => {
   // Check if user is logged in

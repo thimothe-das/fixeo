@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { LoginComponent } from "../../loginComponent";
+import { LoginComponent } from "../../sign-up/SignUp";
 
 export default function SignInClientPage() {
   return (

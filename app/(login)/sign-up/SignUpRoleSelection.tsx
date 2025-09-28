@@ -14,7 +14,7 @@ import { useState } from "react";
 
 type UserRole = "client" | "artisan" | null;
 
-export function Login({
+export function SignUpRoleSelection({
   mode = "signin",
   role = null,
 }: {
