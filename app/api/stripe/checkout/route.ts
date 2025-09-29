@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const requestId = searchParams.get("requestId");
 
   if (!sessionId) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/", process.env.BASE_URL));
   }
 
   try {
@@ -78,15 +78,17 @@ export async function GET(request: NextRequest) {
           ? `/workspace/dashboard?requestId=${requestId}`
           : "/workspace/dashboard";
 
-        return NextResponse.redirect(new URL(redirectUrl, request.url));
+        return NextResponse.redirect(
+          new URL(redirectUrl, process.env.BASE_URL)
+        );
       }
     }
 
     // Anonymous user or user not found - redirect to home page with requestId if available
     const redirectUrl = requestId ? `/?requestId=${requestId}` : "/";
-    return NextResponse.redirect(new URL(redirectUrl, request.url));
+    return NextResponse.redirect(new URL(redirectUrl, process.env.BASE_URL));
   } catch (error) {
     console.error("Error handling successful checkout:", error);
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/", process.env.BASE_URL));
   }
 }

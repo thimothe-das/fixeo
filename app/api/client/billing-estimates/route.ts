@@ -13,7 +13,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(process.env.BASE_URL || "");
     const requestId = searchParams.get("requestId");
 
     if (requestId) {

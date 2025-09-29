@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     }
 
     // Parse query parameters
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(process.env.BASE_URL || "");
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "10");
 
