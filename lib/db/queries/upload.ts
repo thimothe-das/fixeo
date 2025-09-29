@@ -1,7 +1,15 @@
 import { uploadFileToS3, validateImageFile } from "@/lib/aws/s3";
 import { NextResponse } from "next/server";
 
-export async function uploadPhotosToS3(photos: File[]) {
+// Define a type that works in both browser and server environments
+interface FileData {
+  size: number;
+  type: string;
+  name: string;
+  arrayBuffer(): Promise<ArrayBuffer>;
+}
+
+export async function uploadPhotosToS3(photos: FileData[]) {
   try {
     const files = photos;
 
