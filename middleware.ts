@@ -1,44 +1,46 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { signToken, verifyToken } from '@/lib/auth/session';
+import { signToken, verifyToken } from "@/lib/auth/session";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 // Route protection configuration
-const protectedRoutes = ['/workspace', '/account', 'workspace/dashboard'];
+const protectedRoutes = ["/workspace", "/account", "workspace/dashboard"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const sessionCookie = request.cookies.get('session');
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  const sessionCookie = request.cookies.get("session");
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
 
   // Basic authentication check
   if (isProtectedRoute && !sessionCookie) {
-    return NextResponse.redirect(new URL('/sign-in', request.url));
+    return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
   let res = NextResponse.next();
 
-  if (sessionCookie && request.method === 'GET') {
+  if (sessionCookie && request.method === "GET") {
     try {
       // Refresh session token
       const parsed = await verifyToken(sessionCookie.value);
       const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
       res.cookies.set({
-        name: 'session',
+        name: "session",
         value: await signToken({
           ...parsed,
-          expires: expiresInOneDay.toISOString()
+          expires: expiresInOneDay.toISOString(),
         }),
         httpOnly: true,
         secure: true,
-        sameSite: 'lax',
-        expires: expiresInOneDay
+        sameSite: "lax",
+        expires: expiresInOneDay,
       });
     } catch (error) {
-      console.error('Error updating session:', error);
-      res.cookies.delete('session');
+      console.error("Error updating session:", error);
+      res.cookies.delete("session");
       if (isProtectedRoute) {
-        return NextResponse.redirect(new URL('/sign-in', request.url));
+        return NextResponse.redirect(new URL("/sign-in", request.url));
       }
     }
   }
@@ -47,6 +49,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
-  runtime: 'nodejs'
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  runtime: "nodejs",
 };

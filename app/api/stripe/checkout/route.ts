@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
         const redirectUrl = requestId
           ? `/workspace/dashboard?requestId=${requestId}`
           : "/workspace/dashboard";
+
         return NextResponse.redirect(new URL(redirectUrl, request.url));
       }
     }
