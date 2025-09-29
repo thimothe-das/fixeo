@@ -194,6 +194,10 @@ async function writeEnvFile(envVars: Record<string, string>) {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    console.log("Setup is not available in production.");
+    return;
+  }
   await checkStripeCLI();
 
   const POSTGRES_URL = await getPostgresURL();
