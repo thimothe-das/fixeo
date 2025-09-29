@@ -2,10 +2,10 @@ import { getAdminStats } from "@/lib/db/queries/admin";
 import { getUser } from "@/lib/db/queries/common";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await getUser();
-
+    return NextResponse.redirect(new URL("/", request.url));
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
