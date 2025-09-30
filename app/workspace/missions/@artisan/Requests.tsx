@@ -566,9 +566,10 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                     {isLongDescription && (
                       <button
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-2 transition-colors"
-                        onClick={() =>
-                          setIsDescriptionExpanded(!isDescriptionExpanded)
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsDescriptionExpanded(!isDescriptionExpanded);
+                        }}
                       >
                         {isDescriptionExpanded ? "Voir moins" : "Voir plus"}
                       </button>

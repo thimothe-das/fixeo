@@ -3,11 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SignUpFormFields } from "@/lib/auth/form-utils";
-import { SignInType } from "@/lib/validation/schemas";
+import { cn } from "@/lib/utils";
+import { SignInType, signInSchema } from "@/lib/validation/schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { DoorOpen, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { signIn } from "../actions";
 
@@ -17,24 +19,32 @@ export function SignIn({ role = null }: { role?: UserRole }) {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const priceId = searchParams.get("priceId");
+  const [serverError, setServerError] = useState<string>("");
 
   const {
     handleSubmit,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<SignUpFormFields | SignInType>({
+  } = useForm<SignInType>({
+    resolver: zodResolver(signInSchema),
     defaultValues: {
       email: "",
       password: "",
-      firstName: "",
-      lastName: "",
-      phone: "",
-      address: "",
     },
   });
 
-  const onSubmit = (data: SignUpFormFields | SignInType) => {
-    signIn(data as SignInType);
+  const onSubmit = async (data: SignInType) => {
+    setServerError(""); // Clear any previous errors
+    try {
+      const result = await signIn(data);
+      if (result?.error) {
+        setServerError(result.error);
+      }
+    } catch (error) {
+      setServerError(
+        "Une erreur inattendue s'est produite. Veuillez réessayer."
+      );
+    }
   };
 
   return (
@@ -56,6 +66,17 @@ export function SignIn({ role = null }: { role?: UserRole }) {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            {serverError && (
+              <div className="flex justify-center">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800 text-center">
+                    Erreur de connexion
+                  </h3>
+                  <div className="mt-2 text-sm text-red-700">{serverError}</div>
+                </div>
+              </div>
+            )}
+
             <div>
               <Label
                 htmlFor="email"
@@ -73,13 +94,19 @@ export function SignIn({ role = null }: { role?: UserRole }) {
                       id="email"
                       type="email"
                       autoComplete="email"
-                      required
-                      maxLength={50}
-                      className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-fixeo-main-500 focus:border-fixeo-main-500 focus:z-10 sm:text-sm"
+                      className={cn(
+                        `appearance-none rounded-md relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-fixeo-main-500 focus:border-fixeo-main-500 focus:z-10 sm:text-sm`,
+                        errors.email && "border-red-300 bg-red-50"
+                      )}
                       placeholder="Entrez votre email"
                     />
                   )}
                 />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.email.message}
+                  </p>
+                )}
               </div>
             </div>
             <div>
@@ -99,14 +126,20 @@ export function SignIn({ role = null }: { role?: UserRole }) {
                       id="password"
                       type="password"
                       autoComplete="current-password"
-                      required
-                      minLength={8}
-                      maxLength={100}
-                      className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                      className={`appearance-none rounded-md relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-fixeo-main-500 focus:border-fixeo-main-500 focus:z-10 sm:text-sm ${
+                        errors.password
+                          ? "border-red-300 bg-red-50"
+                          : "border-gray-300"
+                      }`}
                       placeholder="Entrez votre mot de passe"
                     />
                   )}
                 />
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.password.message}
+                  </p>
+                )}
               </div>
             </div>
             <div>

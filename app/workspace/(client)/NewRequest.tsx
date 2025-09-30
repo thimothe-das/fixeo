@@ -87,6 +87,7 @@ export function NewRequest({
       location_context: "",
     },
   });
+
   const photos = useWatch({ control, name: "photos" });
 
   const onSubmit: SubmitHandler<CreateRequestType> = async (data) => {

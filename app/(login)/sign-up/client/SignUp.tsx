@@ -1,5 +1,6 @@
 "use client";
 
+import { signUpClient } from "@/app/(login)/actions";
 import { PasswordRequirements } from "@/app/(login)/sign-up/password-requirements";
 import {
   AddressAutocomplete,
@@ -10,14 +11,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SignUpFormFields } from "@/lib/auth/form-utils";
 import { cn } from "@/lib/utils";
-import { SignInType, signUpSchema, SignUpType } from "@/lib/validation/schemas";
+import {
+  ClientSignUpType,
+  SignInType,
+  clientSignUpSchema,
+} from "@/lib/validation/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, DoorOpen, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { signUp } from "../actions";
 
 type UserRole = "client" | "artisan" | null;
 
@@ -34,8 +38,8 @@ export function SignUp({ role = null }: { role?: UserRole }) {
     watch,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<SignUpType>({
-    resolver: zodResolver(signUpSchema),
+  } = useForm<ClientSignUpType>({
+    resolver: zodResolver(clientSignUpSchema),
     mode: "onSubmit",
     reValidateMode: "onChange",
     defaultValues: {
@@ -45,9 +49,10 @@ export function SignUp({ role = null }: { role?: UserRole }) {
       lastName: "",
       phone: "",
       address: "",
+      role: "client",
     },
   });
-
+  console.log(errors);
   const password = watch("password");
 
   const validatePasswordMatch = (
@@ -91,7 +96,7 @@ export function SignUp({ role = null }: { role?: UserRole }) {
     }
 
     try {
-      await signUp(data as SignUpType);
+      await signUpClient(data as ClientSignUpType);
     } catch (error) {
       console.error("Sign up error:", error);
     }

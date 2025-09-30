@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { SignUp } from "../SignUp";
+import { SignUp } from "./SignUp";
 
 export default function SignUpClientPage() {
   return (

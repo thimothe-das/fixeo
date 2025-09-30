@@ -308,7 +308,10 @@ export default function RequestCardContainer({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDescriptionExpanded(!descriptionExpanded);
+              }}
               className={`h-auto p-0 text-xs mt-2 font-medium hover:underline ${categoryConfig.colors.text}`}
             >
               {descriptionExpanded ? "Voir moins" : "Voir plus"}

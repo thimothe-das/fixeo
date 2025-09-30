@@ -18,7 +18,11 @@ import {
   type NewProfessionalProfile,
   type NewUser,
 } from "@/lib/db/schema";
-import { SignInType, SignUpType } from "@/lib/validation/schemas";
+import {
+  ArtisanSignUpType,
+  ClientSignUpType,
+  SignInType,
+} from "@/lib/validation/schemas";
 import { and, eq, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -60,7 +64,7 @@ export const signIn = async (data: SignInType) => {
 
   if (userWithTeam.length === 0) {
     return {
-      error: "Invalid email or password. Please try again.",
+      error: "Mot de passe ou email incorrect.",
     };
   }
 
@@ -73,7 +77,7 @@ export const signIn = async (data: SignInType) => {
 
   if (!isPasswordValid) {
     return {
-      error: "Invalid email or password. Please try again.",
+      error: "Mot de passe ou email incorrect.",
     };
   }
 
@@ -85,14 +89,11 @@ export const signIn = async (data: SignInType) => {
   redirect("/workspace/dashboard");
 };
 
-// SignUpSchema and SignUpType now imported from @/lib/validation/schemas
-
-export const signUp = async (data: SignUpType) => {
+export const signUpClient = async (data: ClientSignUpType) => {
   const {
     email,
     password,
     inviteId,
-    role,
     firstName,
     lastName,
     phone,
@@ -106,36 +107,13 @@ export const signUp = async (data: SignUpType) => {
     address_coordinates,
     address_context,
     preferences,
-    serviceArea,
-    serviceArea_housenumber,
-    serviceArea_street,
-    serviceArea_postcode,
-    serviceArea_city,
-    serviceArea_citycode,
-    serviceArea_district,
-    serviceArea_coordinates,
-    serviceArea_context,
-    siret,
-    experience,
-    specialties,
-    description,
   } = data;
 
-  // Validation based on role
-  if (role === "artisan") {
-    if (!firstName || !lastName || !phone || !serviceArea || !siret) {
-      return {
-        error:
-          "Tous les champs obligatoires doivent être remplis pour les artisans.",
-      };
-    }
-
-    // Validate SIRET format (basic validation)
-    if (siret && !/^\d{14}$/.test(siret.replace(/\s/g, ""))) {
-      return {
-        error: "Le numéro SIRET doit contenir 14 chiffres.",
-      };
-    }
+  // Client-specific validation
+  if (!firstName || !lastName || !phone || !address) {
+    return {
+      error: "Tous les champs obligatoires doivent être remplis.",
+    };
   }
 
   const existingUser = await db
@@ -160,8 +138,6 @@ export const signUp = async (data: SignUpType) => {
   let newUserRole: string;
   if (isFirstUser && email === "das.thimothe@gmail.com") {
     newUserRole = "admin"; // First user with specific email becomes admin
-  } else if (role === "artisan") {
-    newUserRole = "professional";
   } else {
     newUserRole = "client";
   }
@@ -169,7 +145,7 @@ export const signUp = async (data: SignUpType) => {
   const newUser: NewUser = {
     email,
     passwordHash,
-    name: firstName && lastName ? `${firstName} ${lastName}` : undefined,
+    name: `${firstName} ${lastName}`,
     role: newUserRole,
   };
 
@@ -181,49 +157,134 @@ export const signUp = async (data: SignUpType) => {
     };
   }
 
-  // Create role-specific profile
-  if (role === "client" && (firstName || lastName || phone || address)) {
-    const clientProfile: NewClientProfile = {
-      userId: createdUser.id,
-      firstName,
-      lastName,
-      phone,
-      address,
-      addressHousenumber: address_housenumber || null,
-      addressStreet: address_street || null,
-      addressPostcode: address_postcode || null,
-      addressCity: address_city || null,
-      addressCitycode: address_citycode || null,
-      addressDistrict: address_district || null,
-      addressCoordinates: address_coordinates || null,
-      addressContext: address_context || null,
-      preferences: preferences || null,
+  // Create client profile
+  const clientProfile: NewClientProfile = {
+    userId: createdUser.id,
+    firstName,
+    lastName,
+    phone,
+    address,
+    addressHousenumber: address_housenumber || null,
+    addressStreet: address_street || null,
+    addressPostcode: address_postcode || null,
+    addressCity: address_city || null,
+    addressCitycode: address_citycode || null,
+    addressDistrict: address_district || null,
+    addressCoordinates: address_coordinates || null,
+    addressContext: address_context || null,
+    preferences: preferences || null,
+  };
+
+  await db.insert(clientProfiles).values(clientProfile);
+
+  await setSession(createdUser);
+  redirect("/workspace/dashboard");
+};
+
+export const signUpArtisan = async (data: ArtisanSignUpType) => {
+  const {
+    email,
+    password,
+    inviteId,
+    firstName,
+    lastName,
+    phone,
+    serviceArea,
+    serviceArea_housenumber,
+    serviceArea_street,
+    serviceArea_postcode,
+    serviceArea_city,
+    serviceArea_citycode,
+    serviceArea_district,
+    serviceArea_coordinates,
+    serviceArea_context,
+    siret,
+    experience,
+    specialties,
+    description,
+  } = data;
+
+  // Artisan-specific validation
+  if (!firstName || !lastName || !phone || !serviceArea || !siret) {
+    return {
+      error:
+        "Tous les champs obligatoires doivent être remplis pour les artisans.",
     };
-    await db.insert(clientProfiles).values(clientProfile);
-  } else if (role === "artisan") {
-    const professionalProfile: NewProfessionalProfile = {
-      userId: createdUser.id,
-      firstName,
-      lastName,
-      phone,
-      serviceArea,
-      serviceAreaHousenumber: serviceArea_housenumber || null,
-      serviceAreaStreet: serviceArea_street || null,
-      serviceAreaPostcode: serviceArea_postcode || null,
-      serviceAreaCity: serviceArea_city || null,
-      serviceAreaCitycode: serviceArea_citycode || null,
-      serviceAreaDistrict: serviceArea_district || null,
-      serviceAreaCoordinates: serviceArea_coordinates || null,
-      serviceAreaContext: serviceArea_context || null,
-      siret: siret?.replace(/\s/g, ""), // Remove spaces from SIRET
-      experience,
-      specialties: specialties || null,
-      description,
-      isVerified: false,
-    };
-    await db.insert(professionalProfiles).values(professionalProfile);
   }
 
+  // Validate SIRET format (basic validation)
+  if (siret && !/^\d{14}$/.test(siret.replace(/\s/g, ""))) {
+    return {
+      error: "Le numéro SIRET doit contenir 14 chiffres.",
+    };
+  }
+
+  const existingUser = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  if (existingUser.length > 0) {
+    return {
+      error: "Un compte avec cette adresse email existe déjà.",
+    };
+  }
+
+  const passwordHash = await hashPassword(password);
+
+  const userCount = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users);
+  const isFirstUser = Number(userCount[0].count) === 0;
+
+  let newUserRole: string;
+  if (isFirstUser && email === "das.thimothe@gmail.com") {
+    newUserRole = "admin"; // First user with specific email becomes admin
+  } else {
+    newUserRole = "professional";
+  }
+
+  const newUser: NewUser = {
+    email,
+    passwordHash,
+    name: `${firstName} ${lastName}`,
+    role: newUserRole,
+  };
+
+  const [createdUser] = await db.insert(users).values(newUser).returning();
+
+  if (!createdUser) {
+    return {
+      error: "Échec de la création du compte. Veuillez réessayer.",
+    };
+  }
+
+  // Create professional profile
+  const professionalProfile: NewProfessionalProfile = {
+    userId: createdUser.id,
+    firstName,
+    lastName,
+    phone,
+    serviceArea,
+    serviceAreaHousenumber: serviceArea_housenumber || null,
+    serviceAreaStreet: serviceArea_street || null,
+    serviceAreaPostcode: serviceArea_postcode || null,
+    serviceAreaCity: serviceArea_city || null,
+    serviceAreaCitycode: serviceArea_citycode || null,
+    serviceAreaDistrict: serviceArea_district || null,
+    serviceAreaCoordinates: serviceArea_coordinates || null,
+    serviceAreaContext: serviceArea_context || null,
+    siret: siret?.replace(/\s/g, ""), // Remove spaces from SIRET
+    experience,
+    specialties: specialties || null,
+    description,
+    isVerified: false,
+  };
+
+  await db.insert(professionalProfiles).values(professionalProfile);
+
+  await setSession(createdUser);
   redirect("/workspace/dashboard");
 };
 

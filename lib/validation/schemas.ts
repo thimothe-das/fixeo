@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ServiceType } from "../utils";
 
 // Password validation schema
 export const passwordSchema = z
@@ -41,15 +42,18 @@ export const addressSchema = z
   .max(255, "Adresse trop longue")
   .trim();
 
-// Complete SignUp schema
-export const signUpSchema = z.object({
+export const commonSignUpSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  role: z.enum(["client", "artisan"]).optional(),
+  role: z.enum(["client", "artisan"]),
   inviteId: z.string().optional(),
   firstName: firstNameSchema,
   lastName: lastNameSchema,
   phone: phoneSchema,
+});
+
+// Complete SignUp schema
+export const clientSignUpSchema = commonSignUpSchema.extend({
   address: addressSchema,
   address_housenumber: z.string().optional(),
   address_street: z.string().optional(),
@@ -60,8 +64,10 @@ export const signUpSchema = z.object({
   address_coordinates: z.string().optional(),
   address_context: z.string().optional(),
   preferences: z.string().optional(),
-  // Professional-specific fields
-  serviceArea: z.string().optional(),
+});
+
+export const artisanSignUpSchema = commonSignUpSchema.extend({
+  serviceArea: addressSchema,
   serviceArea_housenumber: z.string().optional(),
   serviceArea_street: z.string().optional(),
   serviceArea_postcode: z.string().optional(),
@@ -70,18 +76,30 @@ export const signUpSchema = z.object({
   serviceArea_district: z.string().optional(),
   serviceArea_coordinates: z.string().optional(),
   serviceArea_context: z.string().optional(),
-  siret: z.string().max(14).optional(),
-  experience: z.string().max(20).optional(),
-  specialties: z.string().optional(), // JSON string of array
-  description: z.string().optional(),
+  siret: z
+    .string()
+    .min(14, "SIRET doit contenir 14 chiffres")
+    .max(14, "SIRET doit contenir 14 chiffres")
+    .trim(),
+  experience: z.string().min(1, "Années d'expérience requises").max(20).trim(),
+  specialties: z.string().min(5, "Spécialités requises").trim(), // JSON string of array
+  description: z
+    .string()
+    .trim()
+    .min(30, "Description trop courte (min 30 caractères)"),
 });
 
-export type SignUpType = z.infer<typeof signUpSchema>;
+export type ClientSignUpType = z.infer<typeof clientSignUpSchema>;
+export type ArtisanSignUpType = z.infer<typeof artisanSignUpSchema>;
 
 // Sign-in schema
 export const signInSchema = z.object({
-  email: z.string().email().min(3).max(255),
-  password: z.string().min(8).max(100),
+  email: emailSchema,
+  password: z
+    .string()
+    .min(1, "Mot de passe requis")
+    .min(8, "Minimum 8 caractères")
+    .max(100, "Maximum 100 caractères"),
 });
 
 export type SignInType = z.infer<typeof signInSchema>;
@@ -97,15 +115,7 @@ export const createServiceRequestSchema = z.object({
     .string()
     .min(1, "Type de service requis")
     .refine(
-      (val) =>
-        [
-          "plomberie",
-          "electricite",
-          "menuiserie",
-          "peinture",
-          "renovation",
-          "depannage",
-        ].includes(val),
+      (val) => Object.values(ServiceType).includes(val as ServiceType),
       "Type de service invalide"
     ),
   urgency: z
@@ -117,7 +127,7 @@ export const createServiceRequestSchema = z.object({
     ),
   description: z
     .string()
-    .min(10, "Description trop courte (min 10 caractères)")
+    .min(150, "Description trop courte (min 150 caractères)")
     .max(1000, "Description trop longue")
     .trim()
     .refine(
