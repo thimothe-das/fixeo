@@ -287,54 +287,38 @@ export default function RequestDetailPage() {
       {/* Main Container - Airbnb width */}
       <div className="max-w-7xl mx-auto px-10 lg:px-20 py-6">
         {/* Page Title */}
-        <div className="mb-6">
-          <h1 className="text-[26px] font-semibold text-[#222222] mb-2">
-            {request.title || "Demande de service"}
-          </h1>
-          <div className="flex items-center gap-1 text-sm text-gray-600">
-            <span className="flex items-center gap-1">
-              {statusConfig.icon}
-              {statusConfig.label}
-            </span>
-            <span className="mx-1">·</span>
-            <span>{request.location}</span>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-[26px] font-semibold text-[#222222] mb-2">
+              {request.title || "Demande de service"}
+            </h1>
+            <div className="flex items-center gap-1 text-sm text-gray-600">
+              <span className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                Créée {timeAgo}
+              </span>
+              <span className="mx-1">·</span>
+              <span>{request.location}</span>
+            </div>
           </div>
-        </div>
-
-        {/* Photo Grid */}
-        <div className="mb-12">
-          <HeroGallery
-            photos={photos}
-            onShowAllPhotos={() => {
-              setCurrentPhotoIndex(0);
-              setPhotoModalOpen(true);
-            }}
-          />
+          <div
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${
+              statusConfig.colors?.bg || "bg-gray-100"
+            } ${statusConfig.colors?.text || "text-gray-700"} ${
+              statusConfig.colors?.ring || "ring-1 ring-gray-200"
+            }`}
+          >
+            {statusConfig.icon}
+            {statusConfig.label}
+          </div>
         </div>
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-20">
           {/* Left Column - 60% */}
           <div className="lg:col-span-3 space-y-8">
-            {/* Section Title */}
-            <div>
-              <h2 className="text-[22px] font-semibold text-[#222222] mb-2">
-                Demande de service : {categoryConfig.type} - {request.location}
-              </h2>
-              <div className="flex items-center gap-3 text-sm text-gray-600">
-                <span className="flex items-center gap-1">
-                  {urgencyConfig.icon}
-                  Urgence : {urgencyConfig.label}
-                </span>
-                <span>·</span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  Créée {timeAgo}
-                </span>
-              </div>
-            </div>
-
             <Separator className="border-[#EBEBEB]" />
+
             {/* Artisan Section */}
             {request.assignedArtisan?.id ? (
               <div>
@@ -446,6 +430,22 @@ export default function RequestDetailPage() {
                   {descriptionExpanded ? "Réduire" : "Lire la suite"}
                 </button>
               )}
+            </div>
+
+            <Separator className="border-[#EBEBEB]" />
+
+            {/* Photo Grid */}
+            <div>
+              <h3 className="text-[22px] font-semibold text-[#222222] mb-4">
+                Photos
+              </h3>
+              <HeroGallery
+                photos={photos}
+                onShowAllPhotos={() => {
+                  setCurrentPhotoIndex(0);
+                  setPhotoModalOpen(true);
+                }}
+              />
             </div>
           </div>
 
