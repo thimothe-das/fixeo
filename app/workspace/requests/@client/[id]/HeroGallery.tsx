@@ -26,7 +26,7 @@ export function HeroGallery({ photos, onShowAllPhotos }: HeroGalleryProps) {
 
   return (
     <div className="relative w-full overflow-hidden">
-      <div className="grid grid-cols-2 gap-2 h-[400px] md:h-[480px]">
+      <div className="grid grid-cols-2 gap-2 h-[200px] md:h-[300px]">
         {/* Main Photo - Left side (50%) */}
         <div
           className="relative overflow-hidden rounded-l-xl cursor-pointer group"

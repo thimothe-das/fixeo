@@ -13,7 +13,6 @@ import {
 import { cn, getCategoryConfig, Urgency } from "@/lib/utils";
 import {
   Calendar,
-  Camera,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
@@ -274,70 +273,148 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
         const photos = request.photos ? JSON.parse(request.photos) : [];
         const isUrgent = request.urgency === Urgency.URGENT;
         const isTaken = request.status === "taken" || request.isAssigned;
-        const unreadMessages = Math.floor(Math.random() * 4);
 
         const [isDescriptionExpanded, setIsDescriptionExpanded] =
           useState(false);
+        const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
         const description = request.description || "Aucune description";
         const isLongDescription = description.length > 150;
         const categoryConfig = getCategoryConfig(
           request.serviceType,
           "h-5 w-5 "
         );
+
+        // Determine which photos to show (user photos or default)
+        const displayPhotos =
+          photos.length > 0 ? photos : [categoryConfig.defaultPhoto];
+        const hasMultiplePhotos = displayPhotos.length > 1;
+
+        const nextPhoto = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          setCurrentPhotoIndex((prev) =>
+            prev < displayPhotos.length - 1 ? prev + 1 : 0
+          );
+        };
+
+        const prevPhoto = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          setCurrentPhotoIndex((prev) =>
+            prev > 0 ? prev - 1 : displayPhotos.length - 1
+          );
+        };
+
         return (
           <Card
             className={cn(
-              `!h-fit rounded-none border shadow-sm overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 border-t-4`,
+              `!h-fit rounded-lg border shadow-sm overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 border-t-4 p-0`,
               isUrgent ? "border-t-red-500 bg-red-50/30" : "border-t-blue-500",
               isTaken ? "opacity-60" : ""
             )}
             onClick={() => setRequestSelectedJob(request)}
           >
-            <CardContent>
-              <div className="flex flex-col space-y-3">
-                {/* Compact Header with Price and Status */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    {getUrgencyBadge(request)}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-lg font-bold text-gray-900">
+            <CardContent className="!p-0">
+              <div className="flex flex-col">
+                {/* Photo Carousel Section */}
+                <div className="relative w-full h-56 bg-gray-100 group">
+                  <img
+                    src={displayPhotos[currentPhotoIndex] || "/placeholder.svg"}
+                    alt={`Photo ${currentPhotoIndex + 1}`}
+                    className="w-full h-full object-cover"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (photos.length > 0) {
+                        openPhotoGallery(photos, currentPhotoIndex);
+                      }
+                    }}
+                  />
+
+                  {/* Arrow Navigation - Only show if multiple photos */}
+                  {hasMultiplePhotos && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={prevPhoto}
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={nextPhoto}
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </Button>
+                    </>
+                  )}
+
+                  {/* Dot Indicators - Only show if multiple photos */}
+                  {hasMultiplePhotos && (
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {displayPhotos.map((_: string, index: number) => (
+                        <button
+                          key={index}
+                          className={cn(
+                            "w-2 h-2 rounded-full transition-all",
+                            currentPhotoIndex === index
+                              ? "bg-white w-6"
+                              : "bg-white/60 hover:bg-white/80"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentPhotoIndex(index);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Photo counter badge */}
+                  {photos.length > 0 && (
+                    <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                      {currentPhotoIndex + 1} / {displayPhotos.length}
+                    </div>
+                  )}
+
+                  {/* Price Overlay - Bottom Right */}
+                  <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm px-3 py-2 rounded-lg">
+                    <div className="text-2xl font-bold text-white">
                       {request.estimatedPrice
                         ? (request.estimatedPrice / 100).toFixed(2)
                         : "60"}
                       €
-                    </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Title and Category */}
-                <div className="m-0">
-                  <h3 className="text-base font-semibold text-gray-900 leading-5 mb-1">
+                {/* Content Section */}
+                <div className="p-4 space-y-3">
+                  {/* Title */}
+                  <h3 className="text-lg font-bold text-gray-900 leading-tight">
                     {request.title}
                   </h3>
-                  <p className="text-sm text-gray-500 flex items-center gap-1">
-                    {categoryConfig.icon} {categoryConfig.type}
-                  </p>
-                </div>
 
-                {/* Location and Client Info */}
-                <div className="space-x-2 my-4">
+                  {/* Time Created */}
                   <div className="flex items-center text-sm text-gray-600">
-                    <Clock className="h-4 w-4 text-gray-500 mr-3" />
-                    <span className="truncate">
-                      Créée le{" "}
+                    <Clock className="h-4 w-4 text-gray-500 mr-2" />
+                    <span>
                       {moment(request.createdAt).format("DD/MM/YYYY à HH:mm")}
                     </span>
                   </div>
+
+                  {/* Location with Navigation */}
                   <div className="flex items-center justify-between text-sm text-gray-600">
                     <div className="flex items-center flex-1 min-w-0">
-                      <MapPin className="h-4 w-4 text-gray-500 mr-3 shrink-0" />
+                      <MapPin className="h-4 w-4 text-gray-500 mr-2 shrink-0" />
                       <span className="truncate">{request.location}</span>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 shrink-0 ml-2 hover:bg-blue-100"
+                      className="h-7 w-7 p-0 shrink-0 ml-2 hover:bg-blue-100"
                       onClick={(e) => {
                         e.stopPropagation();
                         const encodedLocation = encodeURIComponent(
@@ -351,10 +428,11 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                       <Navigation className="h-4 w-4 text-blue-600" />
                     </Button>
                   </div>
-                </div>
 
-                {/* Expandable Description and Photos */}
-                <div className="space-y-3">
+                  {/* Urgency Badge */}
+                  <div>{getUrgencyBadge(request)}</div>
+
+                  {/* Description with Expand/Collapse */}
                   <div>
                     <p
                       className={cn(
@@ -379,91 +457,36 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                     )}
                   </div>
 
-                  {/* Bigger Photos */}
-                  <div className="flex items-center gap-2">
-                    {photos && photos.length > 0 ? (
-                      <>
-                        <div className="flex -space-x-2">
-                          {photos
-                            .slice(0, 3)
-                            .map((photo: string, index: number) => (
-                              <img
-                                key={index}
-                                src={photo || "/placeholder.svg"}
-                                alt={`Photo ${index + 1}`}
-                                className={cn(
-                                  "w-16 h-16 rounded-lg border-3 border-white object-cover cursor-pointer hover:scale-110 hover:z-20 transition-all duration-200 shadow-lg",
-                                  index === 0 && "z-10",
-                                  index === 1 && "z-9",
-                                  index === 2 && "z-8"
-                                )}
-                                style={{
-                                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openPhotoGallery(photos, index);
-                                }}
-                              />
-                            ))}
-                        </div>
-                        {photos.length > 3 && (
-                          <div className="flex items-center ml-2">
-                            <span
-                              className="text-sm text-gray-600 bg-white hover:bg-gray-50 px-3 py-2 rounded-lg cursor-pointer transition-colors font-medium border shadow-sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openPhotoGallery(photos, 3);
-                              }}
-                            >
-                              +{photos.length - 3} photo
-                              {photos.length - 3 > 1 ? "s" : ""}
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="flex items-center gap-2 py-2">
-                        <Camera className="h-5 w-5 text-gray-400" />
-                        <span className="text-sm text-gray-500">
-                          Aucune photo disponible
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <div className="flex space-x-2 w-full justify-between items-center">
+                  {/* Bottom Row: Action Buttons */}
+                  <div className="flex gap-2 pt-3 border-t border-gray-100">
                     {request.status === "available" || !request.isAssigned ? (
-                      <div className="flex gap-3 w-full">
+                      <>
                         <Button
-                          className="flex-1 h-11 bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-sm touch-manipulation"
+                          className="flex-1 h-10 bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-sm touch-manipulation"
                           onClick={(e) => {
                             e.stopPropagation();
                             onAcceptRequest(request.id);
                           }}
                         >
-                          <CheckCircle className="h-4 w-4 mr-2" />
+                          <CheckCircle className="h-4 w-4 mr-1" />
                           Accepter
                         </Button>
                         <Button
                           variant="outline"
-                          className="flex-1 h-11 border-gray-300 text-gray-600 hover:bg-gray-50 font-medium text-sm touch-manipulation"
+                          className="flex-1 h-10 border-gray-300 text-gray-600 hover:bg-gray-50 font-medium text-sm touch-manipulation"
                           onClick={(e) => {
                             e.stopPropagation();
                             // Handle refuse logic here
                           }}
                         >
-                          <XCircle className="h-4 w-4 mr-2" />
+                          <XCircle className="h-4 w-4 mr-1" />
                           Refuser
                         </Button>
-                      </div>
+                      </>
                     ) : (
                       <Button
                         variant="outline"
-                        className="w-full h-11 bg-transparent hover:bg-gray-50 border-gray-200 font-medium text-sm touch-manipulation"
+                        className="w-full h-10 bg-transparent hover:bg-gray-50 border-gray-200 font-medium text-sm touch-manipulation"
                         disabled
                       >
                         <Eye className="h-4 w-4 mr-2" />
