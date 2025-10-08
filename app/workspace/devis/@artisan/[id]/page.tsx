@@ -207,7 +207,7 @@ export default function EstimatedBill() {
                 <Badge
                   className={`${getStatusColor(
                     estimate.status
-                  )} text-xs font-medium px-3 py-1`}
+                  )} text-xs font-medium px-3 py-1 pointer-events-none`}
                 >
                   {getStatusLabel(estimate.status)}
                 </Badge>

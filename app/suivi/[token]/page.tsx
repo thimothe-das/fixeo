@@ -3,7 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db/drizzle";
 import { serviceRequests, ServiceRequestStatus } from "@/lib/db/schema";
-import { getStatusConfig, ServiceType } from "@/lib/utils";
+import {
+  getCategoryConfig,
+  getPriorityConfig,
+  getStatusConfig,
+} from "@/lib/utils";
 import { eq } from "drizzle-orm";
 import {
   AlertCircle,
@@ -66,37 +70,9 @@ export default async function TrackingPage({
     );
   }
 
-  const getUrgencyText = (urgency: string) => {
-    switch (urgency) {
-      case "urgent":
-        return "🚨 Urgent (24h)";
-      case "week":
-        return "📅 Cette semaine";
-      case "flexible":
-        return "⏰ Flexible";
-      default:
-        return urgency;
-    }
-  };
+  const urgencyConfig = getPriorityConfig(request.urgency, "h-4 w-4");
+  const serviceTypeConfig = getCategoryConfig(request.serviceType, "h-4 w-4");
 
-  const getServiceTypeText = (serviceType: string) => {
-    switch (serviceType) {
-      case ServiceType.PLOMBERIE:
-        return "🔧 Plomberie";
-      case ServiceType.ELECTRICITE:
-        return "⚡ Électricité";
-      case ServiceType.MENUISERIE:
-        return "🔨 Menuiserie";
-      case ServiceType.PEINTURE:
-        return "🎨 Peinture";
-      case ServiceType.RENOVATION:
-        return "🏠 Rénovation";
-      case ServiceType.DEPANNAGE:
-        return "⚙️ Dépannage";
-      default:
-        return serviceType;
-    }
-  };
   console.log("request", request);
   const photos = request.photos ? JSON.parse(request.photos) : [];
   const statusConfig = getStatusConfig(request.status, "h-4 w-4");
@@ -128,7 +104,7 @@ export default async function TrackingPage({
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl">
-                {getServiceTypeText(request.serviceType)}
+                {serviceTypeConfig.type}
               </CardTitle>
               <Badge className={statusConfig.color}>
                 {statusConfig.icon}
@@ -161,7 +137,7 @@ export default async function TrackingPage({
                     Urgence:{" "}
                   </span>
                   <span className="text-sm text-gray-600">
-                    {getUrgencyText(request.urgency)}
+                    {urgencyConfig.label}
                   </span>
                 </div>
               </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { BillingEstimateForm } from "@/app/workspace/(admin)/BillingEstimateCreation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,13 +37,13 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BillingEstimateForm } from "../../(admin)/BillingEstimateCreation";
 
 interface ServiceRequest {
   id: number;
   serviceType: string;
   urgency: string;
   description: string;
+  title: string;
   location: string;
   status: string;
   estimatedPrice: number | null;
@@ -302,14 +303,12 @@ export function Requests({
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span className="text-sm truncate cursor-help block">
-                                  {truncateText(request.description, 40)}
+                                  {truncateText(request.title, 20)}
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent className="text-white">
                                 <div className="max-w-md">
-                                  <p className="text-sm">
-                                    {request.description}
-                                  </p>
+                                  <p className="text-sm">{request.title}</p>
                                 </div>
                               </TooltipContent>
                             </Tooltip>
@@ -393,21 +392,39 @@ export function Requests({
                         </TableCell>
 
                         <TableCell>
-                          <Badge
-                            className={`${statusConfig.colors.bg} text-xs border truncate gap-2 ${statusConfig.colors.text}`}
-                          >
-                            {statusConfig.icon}
-                            {statusConfig.label}
-                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                className={`${statusConfig.colors.bg} text-xs border truncate gap-2 max-w-28 ${statusConfig.colors.text}`}
+                              >
+                                {statusConfig.icon}
+                                <span className="truncate">
+                                  {statusConfig.label}
+                                </span>
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="text-white">
+                              <p>{statusConfig.label}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
 
                         <TableCell>
-                          <Badge
-                            className={`${priorityConfig.color} text-xs border truncate`}
-                          >
-                            <span className="mr-1">{priorityConfig.icon}</span>
-                            {priorityConfig.label}
-                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                className={`text-xs border truncate gap-2 max-w-28 ${priorityConfig.colors.bg} ${priorityConfig.colors.text}`}
+                              >
+                                {priorityConfig.icon}
+                                <span className="truncate">
+                                  {priorityConfig.label}
+                                </span>
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="text-white">
+                              <p>{priorityConfig.label}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
 
                         <TableCell>

@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn, getCategoryConfig } from "@/lib/utils";
+import { cn, getCategoryConfig, Urgency } from "@/lib/utils";
 import {
   Calendar,
   Camera,
@@ -117,12 +117,12 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
       if (selectedFilters.urgency !== "all") {
         if (
           selectedFilters.urgency === "urgent" &&
-          request.urgency === "urgent"
+          request.urgency === Urgency.URGENT
         )
           return false;
         if (
           selectedFilters.urgency === "flexible" &&
-          request.urgency === "flexible"
+          request.urgency === Urgency.FLEXIBLE
         )
           return false;
       }
@@ -131,8 +131,10 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
     .sort((a, b) => {
       switch (sortBy) {
         case "urgency":
-          if (a.urgency === "urgent" && b.urgency !== "urgent") return -1;
-          if (a.urgency !== "urgent" && b.urgency === "urgent") return 1;
+          if (a.urgency === Urgency.URGENT && b.urgency !== Urgency.URGENT)
+            return -1;
+          if (a.urgency !== Urgency.URGENT && b.urgency === Urgency.URGENT)
+            return 1;
           return 0;
         default: // newest
           return (
@@ -162,7 +164,7 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
         </Badge>
       );
     }
-    if (request.urgent || request.urgency === "urgent") {
+    if (request.urgent || request.urgency === Urgency.URGENT) {
       const isExpiringSoon = (request.timeLeft || 60) < 30;
       return (
         <Badge
@@ -270,17 +272,14 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
     () =>
       ({ request }: { request: ServiceRequestForArtisan }) => {
         const photos = request.photos ? JSON.parse(request.photos) : [];
-        const isUrgent = request.urgency === "urgent";
+        const isUrgent = request.urgency === Urgency.URGENT;
         const isTaken = request.status === "taken" || request.isAssigned;
+        const unreadMessages = Math.floor(Math.random() * 4);
 
-        // Mock data for unread messages and timeline progress (keeping Jobs.tsx visual elements)
-        const unreadMessages = Math.floor(Math.random() * 4); // 0-3 unread messages
-
-        // Description expansion state
         const [isDescriptionExpanded, setIsDescriptionExpanded] =
           useState(false);
         const description = request.description || "Aucune description";
-        const isLongDescription = description.length > 150; // Consider long if over 150 characters
+        const isLongDescription = description.length > 150;
         const categoryConfig = getCategoryConfig(
           request.serviceType,
           "h-5 w-5 "
@@ -369,7 +368,7 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                     </p>
                     {isLongDescription && (
                       <button
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-1 transition-colors"
+                        className="text-fixeo-accent-500 hover:text-fixeo-accent-600 text-sm font-medium mt-1 transition-colors hover:underline"
                         onClick={(e) => {
                           e.stopPropagation();
                           setIsDescriptionExpanded(!isDescriptionExpanded);
@@ -565,7 +564,7 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                     </p>
                     {isLongDescription && (
                       <button
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-2 transition-colors"
+                        className="text-fixeo-accent-500 hover:text-fixeo-accent-600 text-sm font-medium mt-2 transition-colors hover:underline"
                         onClick={(e) => {
                           e.stopPropagation();
                           setIsDescriptionExpanded(!isDescriptionExpanded);

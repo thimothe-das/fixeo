@@ -44,6 +44,7 @@ import useSWR from "swr";
 
 import { signOut } from "@/app/(login)/actions";
 import { User as UserType } from "@/lib/db/schema";
+import { cn } from "@/lib/utils";
 import { NewRequest } from "./NewRequest";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -112,11 +113,8 @@ function ServiceRequestsListSkeleton() {
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [activeSection, setActiveSection] = React.useState("dashboard");
-  const [isActive, setIsActive] = React.useState(true);
-  const [isNewRequestModalOpen, setIsNewRequestModalOpen] =
-    React.useState(false);
+
   const router = useRouter();
-  // Real API calls
   const {
     data: requests,
     error: requestsError,
@@ -130,11 +128,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         <Sidebar className="border-r border-gray-200">
           <SidebarHeader className="border-b border-gray-200 p-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-fixeo-main-500 rounded-lg flex items-center justify-center">
                 <User className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-lg text-blue-600">Fixéo</h2>
+                <h2 className="font-bold text-lg text-fixeo-main-500">Fixéo</h2>
                 <p className="text-sm text-gray-600">Espace client</p>
               </div>
             </div>
@@ -153,6 +151,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                   {sidebarItems.map((item) => (
                     <SidebarMenuItem
                       key={item.id}
+                      className={cn(
+                        "cursor-pointer",
+                        pathname === `/workspace/${item.route}` &&
+                          "border-l-2 border-fixeo-main-500"
+                      )}
                       onClick={() =>
                         !item.disabled &&
                         router.push(`/workspace/${item.route}`)

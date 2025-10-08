@@ -666,7 +666,7 @@ export default function Job() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm ">
           <div className="relative">
             <div className="flex border-b border-gray-200 bg-gray-50">
               <button
@@ -1062,7 +1062,7 @@ export default function Job() {
             <Button
               onClick={handleMissionCompletion}
               disabled={isSubmittingCompletion}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               {isSubmittingCompletion
                 ? "En cours..."
@@ -1245,7 +1245,7 @@ export default function Job() {
                 selectedMission && handleValidateCompletion(selectedMission)
               }
               disabled={isSubmittingValidation}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               {isSubmittingValidation
                 ? "En cours..."

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ServiceRequestStatus } from "@/lib/db/schema";
+import { Urgency } from "@/lib/utils";
 import { AlertTriangle, Euro, MapPin, Star, Wrench } from "lucide-react";
 import moment from "moment";
 import { useRouter } from "next/navigation";
@@ -402,7 +403,7 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
                     <div>
                       <div className="flex items-center gap-2">
                         <h4 className="font-medium">{request.title}</h4>
-                        {request.urgency === "urgent" && (
+                        {request.urgency === Urgency.URGENT && (
                           <Badge variant="destructive" className="text-xs">
                             Urgent
                           </Badge>
@@ -425,7 +426,7 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
                     </p>
                     <Button
                       size="sm"
-                      className="mt-2"
+                      className="mt-2 text-white"
                       onClick={() =>
                         router.push(`/workspace/jobs/${request.id}`)
                       }

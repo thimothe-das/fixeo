@@ -3,7 +3,6 @@ import {
   AlertCircle,
   AlertTriangle,
   Calculator,
-  Calendar,
   CheckCircle,
   CircleDot,
   Clock,
@@ -37,6 +36,12 @@ export enum ServiceType {
   MENUISERIE = "menuiserie",
   DEPANNAGE = "depannage",
   RENOVATION = "renovation",
+}
+
+export enum Urgency {
+  URGENT = "urgent",
+  WEEK = "week",
+  FLEXIBLE = "flexible",
 }
 
 export const DOWN_PAYMENT_PERCENTAGE = 0.3;
@@ -93,19 +98,19 @@ export const getStatusConfig = (status: string, iconClassName: string) => {
     case ServiceRequestStatus.AWAITING_ASSIGNATION:
       return {
         label: "Assignation en cours",
-        borderTop: "border-t-yellow-200",
+        borderTop: "border-t-purple-200",
         icon: (
           <UserRoundSearch
-            className={cn("text-yellow-500 h-5 w-5", iconClassName)}
+            className={cn("text-purple-500 h-5 w-5", iconClassName)}
           />
         ),
         colors: {
-          color: "yellow-500",
-          bg: "bg-yellow-100 hover:bg-yellow-100",
-          text: "text-yellow-500",
-          ring: "ring 1 ring-yellow-200",
-          accent: "border-yellow-500",
-          borderTop: "border-t-yellow-200",
+          color: "purple-500",
+          bg: "bg-purple-100 hover:bg-purple-100",
+          text: "text-purple-500",
+          ring: "ring 1 ring-purple-200",
+          accent: "border-purple-500",
+          borderTop: "border-t-purple-200",
         },
       };
     case ServiceRequestStatus.IN_PROGRESS:
@@ -287,64 +292,58 @@ export const getPriorityConfig = (
   iconClassName: string = ""
 ) => {
   switch (priority) {
-    case "urgent":
+    case Urgency.URGENT:
       return {
-        color: "bg-rose-100 text-rose-800 hover:bg-rose-100",
         label: "Urgent",
-        dotColor: "bg-rose-500",
-        topBarColor: "bg-rose-500",
-        icon: <Zap className={cn("text-rose-600", iconClassName)} />,
+        icon: <span className={cn("text-rose-600", iconClassName)}>🚨</span>,
+        colors: {
+          color: "rose-500",
+          bg: "bg-rose-100 hover:bg-rose-100",
+          text: "text-rose-800",
+          ring: "ring-1 ring-rose-200",
+          accent: "border-rose-500",
+          borderTop: "border-t-rose-500",
+        },
       };
-    case "high":
+    case Urgency.WEEK:
       return {
-        color: "bg-orange-100 text-orange-800 hover:bg-orange-100",
-        label: "Élevée",
-        dotColor: "bg-orange-500",
-        topBarColor: "bg-orange-500",
-        icon: (
-          <AlertTriangle className={cn("text-orange-600", iconClassName)} />
-        ),
-      };
-    case "medium":
-      return {
-        color: "bg-amber-100 text-amber-800 hover:bg-amber-100",
-        label: "Moyenne",
-        dotColor: "bg-amber-500",
-        topBarColor: "bg-amber-500",
-        icon: <CircleDot className={cn("text-amber-600", iconClassName)} />,
-      };
-    case "low":
-      return {
-        color: "bg-green-100 text-green-800 hover:bg-green-100",
-        label: "Faible",
-        dotColor: "bg-green-500",
-        topBarColor: "bg-green-500",
-        icon: <Clock className={cn("text-green-600", iconClassName)} />,
-      };
-    case "normal":
-      return {
-        color: "bg-slate-100 text-slate-600 hover:bg-slate-100",
-        label: "Normal",
-        dotColor: "bg-slate-400",
-        topBarColor: "bg-slate-400",
-        icon: <CircleDot className={cn("text-slate-600", iconClassName)} />,
-      };
-    case "week":
-      return {
-        color: "bg-amber-100 text-amber-800 hover:bg-amber-100",
         label: "Cette semaine",
-        dotColor: "bg-amber-500",
-        topBarColor: "bg-amber-400",
-        icon: <Calendar className={cn("text-amber-600", iconClassName)} />,
+        icon: <span className={cn("text-orange-600", iconClassName)}>📅</span>,
+        colors: {
+          color: "orange-500",
+          bg: "bg-orange-100 hover:bg-orange-100",
+          text: "text-orange-800",
+          ring: "ring-1 ring-orange-200",
+          accent: "border-orange-500",
+          borderTop: "border-t-orange-500",
+        },
+      };
+    case Urgency.FLEXIBLE:
+      return {
+        label: "Flexible",
+        icon: <span className={cn("text-amber-600", iconClassName)}>🌿</span>,
+        colors: {
+          color: "amber-500",
+          bg: "bg-amber-100 hover:bg-amber-100",
+          text: "text-amber-800",
+          ring: "ring-1 ring-amber-200",
+          accent: "border-amber-500",
+          borderTop: "border-t-amber-500",
+        },
       };
 
     default:
       return {
-        color: "bg-slate-100 text-slate-600 hover:bg-slate-100",
         label: "Non défini",
-        dotColor: "bg-slate-400",
-        topBarColor: "bg-slate-400",
         icon: <CircleDot className={cn("text-slate-600", iconClassName)} />,
+        colors: {
+          color: "slate-400",
+          bg: "bg-slate-100 hover:bg-slate-100",
+          text: "text-slate-600",
+          ring: "ring-1 ring-slate-200",
+          accent: "border-slate-400",
+          borderTop: "border-t-slate-400",
+        },
       };
   }
 };

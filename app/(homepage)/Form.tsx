@@ -24,7 +24,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { User } from "@/lib/db/schema";
-import { fetcher } from "@/lib/utils";
+import {
+  fetcher,
+  getCategoryConfig,
+  getPriorityConfig,
+  ServiceType,
+  Urgency,
+} from "@/lib/utils";
 import {
   CreateRequestType,
   createServiceRequestSchema,
@@ -65,7 +71,7 @@ export default function Form() {
     defaultValues: {
       title: "",
       serviceType: "",
-      urgency: "",
+      urgency: Urgency.FLEXIBLE,
       description: "",
       location: "",
       location_housenumber: "",
@@ -134,7 +140,6 @@ export default function Form() {
             </CardHeader>
             <CardContent className="space-y-4">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* Service Type & Urgency */}
                 <div className="flex gap-4 items-center">
                   <div className="w-full">
                     <label className="block text-sm font-semibold text-gray-800 mb-2">
@@ -154,24 +159,21 @@ export default function Form() {
                               <SelectValue placeholder="Choisir..." />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="plomberie">
-                                🔧 Plomberie
-                              </SelectItem>
-                              <SelectItem value="electricite">
-                                ⚡ Électricité
-                              </SelectItem>
-                              <SelectItem value="menuiserie">
-                                🔨 Menuiserie
-                              </SelectItem>
-                              <SelectItem value="peinture">
-                                🎨 Peinture
-                              </SelectItem>
-                              <SelectItem value="renovation">
-                                🏠 Rénovation
-                              </SelectItem>
-                              <SelectItem value="depannage">
-                                ⚙️ Dépannage
-                              </SelectItem>
+                              {Object.values(ServiceType).map((serviceType) => {
+                                const categoryConfig = getCategoryConfig(
+                                  serviceType,
+                                  "h-4 w-4"
+                                );
+                                return (
+                                  <SelectItem
+                                    key={serviceType}
+                                    value={serviceType}
+                                  >
+                                    {categoryConfig.icon}
+                                    {categoryConfig.type}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                           {error && (
@@ -200,15 +202,18 @@ export default function Form() {
                               <SelectValue placeholder="Quand ?" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="urgent">
-                                🚨 Urgent (24h)
-                              </SelectItem>
-                              <SelectItem value="week">
-                                📅 Cette semaine
-                              </SelectItem>
-                              <SelectItem value="flexible">
-                                ⏰ Flexible
-                              </SelectItem>
+                              {Object.values(Urgency).map((urgency) => {
+                                const urgencyConfig = getPriorityConfig(
+                                  urgency,
+                                  "h-4 w-4"
+                                );
+                                return (
+                                  <SelectItem key={urgency} value={urgency}>
+                                    {urgencyConfig.icon}
+                                    {urgencyConfig.label}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                           {error && (

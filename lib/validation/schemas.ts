@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ServiceType } from "../utils";
+import { ServiceType, Urgency } from "../utils";
 
 // Password validation schema
 export const passwordSchema = z
@@ -119,10 +119,9 @@ export const createServiceRequestSchema = z.object({
       "Type de service invalide"
     ),
   urgency: z
-    .string()
-    .min(1, "Urgence requise")
+    .nativeEnum(Urgency)
     .refine(
-      (val) => ["urgent", "week", "flexible"].includes(val),
+      (val) => Object.values(Urgency).includes(val as Urgency),
       "Urgence invalide"
     ),
   description: z

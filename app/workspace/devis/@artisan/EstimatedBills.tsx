@@ -1,23 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import type { BillingEstimateForClient } from "@/app/workspace/components/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,27 +10,31 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Calculator,
-  Search,
-  Calendar,
-  FileText,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getCategoryConfig } from "@/lib/utils";
+import {
   AlertTriangle,
+  Calculator,
   CheckCircle,
-  XCircle,
   Clock,
-  Filter,
-  Plus,
-  DollarSign,
-  ChevronDown,
   Euro,
+  FileText,
+  XCircle,
 } from "lucide-react";
-import type { BillingEstimateForClient } from "../../components/types";
-import useSWR from "swr";
 import moment from "moment";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import useSWR from "swr";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -138,9 +125,9 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
       });
 
       if (apiResponse.ok) {
-        await mutate(); // Refresh estimates
-        setSelectedEstimate(null); // Close detail view
-        onEstimateResponse?.(); // Notify parent component
+        await mutate();
+        setSelectedEstimate(null);
+        onEstimateResponse?.();
       } else {
         const error = await apiResponse.json();
         alert(`Erreur: ${error.error}`);
@@ -379,6 +366,10 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
           ) : (
             <div className="divide-y divide-gray-200">
               {sortedEstimates.map((estimate) => {
+                const categoryConfig = getCategoryConfig(
+                  estimate.serviceRequest?.serviceType,
+                  "h-4 w-4"
+                );
                 const isExpired =
                   estimate.validUntil &&
                   new Date(estimate.validUntil) < new Date();
@@ -396,13 +387,16 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-medium text-gray-900">
-                            {estimate.serviceRequest?.serviceType}
+                          <h3
+                            className={`font-medium text-gray-900 flex items-center gap-2`}
+                          >
+                            {categoryConfig.icon}
+                            {categoryConfig.type}
                           </h3>
                           <Badge
                             className={`${getStatusColor(
                               estimate.status
-                            )} border text-xs font-medium px-2 py-1`}
+                            )} border text-xs font-medium px-2 py-1 pointer-events-none`}
                           >
                             {getStatusIcon(estimate.status)}
                             <span className="ml-1">

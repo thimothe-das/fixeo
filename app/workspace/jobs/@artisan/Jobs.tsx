@@ -18,6 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { ServiceRequestStatus } from "@/lib/db/schema";
 import { cn, getCategoryConfig, getStatusConfig } from "@/lib/utils";
@@ -26,10 +32,8 @@ import {
   Camera,
   Eye,
   MapPin,
-  Navigation,
   ThumbsDown,
   ThumbsUp,
-  User,
   Wrench,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -258,12 +262,23 @@ export default function Jobs({ assignedRequests }: JobsProps) {
                 {/* Compact Header with Price and Status */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <Badge
-                      className={`${statusConfig.color} ${statusConfig.colors.bg} ${statusConfig.colors.text} flex items-center gap-2 shrink-0 text-xs font-medium`}
-                    >
-                      {statusConfig.icon}
-                      {statusConfig.label}
-                    </Badge>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            className={`${statusConfig.color} ${statusConfig.colors.bg} ${statusConfig.colors.text} flex items-center gap-2 shrink-0 text-xs font-medium max-w-[120px]`}
+                          >
+                            {statusConfig.icon}
+                            <span className="truncate">
+                              {statusConfig.label}
+                            </span>
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-white">{statusConfig.label}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-lg font-bold text-gray-900">
@@ -277,33 +292,21 @@ export default function Jobs({ assignedRequests }: JobsProps) {
 
                 {/* Title and Category */}
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900 leading-5 mb-1">
+                  <h3 className="text-base font-semibold text-gray-900 leading-5 mb-1 flex items-center gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-gray-500">
+                            {categoryConfig.icon}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-white">{categoryConfig.type}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     {mission.title}
                   </h3>
-                  <p className="text-sm text-gray-500 flex items-center gap-1">
-                    {categoryConfig.icon} {categoryConfig.type}
-                  </p>
-                </div>
-
-                {/* Timeline Progress */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Progression:</span>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalSteps }).map((_, index) => (
-                      <div
-                        key={index}
-                        className={cn(
-                          "w-2 h-2 rounded-full",
-                          index < timelineProgress
-                            ? "bg-emerald-500"
-                            : "bg-gray-200"
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs text-gray-500">
-                    {timelineProgress}/{totalSteps}
-                  </span>
                 </div>
 
                 {/* Location and Client Info */}
@@ -311,37 +314,14 @@ export default function Jobs({ assignedRequests }: JobsProps) {
                   <div className="flex items-center justify-between text-sm text-gray-600">
                     <div className="flex items-center flex-1 min-w-0">
                       <MapPin className="h-4 w-4 text-gray-500 mr-3 shrink-0" />
-                      <span className="truncate">{mission.location}</span>
+                      <span className="">{mission.location}</span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 shrink-0 ml-2 hover:bg-blue-100"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const encodedLocation = encodeURIComponent(
-                          mission.location
-                        );
-                        // For mobile devices, use the universal maps URL that works with most map apps
-                        const mapsUrl = `https://maps.google.com/maps?q=${encodedLocation}`;
-                        window.open(mapsUrl, "_blank");
-                      }}
-                      title="Navigate to location"
-                    >
-                      <Navigation className="h-4 w-4 text-blue-600" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <User className="h-4 w-4 text-gray-500 mr-3" />
-                    <span className="truncate">
-                      {mission.clientName || "Nom du client non disponible"}
-                    </span>
                   </div>
                 </div>
 
                 {/* Compact Description and Photos */}
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-700 line-clamp-1 leading-relaxed">
+                  <p className="text-sm text-gray-500 line-clamp-1 leading-relaxed">
                     {mission.description || "Aucune description"}
                   </p>
 
@@ -378,6 +358,26 @@ export default function Jobs({ assignedRequests }: JobsProps) {
                   </div>
                 </div>
 
+                <div className="flex items-center gap-2 justify-center">
+                  <span className="text-xs text-gray-500">Progression:</span>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalSteps }).map((_, index) => (
+                      <div
+                        key={index}
+                        className={cn(
+                          "w-2 h-2 rounded-full",
+                          index < timelineProgress
+                            ? "bg-emerald-500"
+                            : "bg-gray-200"
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {timelineProgress}/{totalSteps}
+                  </span>
+                </div>
+
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                   <div className="flex space-x-2 gap-2 w-full justify-between items-center">
@@ -412,17 +412,46 @@ export default function Jobs({ assignedRequests }: JobsProps) {
                         </Button>
                       </div>
                     ) : (
-                      <Button
-                        variant="outline"
-                        className="flex-1 h-11 bg-transparent hover:bg-gray-50 border-gray-200 font-medium text-sm touch-manipulation"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/workspace/jobs/${mission.id}`);
-                        }}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Voir détails
-                      </Button>
+                      <div className="flex gap-2 w-full">
+                        <Button
+                          variant="outline"
+                          className="flex-1 h-11 bg-transparent hover:bg-gray-50 border-gray-200 font-medium text-sm touch-manipulation"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/workspace/jobs/${mission.id}`);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Voir détails
+                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-11 w-11 bg-transparent hover:bg-gray-50 border-gray-200 shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Open Google Maps with the mission location
+                                  const encodedLocation = encodeURIComponent(
+                                    mission.location
+                                  );
+                                  window.open(
+                                    `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`,
+                                    "_blank"
+                                  );
+                                }}
+                              >
+                                <MapPin className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ouvrir dans Google Maps</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -550,7 +579,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
             <Button
               onClick={handleValidateCompletion}
               disabled={isSubmittingValidation}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               {isSubmittingValidation
                 ? "En cours..."
@@ -595,7 +624,7 @@ export default function Jobs({ assignedRequests }: JobsProps) {
             <Button
               onClick={handleValidateCompletion}
               disabled={isSubmittingValidation}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               {isSubmittingValidation ? "En cours..." : "Confirmer le litige"}
             </Button>

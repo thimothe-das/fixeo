@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getPriorityConfig, getStatusConfig } from "@/lib/utils";
 import {
   AlertTriangle,
   Badge as BadgeIcon,
@@ -39,34 +40,6 @@ interface RequestCardProps {
 }
 
 export function RequestCard({ request, onAccept }: RequestCardProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "accepted":
-        return "bg-green-100 text-green-800";
-      case "completed":
-        return "bg-blue-100 text-blue-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case "urgent":
-        return "bg-red-100 text-red-800";
-      case "week":
-        return "bg-orange-100 text-orange-800";
-      case "flexible":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "in_progress":
@@ -93,7 +66,8 @@ export function RequestCard({ request, onAccept }: RequestCardProps) {
   };
 
   const photos = request.photos ? JSON.parse(request.photos) : [];
-
+  const statusConfig = getStatusConfig(request.status, "h-4 w-4");
+  const urgencyConfig = getPriorityConfig(request.urgency, "h-4 w-4");
   return (
     <Card
       className={`hover:shadow-md transition-shadow ${
@@ -123,17 +97,11 @@ export function RequestCard({ request, onAccept }: RequestCardProps) {
             </p>
           </div>
           <div className="flex flex-col gap-2">
-            <Badge className={getStatusColor(request.status)}>
-              {getStatusIcon(request.status)}
-              <span className="ml-1 capitalize">{request.status}</span>
-            </Badge>
-            <Badge className={getUrgencyColor(request.urgency)}>
-              {request.urgency === "urgent"
-                ? "🚨"
-                : request.urgency === "week"
-                ? "📅"
-                : "⏰"}{" "}
-              {request.urgency}
+            <Badge
+              className={`${urgencyConfig.colors.bg} ${urgencyConfig.colors.text}`}
+            >
+              {urgencyConfig.icon}
+              {urgencyConfig.label}
             </Badge>
           </div>
         </div>

@@ -28,6 +28,7 @@ export async function getAllServiceRequestsPaginated(
       id: serviceRequests.id,
       serviceType: serviceRequests.serviceType,
       urgency: serviceRequests.urgency,
+      title: serviceRequests.title,
       description: serviceRequests.description,
       location: serviceRequests.location,
       status: serviceRequests.status,

@@ -31,7 +31,6 @@ export const createServiceRequest = async (data: CreateRequestType) => {
     photos,
   } = data;
 
-  // Check if user is logged in
   let currentUser;
   try {
     currentUser = await getUser();

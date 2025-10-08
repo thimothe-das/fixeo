@@ -8,7 +8,7 @@ import { SignInType, signInSchema } from "@/lib/validation/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DoorOpen, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { signIn } from "../actions";
@@ -20,7 +20,7 @@ export function SignIn({ role = null }: { role?: UserRole }) {
   const redirect = searchParams.get("redirect");
   const priceId = searchParams.get("priceId");
   const [serverError, setServerError] = useState<string>("");
-
+  const router = useRouter();
   const {
     handleSubmit,
     control,
@@ -34,11 +34,13 @@ export function SignIn({ role = null }: { role?: UserRole }) {
   });
 
   const onSubmit = async (data: SignInType) => {
-    setServerError(""); // Clear any previous errors
+    setServerError("");
     try {
       const result = await signIn(data);
       if (result?.error) {
         setServerError(result.error);
+      } else {
+        router.push("/workspace/dashboard");
       }
     } catch (error) {
       setServerError(

@@ -5,41 +5,30 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  Building,
   Calculator,
   Check,
-  CheckCircle,
   ChevronLeft,
   ChevronRight,
   Clock,
-  Droplets,
   Edit2,
   Edit3,
   Eye,
   FileText,
-  Flame,
-  Hammer,
   HelpCircle,
-  Home,
   Image as ImageIcon,
   MapPin,
   MessageSquare,
-  Paintbrush,
   Play,
   Plus,
   Save,
+  Search,
   Send,
-  Settings,
-  Sparkles,
   SquareArrowOutUpRight,
   Star,
-  Trees,
   UserCheck,
   User as UserIcon,
   Wrench,
   X,
-  XCircle,
-  Zap,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import * as React from "react";
@@ -52,6 +41,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+import { BillingEstimateForm } from "@/app/workspace/(admin)/BillingEstimateCreation";
 import {
   AddressAutocomplete,
   AddressData,
@@ -70,8 +60,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn, getStatusConfig } from "@/lib/utils";
-import { BillingEstimateForm } from "../../../(admin)/BillingEstimateCreation";
+import { ServiceRequestStatus } from "@/lib/db/schema";
+import {
+  cn,
+  getCategoryConfig,
+  getPriorityConfig,
+  getStatusConfig,
+  ServiceType,
+  Urgency,
+} from "@/lib/utils";
 
 interface ServiceRequestDetail {
   id: number;
@@ -127,180 +124,6 @@ interface ConversationMessage {
   };
 }
 
-const STATUS_OPTIONS = [
-  {
-    value: "awaiting_estimate",
-    label: "En attente de devis",
-    color: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    icon: FileText,
-  },
-  {
-    value: "awaiting_assignation",
-    label: "En attente d'assignation",
-    color: "bg-purple-100 text-purple-700 border-purple-200",
-    icon: UserCheck,
-  },
-  {
-    value: "in_progress",
-    label: "En cours",
-    color: "bg-blue-100 text-blue-700 border-blue-200",
-    icon: Clock,
-  },
-  {
-    value: "client_validated",
-    label: "Validé par le client",
-    color: "bg-orange-100 text-orange-700 border-orange-200",
-    icon: Eye,
-  },
-  {
-    value: "artisan_validated",
-    label: "Validé par l'artisan",
-    color: "bg-cyan-100 text-cyan-700 border-cyan-200",
-    icon: UserCheck,
-  },
-  {
-    value: "completed",
-    label: "Terminé",
-    color: "bg-green-100 text-green-700 border-green-200",
-    icon: CheckCircle,
-  },
-  {
-    value: "disputed_by_client",
-    label: "Contesté par le client",
-    color: "bg-red-100 text-red-700 border-red-200",
-    icon: AlertTriangle,
-  },
-  {
-    value: "disputed_by_artisan",
-    label: "Contesté par l'artisan",
-    color: "bg-red-100 text-red-700 border-red-200",
-    icon: AlertTriangle,
-  },
-  {
-    value: "disputed_by_both",
-    label: "Contesté par les deux parties",
-    color: "bg-red-100 text-red-700 border-red-200",
-    icon: AlertTriangle,
-  },
-  {
-    value: "resolved",
-    label: "Résolu",
-    color: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    icon: CheckCircle,
-  },
-  {
-    value: "cancelled",
-    label: "Annulé",
-    color: "bg-gray-100 text-gray-700 border-gray-200",
-    icon: XCircle,
-  },
-];
-
-const SERVICE_TYPES = [
-  { value: "electricity", label: "Électricité" },
-  { value: "plumbing", label: "Plomberie" },
-  { value: "heating", label: "Chauffage" },
-  { value: "painting", label: "Peinture" },
-  { value: "carpentry", label: "Menuiserie" },
-  { value: "masonry", label: "Maçonnerie" },
-  { value: "roofing", label: "Couverture" },
-  { value: "cleaning", label: "Nettoyage" },
-  { value: "gardening", label: "Jardinage" },
-  { value: "other", label: "Autre" },
-];
-
-const URGENCY_LEVELS = [
-  {
-    value: "low",
-    label: "Faible",
-    color: "bg-green-100 text-green-700 border-green-200",
-    indicatorColor: "bg-green-500",
-  },
-  {
-    value: "medium",
-    label: "Moyenne",
-    color: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    indicatorColor: "bg-yellow-500",
-  },
-  {
-    value: "high",
-    label: "Élevée",
-    color: "bg-orange-100 text-orange-700 border-orange-200",
-    indicatorColor: "bg-orange-500",
-  },
-  {
-    value: "urgent",
-    label: "Urgent",
-    color: "bg-red-100 text-red-700 border-red-200",
-    indicatorColor: "bg-red-500",
-  },
-];
-
-// Service types with icons and colors
-const SERVICE_TYPES_WITH_ICONS = [
-  {
-    value: "electricity",
-    label: "Électricité",
-    icon: Zap,
-    color: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  },
-  {
-    value: "plumbing",
-    label: "Plomberie",
-    icon: Droplets,
-    color: "bg-blue-100 text-blue-700 border-blue-200",
-  },
-  {
-    value: "heating",
-    label: "Chauffage",
-    icon: Flame,
-    color: "bg-red-100 text-red-700 border-red-200",
-  },
-  {
-    value: "painting",
-    label: "Peinture",
-    icon: Paintbrush,
-    color: "bg-purple-100 text-purple-700 border-purple-200",
-  },
-  {
-    value: "carpentry",
-    label: "Menuiserie",
-    icon: Hammer,
-    color: "bg-amber-100 text-amber-700 border-amber-200",
-  },
-  {
-    value: "masonry",
-    label: "Maçonnerie",
-    icon: Building,
-    color: "bg-gray-100 text-gray-700 border-gray-200",
-  },
-  {
-    value: "roofing",
-    label: "Couverture",
-    icon: Home,
-    color: "bg-slate-100 text-slate-700 border-slate-200",
-  },
-  {
-    value: "cleaning",
-    label: "Nettoyage",
-    icon: Sparkles,
-    color: "bg-cyan-100 text-cyan-700 border-cyan-200",
-  },
-  {
-    value: "gardening",
-    label: "Jardinage",
-    icon: Trees,
-    color: "bg-green-100 text-green-700 border-green-200",
-  },
-  {
-    value: "other",
-    label: "Autre",
-    icon: Settings,
-    color: "bg-gray-100 text-gray-700 border-gray-200",
-  },
-];
-
-// Request progress/timeline data
 const getRequestProgress = (
   status: string,
   createdAt: string,
@@ -367,7 +190,6 @@ const getRequestProgress = (
     },
   ];
 
-  // Handle disputed states
   if (status.includes("disputed")) {
     steps.push({
       key: "disputed",
@@ -380,7 +202,6 @@ const getRequestProgress = (
   return steps;
 };
 
-// Get icon for progress step
 const getStepIcon = (stepKey: string, completed: boolean) => {
   const iconProps = {
     className: `h-3 w-3 ${completed ? "text-white" : "text-gray-400"}`,
@@ -425,7 +246,6 @@ const formatCurrency = (amount: number | null) => {
   }).format(amount / 100);
 };
 
-// Calculate time elapsed since creation
 const getTimeElapsed = (createdAt: string) => {
   const now = new Date();
   const created = new Date(createdAt);
@@ -444,37 +264,7 @@ const getTimeElapsed = (createdAt: string) => {
   }
 };
 
-// Get urgency config by value
-const getUrgencyConfig = (urgency: string) => {
-  return (
-    URGENCY_LEVELS.find((level) => level.value === urgency) || URGENCY_LEVELS[0]
-  );
-};
-
-// Get service type config by value
-const getServiceTypeConfig = (serviceType: string) => {
-  return (
-    SERVICE_TYPES_WITH_ICONS.find((type) => type.value === serviceType) ||
-    SERVICE_TYPES_WITH_ICONS[SERVICE_TYPES_WITH_ICONS.length - 1]
-  );
-};
-
-// Get profession name based on service type
-const getProfessionName = (serviceType: string) => {
-  const professions: { [key: string]: string } = {
-    electricity: "Électricien",
-    plumbing: "Plombier",
-    heating: "Chauffagiste",
-    painting: "Peintre",
-    carpentry: "Menuisier",
-    masonry: "Maçon",
-    roofing: "Couvreur",
-    cleaning: "Agent d'entretien",
-    gardening: "Jardinier",
-    other: "Artisan",
-  };
-  return professions[serviceType] || "Artisan";
-};
+const URGENCY_LEVELS = Object.values(Urgency);
 
 export function Request({
   setUserId,
@@ -504,6 +294,7 @@ export function Request({
   const [showConversationPanel, setShowConversationPanel] = useState(false);
   const [showEstimateModal, setShowEstimateModal] = useState(false);
   const [isCreatingEstimate, setIsCreatingEstimate] = useState(false);
+  const [serviceTypeSearch, setServiceTypeSearch] = useState("");
 
   const requestId = params.id as string;
 
@@ -730,6 +521,11 @@ export function Request({
       cancelEditingDescription();
     }
   };
+  const services = Object.values(ServiceType);
+  const statuses = Object.values(ServiceRequestStatus);
+
+  const urgencyConfig = getPriorityConfig(request?.urgency, "h-4 w-4");
+  const serviceTypeConfig = getCategoryConfig(request?.serviceType, "h-4 w-4");
 
   if (loading) {
     return (
@@ -797,9 +593,60 @@ export function Request({
             </Button>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Requête #{request.id}
-                </h1>
+                {!isEditingTitle ? (
+                  <div
+                    className="group cursor-pointer py-1 px-2 -mx-2 rounded-md transition-all hover:bg-gray-50 flex items-center gap-2"
+                    onClick={startEditingTitle}
+                  >
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <h2 className="text-2xl font-bold text-gray-900 truncate max-w-md">
+                          {formData.title || `Requête #${request.id}`}
+                        </h2>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs break-words text-white">
+                          {formData.title || `Requête #${request.id}`}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Edit2 className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors opacity-0 group-hover:opacity-100" />
+                    {modifiedFields.has("title") && (
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 py-1">
+                    <Input
+                      value={tempTitle}
+                      onChange={(e) => setTempTitle(e.target.value)}
+                      onKeyDown={handleTitleKeyPress}
+                      placeholder={`Requête #${request.id}`}
+                      className="!text-2xl font-bold border-0 shadow-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
+                      autoFocus
+                    />
+                    <div className="flex items-center gap-1 ml-2">
+                      <Button
+                        size="sm"
+                        onClick={saveTitle}
+                        className="h-7 w-7 p-0"
+                        disabled={!tempTitle.trim()}
+                      >
+                        <Check className="h-3 w-3 text-white" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={cancelEditingTitle}
+                        className="h-7 w-7 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <Badge
                   className={`${statusConfig.colors.color} text-sm ${statusConfig.colors.bg} ${statusConfig.colors.text}`}
                 >
@@ -808,25 +655,26 @@ export function Request({
                 </Badge>
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span>Créée le {formatDate(request.createdAt)}</span>
-                <span className="text-gray-400">•</span>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  <span>{getTimeElapsed(request.createdAt)} écoulé</span>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2 cursor-help">
+                      <Clock className="h-4 w-4" />
+                      <span>{getTimeElapsed(request.createdAt)} écoulé</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-white">
+                      Créée le {formatDate(request.createdAt)}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
                 {request.urgency && (
                   <>
                     <span className="text-gray-400">•</span>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          getUrgencyConfig(request.urgency).indicatorColor
-                        }`}
-                      />
-                      <span className="text-xs font-medium">
-                        {getUrgencyConfig(request.urgency).label}
-                      </span>
-                    </div>
+                    <span className="text-xs font-medium flex items-center gap-1">
+                      {urgencyConfig.icon}
+                      {urgencyConfig.label}
+                    </span>
                   </>
                 )}
               </div>
@@ -906,234 +754,143 @@ export function Request({
             </Button>
           </div>
 
-          {/* Request Details - Always Visible */}
-          <div className="space-y-6">
-            <div className="grid lg:grid-cols-4 gap-25">
-              {/* Main Form - 3 columns */}
-              <div className="lg:col-span-3 space-y-6">
-                {/* Basic Information - No Card */}
-                <div className="space-y-6">
-                  {/* Title - Subtle Inline Editing */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      {modifiedFields.has("title") && (
-                        <div className="flex items-center gap-1">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                          <span className="text-xs text-blue-600 font-medium">
-                            Modifié
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {!isEditingTitle ? (
-                      // Display Mode - Subtle with visible edit indicator
-                      <div
-                        className="group cursor-pointer py-1 px-1 -mx-1 rounded-md transition-all hover:bg-gray-50"
-                        onClick={startEditingTitle}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`text-2xl font-semibold leading-tight text-gray-800`}
-                          >
-                            {formData.title ||
-                              "Cliquez pour ajouter un titre..."}
-                          </span>
-                          <Edit2 className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                        </div>
-                      </div>
-                    ) : (
-                      // Edit Mode
-                      <div className="flex items-center gap-2 py-1">
-                        <Input
-                          value={tempTitle}
-                          onChange={(e) => setTempTitle(e.target.value)}
-                          onKeyDown={handleTitleKeyPress}
-                          placeholder="Titre de la requête"
-                          className="flex-1 !text-2xl font-semibold border-0 shadow-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
-                          autoFocus
-                        />
-                        <div className="flex items-center gap-1 ml-2">
-                          <Button
-                            size="sm"
-                            onClick={saveTitle}
-                            className="h-7 w-7 p-0"
-                            disabled={!tempTitle.trim()}
-                          >
-                            <Check className="h-3 w-3 text-white" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={cancelEditingTitle}
-                            className="h-7 w-7 p-0"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Separator */}
-                  <div className="border-t border-gray-100 my-8"></div>
-
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="text-sm font-medium">Urgence</Label>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <HelpCircle className="h-4 w-4 text-gray-400" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-white">
-                            Définit la priorité de traitement de la demande
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                      {modifiedFields.has("urgency") && (
-                        <div className="flex items-center gap-1 text-xs text-blue-600">
-                          <Edit3 className="h-3 w-3" />
-                          <span>Modifié</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {URGENCY_LEVELS.map((level) => {
-                        const isSelected = formData.urgency === level.value;
-                        return (
-                          <button
-                            key={level.value}
-                            type="button"
-                            onClick={() =>
-                              handleInputChange("urgency", level.value)
-                            }
-                            className={`flex items-center gap-2 p-3 rounded-lg border-2 text-sm font-medium transition-all hover:shadow-sm ${
-                              isSelected
-                                ? `${level.color} border-current shadow-sm`
-                                : "border-gray-200 hover:border-gray-300 text-gray-600"
-                            }`}
-                          >
-                            <div
-                              className={`w-2 h-2 rounded-full ${level.indicatorColor}`}
-                            />
-                            <span>{level.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Separator */}
-                  <div className="border-t border-gray-100 my-8"></div>
-
-                  {/* Service Type and Urgency - Same Line */}
-                  <div className="grid grid-cols-1 gap-6">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Label className="text-sm font-medium">
-                          Type de service
-                        </Label>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <HelpCircle className="h-4 w-4 text-gray-400" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-white">
-                              Sélectionnez la catégorie qui correspond le mieux
-                              au type d'intervention demandée
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                        {modifiedFields.has("serviceType") && (
-                          <div className="flex items-center gap-1 text-xs text-blue-600">
-                            <Edit3 className="h-3 w-3" />
-                            <span>Modifié</span>
+          <div className="space-y-6 pt-10 mx-4">
+            <div className="grid lg:grid-cols-3 gap-25">
+              <div className="lg:col-span-2 space-y-9">
+                <div className="space-y-9">
+                  <div className="space-y-6">
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-4">
+                        <div className="relative flex-1">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-gray-400" />
                           </div>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                        {SERVICE_TYPES_WITH_ICONS.map((type) => {
-                          const IconComponent = type.icon;
-                          const isSelected =
-                            formData.serviceType === type.value;
-                          return (
-                            <button
-                              key={type.value}
-                              type="button"
-                              onClick={() =>
-                                handleInputChange("serviceType", type.value)
-                              }
-                              className={`flex items-center gap-2 p-2 rounded-lg border-2 text-xs font-medium transition-all hover:shadow-sm ${
-                                isSelected
-                                  ? `${type.color} border-current shadow-sm`
-                                  : "border-gray-200 hover:border-gray-300 text-gray-600"
-                              }`}
-                            >
-                              <IconComponent className="h-3 w-3" />
-                              <span className="truncate">{type.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
+                          <Input
+                            type="text"
+                            placeholder="Rechercher un service (ex: plomberie, électricité...)"
+                            value={serviceTypeSearch}
+                            onChange={(e) =>
+                              setServiceTypeSearch(e.target.value)
+                            }
+                            className="pl-10 h-11 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                          />
+                        </div>
 
-                  {/* Separator */}
-                  <div className="border-t border-gray-100 my-8"></div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-white max-w-xs">
+                                Sélectionnez la catégorie qui correspond le
+                                mieux au type d'intervention demandée. Utilisez
+                                la sélection rapide ou la barre de recherche
+                                pour filtrer.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                          {modifiedFields.has("serviceType") && (
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                              <Edit3 className="h-3 w-3" />
+                              <span>Modifié</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
-                  {/* Status - Full Width */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="text-sm font-medium">Statut</Label>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <AlertTriangle className="h-4 w-4 text-amber-500" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-white">
-                            Attention : Changer le statut affecte le workflow et
-                            les notifications
+                      {/* Service Pill Tags Grid */}
+                      <div className="flex flex-wrap gap-3">
+                        {services
+                          .filter((type) => {
+                            const categoryConfig = getCategoryConfig(type, "");
+                            return (
+                              serviceTypeSearch === "" ||
+                              categoryConfig.type
+                                .toLowerCase()
+                                .includes(serviceTypeSearch.toLowerCase()) ||
+                              type
+                                .toLowerCase()
+                                .includes(serviceTypeSearch.toLowerCase())
+                            );
+                          })
+                          .map((type) => {
+                            const categoryConfig = getCategoryConfig(
+                              type,
+                              "h-4 w-4"
+                            );
+                            const isSelected = formData.serviceType === type;
+                            return (
+                              <button
+                                key={type}
+                                type="button"
+                                onClick={() =>
+                                  handleInputChange("serviceType", type)
+                                }
+                                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full border-2 font-medium text-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-md ${
+                                  isSelected
+                                    ? `${categoryConfig.colors.bg} ${
+                                        categoryConfig.colors.accent
+                                      } border-current shadow-md scale-[1.02] ring-2 ring-offset-1 ${categoryConfig.colors.accent.replace(
+                                        "border-",
+                                        "ring-"
+                                      )}`
+                                    : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                                }`}
+                              >
+                                {React.cloneElement(categoryConfig.icon, {
+                                  className: `h-4 w-4 transition-colors ${
+                                    isSelected
+                                      ? categoryConfig.colors.text
+                                      : "text-gray-600"
+                                  }`,
+                                })}
+                                <span
+                                  className={`transition-colors ${
+                                    isSelected
+                                      ? categoryConfig.colors.text
+                                      : "text-gray-700"
+                                  }`}
+                                >
+                                  {categoryConfig.type}
+                                </span>
+                                {isSelected && (
+                                  <Check className="h-3 w-3 text-current ml-1" />
+                                )}
+                              </button>
+                            );
+                          })}
+                      </div>
+
+                      {/* No results message */}
+                      {services.filter((type) => {
+                        const categoryConfig = getCategoryConfig(type, "");
+                        return (
+                          serviceTypeSearch === "" ||
+                          categoryConfig.type
+                            .toLowerCase()
+                            .includes(serviceTypeSearch.toLowerCase()) ||
+                          type
+                            .toLowerCase()
+                            .includes(serviceTypeSearch.toLowerCase())
+                        );
+                      }).length === 0 && (
+                        <div className="text-center py-8">
+                          <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                          <p className="text-gray-500">
+                            Aucun service trouvé pour "{serviceTypeSearch}"
                           </p>
-                        </TooltipContent>
-                      </Tooltip>
-                      {modifiedFields.has("status") && (
-                        <div className="flex items-center gap-1 text-xs text-blue-600">
-                          <Edit3 className="h-3 w-3" />
-                          <span>Modifié</span>
+                          <button
+                            type="button"
+                            onClick={() => setServiceTypeSearch("")}
+                            className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                          >
+                            Effacer la recherche
+                          </button>
                         </div>
                       )}
                     </div>
-                    <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-                      {STATUS_OPTIONS.map((status) => {
-                        const IconComponent = status.icon;
-                        const isSelected = formData.status === status.value;
-                        return (
-                          <button
-                            key={status.value}
-                            type="button"
-                            onClick={() =>
-                              handleInputChange("status", status.value)
-                            }
-                            className={`flex items-center gap-2 p-2 rounded-lg border-2 text-xs font-medium transition-all hover:shadow-sm min-h-[2.5rem] ${
-                              isSelected
-                                ? `${status.color} border-current shadow-sm`
-                                : "border-gray-200 hover:border-gray-300 text-gray-600"
-                            }`}
-                            title={status.label}
-                          >
-                            <IconComponent className="h-3 w-3 flex-shrink-0" />
-                            <span className="truncate text-left leading-tight">
-                              {status.label}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
                   </div>
-
-                  {/* Separator */}
-                  <div className="border-t border-gray-100 my-8"></div>
 
                   {/* Description - Subtle Inline Editing */}
                   <div>
@@ -1313,50 +1070,142 @@ export function Request({
                 </div>
               </div>
 
-              {/* Progress Timeline - 1 column */}
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                    Progression de la requête
-                  </h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Progression
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-white max-w-xs">
+                            Cliquez sur les étapes pour changer le statut de la
+                            requête. Attention : cela affecte le workflow et les
+                            notifications.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                      {modifiedFields.has("status") && (
+                        <div className="flex items-center gap-1 text-xs text-blue-600">
+                          <Edit3 className="h-3 w-3" />
+                          <span>Modifié</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
                   <div className="space-y-4">
-                    {progressSteps.map((step, index) => (
-                      <div key={step.key} className="flex items-start gap-3">
-                        <div className="flex flex-col items-center">
-                          <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                              step.completed
-                                ? "bg-green-500 border-green-500"
-                                : "bg-gray-200 border-gray-300"
-                            }`}
-                          >
-                            {getStepIcon(step.key, step.completed)}
-                          </div>
-                          {index < progressSteps.length - 1 && (
-                            <div
-                              className={`w-0.5 h-8 mt-1 ${
-                                step.completed ? "bg-green-500" : "bg-gray-200"
+                    {progressSteps.map((step, index) => {
+                      // Map step keys to status values
+                      const getStatusForStep = (stepKey: string) => {
+                        switch (stepKey) {
+                          case "created":
+                            return "created";
+                          case "awaiting_estimate":
+                            return "awaiting_estimate";
+                          case "awaiting_assignation":
+                            return "awaiting_assignation";
+                          case "in_progress":
+                            return "in_progress";
+                          case "validation":
+                            return "client_validated";
+                          case "completed":
+                            return "completed";
+                          case "disputed":
+                            return "disputed_by_client";
+                          default:
+                            return step.key;
+                        }
+                      };
+
+                      const stepStatus = getStatusForStep(step.key);
+                      const isCurrentStatus = formData.status === stepStatus;
+                      const canClick = step.key !== "created"; // Can't change "created" status
+
+                      return (
+                        <div key={step.key} className="flex items-start gap-3">
+                          <div className="flex flex-col items-center">
+                            <button
+                              type="button"
+                              disabled={!canClick}
+                              onClick={() =>
+                                canClick &&
+                                handleInputChange("status", stepStatus)
+                              }
+                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                                step.completed
+                                  ? isCurrentStatus
+                                    ? "bg-blue-500 border-blue-500 ring-2 ring-blue-200"
+                                    : "bg-green-500 border-green-500 hover:bg-green-600 hover:border-green-600"
+                                  : canClick
+                                  ? "bg-gray-200 border- gray-300 hover:bg-gray-300 hover:border-gray-400 cursor-pointer"
+                                  : "bg-gray-200 border-gray-300 cursor-not-allowed"
+                              } ${
+                                canClick
+                                  ? "hover:scale-110 hover:shadow-md"
+                                  : ""
                               }`}
-                            />
-                          )}
+                              title={
+                                canClick
+                                  ? `Cliquer pour définir le statut à "${step.label}"`
+                                  : "Statut non modifiable"
+                              }
+                            >
+                              {getStepIcon(step.key, step.completed)}
+                            </button>
+                            {index < progressSteps.length - 1 && (
+                              <div
+                                className={`w-0.5 h-8 mt-1 transition-colors ${
+                                  step.completed
+                                    ? "bg-green-500"
+                                    : "bg-gray-200"
+                                }`}
+                              />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p
+                                className={`text-sm font-medium ${
+                                  isCurrentStatus
+                                    ? "text-blue-700"
+                                    : step.completed
+                                    ? "text-gray-900"
+                                    : "text-gray-500"
+                                }`}
+                              >
+                                {step.label}
+                                {isCurrentStatus && (
+                                  <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                    Actuel
+                                  </span>
+                                )}
+                              </p>
+                              {canClick && !step.completed && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleInputChange("status", stepStatus)
+                                  }
+                                  className="text-xs text-blue-600 hover:text-blue-700 font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  Activer
+                                </button>
+                              )}
+                            </div>
+                            {step.date && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {formatDate(step.date)}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`text-sm font-medium ${
-                              step.completed ? "text-gray-900" : "text-gray-500"
-                            }`}
-                          >
-                            {step.label}
-                          </p>
-                          {step.date && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatDate(step.date)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
                 {/* Client Information - Minimal & Clickable */}
@@ -1448,7 +1297,7 @@ export function Request({
                           </div>
                         </div>
                         <p className="text-xs text-gray-500">
-                          {getProfessionName(request.serviceType)}
+                          {serviceTypeConfig.type}
                         </p>
                       </div>
                       <div className="opacity-100 group-hover:opacity-0 transition-opacity">
@@ -1495,7 +1344,6 @@ export function Request({
             </div>
           </div>
 
-          {/* Conversation Panel Overlay */}
           {showConversationPanel && (
             <div
               className="fixed inset-0 bg-gray-900/5 z-40 transition-opacity duration-300"
@@ -1503,10 +1351,8 @@ export function Request({
             />
           )}
 
-          {/* Floating Conversation Panel */}
           {showConversationPanel && (
             <div className="fixed inset-y-0 right-0 z-50 w-96 bg-white shadow-2xl border-l border-gray-200 flex flex-col animate-in slide-in-from-right duration-300">
-              {/* Conversation Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="h-5 w-5 text-blue-600" />
@@ -1608,7 +1454,6 @@ export function Request({
           )}
         </div>
 
-        {/* Photo Gallery Modal */}
         <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] p-0">
             <DialogHeader className="p-6 pb-0">
@@ -1627,7 +1472,6 @@ export function Request({
                 </div>
               )}
 
-              {/* Navigation buttons */}
               {photos.length > 1 && (
                 <>
                   <Button
@@ -1657,7 +1501,6 @@ export function Request({
                 </>
               )}
 
-              {/* Close button */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -1695,7 +1538,6 @@ export function Request({
           </DialogContent>
         </Dialog>
 
-        {/* Billing Estimate Creation Modal */}
         <Dialog open={showEstimateModal} onOpenChange={setShowEstimateModal}>
           <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto p-0">
             <BillingEstimateForm

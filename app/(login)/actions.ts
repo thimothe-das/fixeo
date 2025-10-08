@@ -46,8 +46,6 @@ async function logActivity(
   await db.insert(activityLogs).values(newActivity);
 }
 
-// SignInSchema and SignInType now imported from @/lib/validation/schemas
-
 export const signIn = async (data: SignInType) => {
   const { email, password } = data;
 
@@ -85,8 +83,6 @@ export const signIn = async (data: SignInType) => {
     setSession(foundUser),
     logActivity(foundTeam?.id, foundUser.id, ActivityType.SIGN_IN),
   ]);
-
-  redirect("/workspace/dashboard");
 };
 
 export const signUpClient = async (data: ClientSignUpType) => {

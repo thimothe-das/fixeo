@@ -40,9 +40,7 @@ import {
   Clock,
   Eye,
   FileText,
-  Image as ImageIcon,
   Phone,
-  Star,
   ThumbsDown,
   ThumbsUp,
   User,
@@ -51,7 +49,6 @@ import {
 import moment from "moment";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
-import PhotosStrip from "./PhotosStrip";
 
 export default function RequestCardContainer({
   request,
@@ -221,26 +218,47 @@ export default function RequestCardContainer({
       )}
 
       {/* Header */}
-      <CardHeader className="p-3">
+      <CardHeader className="p-3 pt-1">
         <div className="space-y-2  overflow-hidden">
-          {/* Service type and badge row */}
+          {/* Title with category icon and status badge row */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div
-                className={`w-3.5 h-3.5 flex items-center justify-center ${categoryConfig.colors.text}`}
-              >
-                {categoryConfig.icon}
-              </div>
-              <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                {request.serviceType}
-              </span>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={`w-4 h-4 flex items-center justify-center ${categoryConfig.colors.text} cursor-help flex-shrink-0`}
+                    >
+                      {categoryConfig.icon}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-white capitalize">
+                      {request.serviceType}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <h4 className="text-lg font-semibold text-slate-900 leading-tight group-hover:text-slate-700 transition-colors duration-200 truncate">
+                      {request.title}
+                    </h4>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs text-white">{request.title}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
 
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge
-                    className={`rounded-full m-1 text-xs px-1 py-1 font-medium ${statusConfig.color} ml-3 max-w-24 flex items-center gap-1 truncate ${statusConfig.colors.bg} ${statusConfig.colors.text}`}
+                    className={`rounded-full m-1 text-xs px-1 py-1 font-medium ${statusConfig.color} ml-3 max-w-24 flex items-center gap-1 truncate ${statusConfig.colors.bg} ${statusConfig.colors.text} flex-shrink-0`}
                   >
                     {statusConfig.icon}
                     <span className="truncate min-w-0">
@@ -250,22 +268,6 @@ export default function RequestCardContainer({
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="max-w-xs text-white">{statusConfig.label}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-
-          {/* Title row with tooltip */}
-          <div className="block ">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <h3 className="text-xl font-semibold text-slate-900 leading-tight group-hover:text-slate-700 transition-colors duration-200 truncate">
-                    {request.title}
-                  </h3>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs text-white">{request.title}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -312,7 +314,7 @@ export default function RequestCardContainer({
                 e.stopPropagation();
                 setDescriptionExpanded(!descriptionExpanded);
               }}
-              className={`h-auto p-0 text-xs mt-2 font-medium hover:underline ${categoryConfig.colors.text}`}
+              className={`h-auto p-0 text-xs mt-2 font-medium hover:underline text-fixeo-accent-500 hover:text-fixeo-accent-600 hover:underline`}
             >
               {descriptionExpanded ? "Voir moins" : "Voir plus"}
             </Button>
@@ -320,7 +322,7 @@ export default function RequestCardContainer({
         </div>
 
         {/* Photos */}
-        {photos.length > 0 ? (
+        {/* {photos.length > 0 ? (
           <PhotosStrip photos={photos} />
         ) : (
           <div className="flex items-center justify-center h-12 bg-slate-50 rounded-lg">
@@ -329,7 +331,7 @@ export default function RequestCardContainer({
               <span className="text-xs font-medium">Aucune photo fournie</span>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Footer */}
         <div className="pt-2 border-t border-slate-200 pb-2">
@@ -353,12 +355,26 @@ export default function RequestCardContainer({
 
                   {/* Name and First Name */}
                   <div>
-                    <p className="text-xs font-semibold text-slate-900">
-                      {request.assignedArtisan.firstName &&
-                      request.assignedArtisan.lastName
-                        ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
-                        : request.assignedArtisan.name}
-                    </p>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p className="text-xs font-semibold text-slate-900 truncate cursor-help max-w-30">
+                            {request.assignedArtisan.firstName &&
+                            request.assignedArtisan.lastName
+                              ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
+                              : request.assignedArtisan.name}
+                          </p>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-white">
+                            {request.assignedArtisan.firstName &&
+                            request.assignedArtisan.lastName
+                              ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
+                              : request.assignedArtisan.name}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     {request.assignedArtisan.specialty && (
                       <p className="text-xs text-slate-500">
                         {request.assignedArtisan.specialty}
@@ -366,13 +382,12 @@ export default function RequestCardContainer({
                     )}
                   </div>
 
-                  {/* Rating */}
-                  <div className="flex items-center gap-1">
+                  {/* <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-xs font-medium text-slate-700">
                       {request.assignedArtisan.rating?.toFixed(1) || "4.5"}
                     </span>
-                  </div>
+                  </div> */}
 
                   {/* Phone Number Button */}
                   <Button
@@ -526,9 +541,9 @@ export default function RequestCardContainer({
             <p className="text-xs text-slate-400 text-center truncate">
               📍 {request.location}
             </p>
-            <p className="text-xs text-slate-400 text-center">
+            {/* <p className="text-xs text-slate-400 text-center">
               Créée le {moment(request.createdAt).format("DD/MM/YYYY")}
-            </p>
+            </p> */}
           </div>
         </div>
         {/* Validation Banner and Actions - Two-way validation system */}

@@ -231,6 +231,17 @@
   [role="tooltip"] {
     color: white !important;
   }
+  
+  /* White text selection */
+  ::selection {
+    color: white;
+    background-color: var(--color-fixeo-main-500);
+  }
+  
+  ::-moz-selection {
+    color: white;
+    background-color: var(--color-fixeo-main-500);
+  }
 }
 
 /* Custom slow spin animation */

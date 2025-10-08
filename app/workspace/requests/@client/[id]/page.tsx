@@ -1,34 +1,43 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, createBreadcrumbs } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ServiceRequestStatus } from "@/lib/db/schema";
 import {
   getCategoryConfig,
+  getPriorityConfig,
   getStatusConfig,
-  handleAcceptQuote,
-  rejectQuote,
 } from "@/lib/utils";
 import {
   AlertCircle,
   Calculator,
-  Camera,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
   Clock as ClockIcon,
-  FileText as DocumentIcon,
+  FileText,
   Info,
-  Phone,
+  MapPin,
   PlayCircle,
-  Send,
+  Plus,
   Star,
   User,
+  X,
 } from "lucide-react";
+import moment from "moment";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import useSWR from "swr";
@@ -146,6 +155,8 @@ export default function RequestDetailPage() {
   const pathname = usePathname();
   const [isSubmittingValidation, setIsSubmittingValidation] =
     React.useState(false);
+  const [photoModalOpen, setPhotoModalOpen] = React.useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = React.useState(0);
   // Fetch request data from API
   const {
     data: request,
@@ -179,33 +190,6 @@ export default function RequestDetailPage() {
       </div>
     );
   }
-
-  // Get configurations
-  const getPriorityConfig = (priority: string = "normal") => {
-    switch (priority) {
-      case "high":
-        return {
-          color: "bg-rose-100 text-rose-800",
-          label: "Urgent",
-          dotColor: "bg-rose-500",
-          topBarColor: "bg-rose-500",
-        };
-      case "low":
-        return {
-          color: "bg-slate-100 text-slate-600",
-          label: "Faible",
-          dotColor: "bg-slate-400",
-          topBarColor: "bg-slate-400",
-        };
-      default:
-        return {
-          color: "bg-amber-100 text-amber-800",
-          label: "Normal",
-          dotColor: "bg-amber-500",
-          topBarColor: "bg-amber-500",
-        };
-    }
-  };
 
   // Prepare stepper data
   const getStepperData = (): { steps: StepMeta[]; current: StepKey } => {
@@ -274,586 +258,392 @@ export default function RequestDetailPage() {
   const priorityConfig = getPriorityConfig(request.priority);
   const statusConfig = getStatusConfig(request.status, "h-4 w-4");
 
-  const handleValidateCompletion = async () => {
-    setIsSubmittingValidation(true);
-    try {
-      const response = await fetch(
-        `/api/service-requests/${request.id}/validate`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: validationType,
-            disputeReason:
-              validationType === "dispute" ? disputeReason : undefined,
-            disputeDetails:
-              validationType === "dispute" ? disputeDetails : undefined,
-          }),
-        }
-      );
+  const categoryConfig = getCategoryConfig(request.serviceType, "h-4 w-4");
+  const urgencyConfig = getPriorityConfig(request?.urgency, "h-4 w-4");
 
-      if (response.ok) {
-        setShowValidationDialog(false);
-        setShowDisputeDialog(false);
-        // Refresh would happen here in real implementation
-        resetValidationForm();
-      } else {
-        const error = await response.json();
-        alert(`Erreur: ${error.error}`);
-      }
-    } catch (error) {
-      console.error("Error validating completion:", error);
-      alert("Erreur lors de la validation");
-    } finally {
-      setIsSubmittingValidation(false);
+  // Helper function to get step icon
+  const getStepIcon = (stepKey: StepKey, completed: boolean) => {
+    const iconProps = {
+      className: `h-2.5 w-2.5 ${completed ? "text-white" : "text-gray-400"}`,
+    };
+
+    switch (stepKey) {
+      case "created":
+        return <Plus {...iconProps} />;
+      case "quote":
+        return <Calculator {...iconProps} />;
+      case "accepted":
+        return <PlayCircle {...iconProps} />;
+      case "completed":
+        return <CheckCircle2 {...iconProps} />;
+      default:
+        return <Clock {...iconProps} />;
     }
   };
 
-  const resetValidationForm = () => {
-    setValidationType("approve");
-    setDisputeReason("");
-    setDisputeDetails("");
+  // Helper function to determine if step is completed
+  const isStepCompleted = (stepKey: StepKey, currentStep: StepKey) => {
+    const stepOrder = { created: 0, quote: 1, accepted: 2, completed: 3 };
+    return stepOrder[stepKey] <= stepOrder[currentStep];
   };
 
-  const handleRejectQuote = async () => {
-    if (!relevantEstimate) return;
-    setIsLoading(true);
-    await rejectQuote(relevantEstimate.id, () => {
-      setShowRejectDialog(false);
-    });
-    setIsLoading(false);
+  // Helper function to determine if step is current
+  const isCurrentStep = (stepKey: StepKey, currentStep: StepKey) => {
+    return stepKey === currentStep;
   };
-
-  const categoryConfig = getCategoryConfig(request.serviceType, "h-4 w-4");
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <Breadcrumb
-        items={createBreadcrumbs.serviceRequest(
-          request.title || `Demande #${request.id}`,
-          request.id
-        )}
-      />
+    <TooltipProvider>
+      <div className="max-w-7xl mx-auto">
+        <Breadcrumb
+          items={createBreadcrumbs.serviceRequest(
+            request.title || `Demande #${request.id}`,
+            request.id
+          )}
+        />
 
-      <div className="px-4 py-4">
-        <div className="">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Demande de Service
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Suivi de votre demande #{request.id}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {relevantEstimate && (
-                <>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-blue-600 flex items-center gap-1">
-                      <Calculator className="h-5 w-5 text-blue-500" />
-                      {formatPrice(relevantEstimate.estimatedPrice)}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p className="text-white">
-                            Prix estimé incluant main d'œuvre, matériaux et
-                            déplacement
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
-                  <div className="h-8 w-px bg-gray-300"></div>
-                </>
-              )}
-              <Badge
-                className={`items-center gap-2 rounded-full text-sm font-medium ${statusConfig.color} ${statusConfig.colors.bg} ${statusConfig.colors.text}`}
-              >
-                {statusConfig.icon}
-                {statusConfig.label}
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Request Details */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  {request.title}
-                </h3>
-                <p className="text-gray-700 leading-relaxed">
-                  {request.description}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6 mt-6">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">
-                    Catégorie
-                  </h4>
-                  <div className="flex items-center gap-2">
-                    <span className={`${categoryConfig.colors.text}`}>
-                      {categoryConfig.icon}
-                    </span>
-                    <span className="text-gray-900 font-medium">
-                      {categoryConfig.type}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">
-                    Date de création
-                  </h4>
-                  <span className="text-gray-900">
-                    {formatDate(request.createdAt)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-500 mb-1">
-                  Localisation
-                </h4>
-                <div className="flex items-center gap-2">
-                  <span className="text-red-600">📍</span>
-                  <span className="text-gray-900">{request.location}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Process Tracking */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
-              Suivi du processus
-            </h2>
-
+        <div>
+          <div className="bg-white r p-4 mt-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              {/* Step 1 - Demande créée */}
-              <div className="flex flex-col items-center relative">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500 text-white border-2 border-green-500">
-                  <DocumentIcon className="h-4 w-4" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {request.title}
+                </h1>
+                <div className="flex items-center gap-3 items-center mt-1">
+                  {request.urgency && (
+                    <>
+                      <span className="text-xs font-medium flex items-center gap-1 text-gray-600">
+                        {categoryConfig.icon}
+                        {categoryConfig.type}
+                      </span>
+                      <span className="text-gray-400">•</span>
+                    </>
+                  )}
+                  <p className="text-xs flex items-center gap-1 text-gray-600">
+                    <Clock className="h-4 w-4 text-gray-600" />
+                    <span>
+                      Créée {moment(request.createdAt).locale("fr").fromNow()}
+                    </span>
+                  </p>
+                  <span className="text-gray-400">•</span>
+                  <p className="text-xs flex items-center gap-1 text-gray-600">
+                    <MapPin className="h-4 w-4 text-gray-600" />
+                    <span>{request.location}</span>
+                  </p>
                 </div>
-                <span className="text-sm font-medium text-gray-900 mt-2">
-                  Demande créée
-                </span>
-                <span className="text-xs text-gray-500 mt-1">
-                  {formatDate(request.createdAt)}
-                </span>
               </div>
 
-              {/* Connection line */}
-              <div className="flex-1 h-0.5 bg-gray-200 mx-4"></div>
+              <div className="flex items-center gap-3">
+                {relevantEstimate && (
+                  <>
+                    {/* Clickable Price - Opens Devis */}
+                    <button
+                      className="text-right hover:bg-blue-50 rounded-lg p-2 transition-colors group cursor-pointer"
+                      onClick={() =>
+                        router.push(`/workspace/devis/${relevantEstimate.id}`)
+                      }
+                      title="Cliquer pour voir le devis détaillé"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <div className="text-2xl font-bold text-blue-600 group-hover:text-blue-700 transition-colors flex items-center gap-1">
+                            <Calculator className="h-5 w-5 text-blue-500" />
+                            {formatPrice(relevantEstimate.estimatedPrice)}
+                          </div>
+                          <p className="text-xs text-gray-500 group-hover:text-blue-600 transition-colors flex items-center gap-1">
+                            <FileText className="h-3 w-3" />
+                            Voir devis
+                          </p>
+                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom">
+                            <p className="text-white">
+                              Prix estimé incluant main d'œuvre, matériaux et
+                              déplacement
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </button>
+                    <div className="h-8 w-px bg-gray-300"></div>
+                  </>
+                )}
 
-              {/* Step 2 - En attente d'estimation */}
-              <div className="flex flex-col items-center relative">
-                <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                    current === "quote" || request.billingEstimates?.length
-                      ? "bg-orange-500 text-white border-orange-500"
-                      : current === "created"
-                      ? "bg-orange-500 text-white border-orange-500"
-                      : "bg-gray-200 text-gray-400 border-gray-200"
-                  }`}
-                >
-                  <Calculator className="h-4 w-4" />
-                </div>
-                <span
-                  className={`text-sm font-medium mt-2 ${
-                    current === "quote" || current === "created"
-                      ? "text-gray-900"
-                      : "text-gray-500"
-                  }`}
-                >
-                  En attente d'estimation
-                </span>
-                <span
-                  className={`text-xs mt-1 ${
-                    current === "quote" || current === "created"
-                      ? "text-orange-600"
-                      : "text-gray-400"
-                  }`}
-                >
-                  {current === "quote" || current === "created"
-                    ? "En cours"
-                    : "—"}
-                </span>
-              </div>
-
-              {/* Connection line */}
-              <div className="flex-1 h-0.5 bg-gray-200 mx-4"></div>
-
-              {/* Step 3 - En cours */}
-              <div className="flex flex-col items-center relative">
-                <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                    current === "accepted"
-                      ? "bg-blue-500 text-white border-blue-500"
-                      : "bg-gray-200 text-gray-400 border-gray-200"
-                  }`}
-                >
-                  <PlayCircle className="h-4 w-4" />
-                </div>
-                <span
-                  className={`text-sm font-medium mt-2 ${
-                    current === "accepted" ? "text-gray-900" : "text-gray-500"
-                  }`}
-                >
-                  En cours
-                </span>
-                <span
-                  className={`text-xs mt-1 ${
-                    current === "accepted" ? "text-blue-600" : "text-gray-400"
-                  }`}
-                >
-                  {current === "accepted" && request.timeline?.accepted?.date
-                    ? formatDate(request.timeline.accepted.date)
-                    : "—"}
-                </span>
-              </div>
-
-              {/* Connection line */}
-              <div className="flex-1 h-0.5 bg-gray-200 mx-4"></div>
-
-              {/* Step 4 - Terminé */}
-              <div className="flex flex-col items-center relative">
-                <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                    current === "completed"
-                      ? "bg-green-600 text-white border-green-600"
-                      : "bg-gray-200 text-gray-400 border-gray-200"
-                  }`}
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                </div>
-                <span
-                  className={`text-sm font-medium mt-2 ${
-                    current === "completed" ? "text-gray-900" : "text-gray-500"
-                  }`}
-                >
-                  Terminé
-                </span>
-                <span
-                  className={`text-xs mt-1 ${
-                    current === "completed" ? "text-green-600" : "text-gray-400"
-                  }`}
-                >
-                  {current === "completed" && request.timeline?.completed?.date
-                    ? formatDate(request.timeline.completed.date)
-                    : "—"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Photos */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
-              Photos du problème
-            </h2>
-            {photos.length > 0 ? (
-              <div className="grid grid-cols-3 gap-4">
-                {photos.map((photo: string, index: number) => (
-                  <div
-                    key={index}
-                    className="aspect-square rounded-lg overflow-hidden"
-                  >
-                    <img
-                      src={photo}
-                      alt={`Photo ${index + 1}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="rounded-full bg-gray-100 p-4 mb-4">
-                  <Camera className="h-8 w-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Aucune photo disponible
-                </h3>
-                <p className="text-gray-500 text-sm max-w-sm">
-                  Aucune photo n'a été fournie pour cette demande de service.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Artisan Info */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            {request.assignedArtisan?.name ? (
-              <>
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                  Artisan assigné
-                </h2>
-                <div className="flex items-center gap-4 mb-6">
-                  {request.assignedArtisan.profilePicture ? (
-                    <img
-                      src={request.assignedArtisan.profilePicture}
-                      alt={
-                        request.assignedArtisan.firstName &&
+                {/* Compact Artisan Card */}
+                {request.assignedArtisan?.name ? (
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                    {request.assignedArtisan.profilePicture ? (
+                      <img
+                        src={request.assignedArtisan.profilePicture}
+                        alt={
+                          request.assignedArtisan.firstName &&
+                          request.assignedArtisan.lastName
+                            ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
+                            : request.assignedArtisan.name
+                        }
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <User className="h-4 w-4 text-green-600" />
+                      </div>
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-green-800 leading-tight">
+                        {request.assignedArtisan.firstName &&
                         request.assignedArtisan.lastName
                           ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
-                          : request.assignedArtisan.name
-                      }
-                      className="w-16 h-16 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                      <User className="h-8 w-8 text-gray-400" />
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-900">
-                      {request.assignedArtisan.firstName &&
-                      request.assignedArtisan.lastName
-                        ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
-                        : request.assignedArtisan.name}
-                    </h3>
-
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className="flex text-yellow-400">
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
+                          : request.assignedArtisan.name}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                        <span className="text-xs text-green-600">
+                          {request.assignedArtisan.rating?.toFixed(1) || "4.9"}
+                        </span>
                       </div>
-                      <span className="text-sm text-gray-600 ml-1">
-                        {request.assignedArtisan.rating?.toFixed(1) || "4.9"}{" "}
-                        (127 avis)
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                    <div className="relative">
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                        <User className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 border border-gray-200">
+                        <ClockIcon className="h-2.5 w-2.5 text-gray-400" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-700 leading-tight">
+                        Aucun artisan assigné
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        En attente d'assignation
                       </span>
                     </div>
                   </div>
-                </div>
-                <div className="space-y-3">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                    <Phone className="h-4 w-4 mr-2" />
-                    Appeler
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <span className="mr-2">✉️</span>
-                    Email
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <div className="relative mx-auto mb-4 w-16 h-16 flex items-center justify-center">
-                  <User className="h-12 w-12 text-gray-400" />
-                  <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 border-2 border-white">
-                    <ClockIcon className="h-4 w-4 text-gray-400" />
-                  </div>
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-1">
-                  Aucun artisan assigné
-                </h3>
-                <p className="text-sm text-gray-500">
-                  En attente d'assignation
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Chat */}
-          {request.assignedArtisan && (
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Chat avec{" "}
-                  {request.assignedArtisan.firstName ||
-                    request.assignedArtisan.name}
-                </h2>
-                <span className="text-sm text-green-600 font-medium">
-                  En ligne
-                </span>
-              </div>
-
-              <div className="space-y-4 mb-4">
-                {/* Artisan message */}
-                <div className="flex gap-3">
-                  {request.assignedArtisan.profilePicture ? (
-                    <img
-                      src={request.assignedArtisan.profilePicture}
-                      alt={
-                        request.assignedArtisan.firstName ||
-                        request.assignedArtisan.name
-                      }
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                      <User className="h-4 w-4 text-gray-400" />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <div className="bg-gray-100 rounded-lg p-3">
-                      <p className="text-sm text-gray-900">
-                        Bonjour ! J'ai bien reçu votre demande. Je peux passer
-                        demain matin pour faire un diagnostic.
-                      </p>
-                    </div>
-                    <span className="text-xs text-gray-500 mt-1">
-                      Il y a 2h
-                    </span>
-                  </div>
-                </div>
-
-                {/* Client message */}
-                <div className="flex justify-end">
-                  <div className="bg-blue-600 text-white rounded-lg p-3 max-w-xs">
-                    <p className="text-sm">
-                      Parfait ! À quelle heure pouvez-vous venir ?
-                    </p>
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <span className="text-xs text-gray-500">Il y a 1h</span>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Tapez votre message..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                  <Send className="h-4 w-4" />
-                </Button>
+                )}
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
-      {/* Cost Estimation */}
 
-      {relevantEstimate && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mt-4">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            Estimation des coûts
-          </h2>
-          <div className="space-y-4">
-            {/* Cost breakdown */}
-            <div className="space-y-3">
-              {parsedBreakdown ? (
-                parsedBreakdown.map((item: any, index: number) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center"
-                  >
-                    <span className="text-gray-700">
-                      {item.description}
-                      {item.quantity && item.quantity > 1 && (
-                        <span className="text-sm text-gray-500 ml-1">
-                          (x{item.quantity})
-                        </span>
-                      )}
-                    </span>
-                    <span className="font-medium text-gray-900">
-                      {formatPrice(item.total)}
-                    </span>
-                  </div>
-                ))
-              ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-18 mt-3 bg-white rounded-lg border border-gray-200 p-4">
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-8">
+            {/* Request Details */}
+            <div className="pt-0">
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
+                    <FileText className="h-4 w-4 text-gray-900 mr-2" />
+                    Description
+                  </h2>
+                  <p className="text-gray-700 leading-relaxed">
+                    {request.description}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {photos.map((photo: string, index: number) => (
+                    <div
+                      key={index}
+                      className={`w-24 h-24 rounded-lg overflow-hidden border-2 border-white shadow-md cursor-pointer hover:scale-105 transition-transform ${
+                        index > 0 ? "-ml-4" : ""
+                      }`}
+                      style={{ zIndex: photos.length - index }}
+                      onClick={() => {
+                        setCurrentPhotoIndex(index);
+                        setPhotoModalOpen(true);
+                      }}
+                    >
+                      <img
+                        src={photo}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6 pt-1">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Progression
+                </h2>
+              </div>
+
+              <div className="space-y-4">
+                {steps.map((step, index) => {
+                  const completed = isStepCompleted(step.key, current);
+                  const isCurrent = isCurrentStep(step.key, current);
+
+                  return (
+                    <div key={step.key} className="flex items-start gap-3">
+                      <div className="flex flex-col items-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                                completed
+                                  ? isCurrent
+                                    ? "bg-blue-500 border-blue-500 ring-2 ring-blue-200 shadow-sm"
+                                    : "bg-green-500 border-green-500"
+                                  : "bg-gray-200 border-gray-300"
+                              }`}
+                            >
+                              {getStepIcon(step.key, completed)}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">
+                            <p className="text-white">
+                              {step.label} -{" "}
+                              {completed ? "Terminé" : "En attente"}
+                              {step.reachedAt && (
+                                <span className="block text-xs opacity-75 mt-1">
+                                  {formatDate(step.reachedAt)}
+                                </span>
+                              )}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                        {index < steps.length - 1 && (
+                          <div
+                            className={`w-0.5 h-8 mt-1 transition-colors ${
+                              completed ? "bg-green-500" : "bg-gray-200"
+                            }`}
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p
+                            className={`text-sm font-medium ${
+                              isCurrent
+                                ? "text-blue-700"
+                                : completed
+                                ? "text-gray-900"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {step.label}
+                            {isCurrent && (
+                              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                Actuel
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        {step.reachedAt && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatDate(step.reachedAt, "full")}
+                          </p>
+                        )}
+                        {step.actor && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Par {step.actor}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Photo Modal */}
+        <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+            <DialogHeader className="p-6 pb-0">
+              <DialogTitle>
+                Photos de la requête ({currentPhotoIndex + 1}/{photos.length})
+              </DialogTitle>
+            </DialogHeader>
+            <div className="relative">
+              {photos.length > 0 && (
+                <div className="flex items-center justify-center p-6">
+                  <img
+                    src={photos[currentPhotoIndex]}
+                    alt={`Photo ${currentPhotoIndex + 1}`}
+                    className="max-w-full max-h-[60vh] object-contain rounded-lg"
+                  />
+                </div>
+              )}
+
+              {photos.length > 1 && (
                 <>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Main d'œuvre</span>
-                    <span className="font-medium text-gray-900">
-                      {formatPrice(
-                        Math.round(relevantEstimate.estimatedPrice * 0.52)
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Matériaux</span>
-                    <span className="font-medium text-gray-900">
-                      {formatPrice(
-                        Math.round(relevantEstimate.estimatedPrice * 0.37)
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Déplacement</span>
-                    <span className="font-medium text-gray-900">
-                      {formatPrice(
-                        Math.round(relevantEstimate.estimatedPrice * 0.11)
-                      )}
-                    </span>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white"
+                    onClick={() =>
+                      setCurrentPhotoIndex((prev) =>
+                        prev === 0 ? photos.length - 1 : prev - 1
+                      )
+                    }
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white"
+                    onClick={() =>
+                      setCurrentPhotoIndex((prev) =>
+                        prev === photos.length - 1 ? 0 : prev + 1
+                      )
+                    }
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </>
               )}
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 bg-black/20 hover:bg-black/40 text-white"
+                onClick={() => setPhotoModalOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
 
-            <div className="border-t border-gray-200 pt-3">
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold text-gray-900">
-                  Total estimé
-                </span>
-                <span className="text-lg font-bold text-blue-600">
-                  {formatPrice(relevantEstimate.estimatedPrice)}
-                </span>
-              </div>
-            </div>
-
-            {/* Action buttons for estimate */}
-            {relevantEstimate.status === "pending" && (
-              <div className="flex gap-3 mt-6">
-                <Button
-                  onClick={() =>
-                    handleAcceptQuote(
-                      request.id,
-                      pathname,
-                      relevantEstimate.estimatedPrice
-                    )
-                  }
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  Accepter le devis
-                </Button>
-                <Button
-                  onClick={handleRejectQuote}
-                  variant="outline"
-                  className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
-                >
-                  Refuser
-                </Button>
+            {/* Photo thumbnails */}
+            {photos.length > 1 && (
+              <div className="px-6 pb-6">
+                <div className="flex gap-2 justify-center">
+                  {photos.map((photo: string, index: number) => (
+                    <button
+                      key={index}
+                      className={`w-16 h-16 rounded-md overflow-hidden border-2 ${
+                        index === currentPhotoIndex
+                          ? "border-blue-500"
+                          : "border-gray-200"
+                      }`}
+                      onClick={() => setCurrentPhotoIndex(index)}
+                    >
+                      <img
+                        src={photo}
+                        alt={`Thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
-
-            {relevantEstimate.status === "accepted" && (
-              <div className="mt-4 flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                <span className="text-sm text-green-700 font-medium">
-                  Devis accepté le {formatDate(relevantEstimate.createdAt)}
-                </span>
-              </div>
-            )}
-
-            {relevantEstimate.status === "rejected" && (
-              <div className="mt-4 flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-                <span className="text-sm text-red-700 font-medium">
-                  Devis refusé
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }
