@@ -175,7 +175,7 @@ export default function RequestCardContainer({
       className="block group rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden !p-0 cursor-pointer"
       onClick={handleCardClick}
     >
-      <div className={`h-1 ${priorityConfig.topBarColor}`} />
+      <div className={`h-1 ${priorityConfig.colors.borderTop}`} />
 
       {(request.status === ServiceRequestStatus.DISPUTED_BY_CLIENT ||
         request.status === ServiceRequestStatus.DISPUTED_BY_ARTISAN ||

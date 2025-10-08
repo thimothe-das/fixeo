@@ -29,7 +29,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { User } from "@/lib/db/schema";
-import { cn, fetcher, getCategoryConfig, ServiceType } from "@/lib/utils";
+import {
+  cn,
+  fetcher,
+  getCategoryConfig,
+  ServiceType,
+  Urgency,
+} from "@/lib/utils";
 import {
   CreateRequestType,
   createServiceRequestSchema,
@@ -72,7 +78,7 @@ export function NewRequest({
     defaultValues: {
       title: "",
       serviceType: "",
-      urgency: "",
+      urgency: Urgency.FLEXIBLE,
       description: "",
       clientEmail: userEmail || "",
       photos: [],

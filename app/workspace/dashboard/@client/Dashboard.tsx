@@ -213,7 +213,7 @@ export function Dashboard({
                             <span className="ml-1">{statusConfig.label}</span>
                           </span>
                           <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${urgencyConfig.color}`}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${urgencyConfig.colors.bg} ${urgencyConfig.colors.text}`}
                           >
                             {urgencyConfig.icon}
                             <span className="ml-1">{urgencyConfig.label}</span>
