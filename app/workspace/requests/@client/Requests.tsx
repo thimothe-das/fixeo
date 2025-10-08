@@ -1,9 +1,3 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Card, CardContent } from "@/components/ui/card";
 import { ServiceRequest, ServiceRequestStatus } from "@/lib/db/schema";
 import { getStatusConfig } from "@/lib/utils";
@@ -15,6 +9,25 @@ interface ClientRequestsListComponentProps {
   onViewEstimate?: (estimateId: number) => void;
   onRequestUpdate?: () => void;
 }
+
+// Function to get priority for sorting
+const getStatusPriority = (status: string): number => {
+  const priorityMap: Record<string, number> = {
+    [ServiceRequestStatus.AWAITING_PAYMENT]: 1,
+    [ServiceRequestStatus.DISPUTED_BY_CLIENT]: 2,
+    [ServiceRequestStatus.DISPUTED_BY_ARTISAN]: 2,
+    [ServiceRequestStatus.DISPUTED_BY_BOTH]: 2,
+    [ServiceRequestStatus.IN_PROGRESS]: 3,
+    [ServiceRequestStatus.ARTISAN_VALIDATED]: 3,
+    [ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION]: 4,
+    [ServiceRequestStatus.CLIENT_VALIDATED]: 5,
+    [ServiceRequestStatus.AWAITING_ESTIMATE]: 6,
+    [ServiceRequestStatus.AWAITING_ASSIGNATION]: 7,
+    [ServiceRequestStatus.COMPLETED]: 8,
+    [ServiceRequestStatus.CANCELLED]: 9,
+  };
+  return priorityMap[status] || 999;
+};
 
 export default function ClientRequestsListComponent({
   requests,
@@ -37,40 +50,27 @@ export default function ClientRequestsListComponent({
       </Card>
     );
   }
+
+  // Sort requests by priority
+  const sortedRequests = [...requests].sort((a, b) => {
+    return getStatusPriority(a.status) - getStatusPriority(b.status);
+  });
+
+  // Filter requests by status for status cards
   const awaitingPaymentRequests = requests.filter(
     (req) => req.status === ServiceRequestStatus.AWAITING_PAYMENT
   );
-
-  // Group requests by status for accordion view
   const awaitingEstimateRequests = requests.filter(
     (req) => req.status === ServiceRequestStatus.AWAITING_ESTIMATE
   );
   const pendingRequests = requests.filter(
     (req) => req.status === ServiceRequestStatus.AWAITING_ASSIGNATION
   );
-  const activeRequests = requests.filter((req) =>
-    [
-      ServiceRequestStatus.IN_PROGRESS,
-      ServiceRequestStatus.ARTISAN_VALIDATED,
-    ].includes(req.status as any)
-  );
   const awaitingValidationRequests = requests.filter((req) =>
     [
       ServiceRequestStatus.CLIENT_VALIDATED,
       ServiceRequestStatus.ARTISAN_VALIDATED,
-      ,
     ].includes(req.status as any)
-  );
-  const clientNeedsValidationRequests = requests.filter((req) =>
-    [ServiceRequestStatus.ARTISAN_VALIDATED].includes(req.status as any)
-  );
-  const artisanNeedsValidationRequests = requests.filter((req) =>
-    [ServiceRequestStatus.CLIENT_VALIDATED].includes(req.status as any)
-  );
-  const awaitingEstimateAcceptationRequests = requests.filter((req) =>
-    [ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION].includes(
-      req.status as any
-    )
   );
   const disputedRequests = requests.filter((req) =>
     [
@@ -78,12 +78,6 @@ export default function ClientRequestsListComponent({
       ServiceRequestStatus.DISPUTED_BY_ARTISAN,
       ServiceRequestStatus.DISPUTED_BY_BOTH,
     ].includes(req.status as any)
-  );
-  const completedRequests = requests.filter(
-    (req) => req.status === ServiceRequestStatus.COMPLETED
-  );
-  const cancelledRequests = requests.filter(
-    (req) => req.status === ServiceRequestStatus.CANCELLED
   );
 
   // Status Card Component
@@ -145,119 +139,6 @@ export default function ClientRequestsListComponent({
     },
   ];
 
-  // Individual status configs for accordion sections
-  const awaitingPaymentStatusConfig = statusCards[0].config;
-  const awaitingEstimateStatusConfig = statusCards[1].config;
-  const awaitingAssignmentStatusConfig = statusCards[2].config;
-  const awaitingValidationStatusConfig = statusCards[3].config;
-  const disputedStatusConfig = statusCards[4].config;
-
-  // Additional status configs for later use
-  const activeStatusConfig = getStatusConfig(
-    ServiceRequestStatus.IN_PROGRESS,
-    ""
-  );
-  const completedStatusConfig = getStatusConfig(
-    ServiceRequestStatus.COMPLETED,
-    ""
-  );
-  const cancelledStatusConfig = getStatusConfig(
-    ServiceRequestStatus.CANCELLED,
-    ""
-  );
-  const awaitingEstimateAcceptationStatusConfig = getStatusConfig(
-    ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION,
-    ""
-  );
-
-  // Accordion Section Component
-  const AccordionSection = ({
-    section,
-    textColor = "text-slate-900",
-    onRequestUpdate,
-  }: {
-    section: any;
-    textColor?: string;
-    onRequestUpdate?: () => void;
-  }) => (
-    <AccordionItem value={section.value}>
-      <AccordionTrigger
-        className={`text-lg font-semibold ${textColor} hover:no-underline`}
-      >
-        <div className="flex items-center gap-2">
-          {section.statusConfig.icon}
-          {section.label || section.statusConfig.label} (
-          {section.requests.length})
-        </div>
-      </AccordionTrigger>
-      <AccordionContent className="pt-4">
-        <RequestGrid
-          requests={section.requests}
-          onRequestUpdate={onRequestUpdate}
-        />
-      </AccordionContent>
-    </AccordionItem>
-  );
-
-  // Accordion sections configuration
-  const accordionSections = [
-    {
-      value: "awaiting-payment",
-      statusConfig: awaitingPaymentStatusConfig,
-      requests: awaitingPaymentRequests,
-      textColor: "text-red-600",
-    },
-    {
-      value: "awaiting-estimate",
-      statusConfig: awaitingEstimateStatusConfig,
-      requests: awaitingEstimateRequests,
-      textColor: "text-slate-900",
-    },
-    {
-      value: "awaiting-estimate-acceptation",
-      statusConfig: awaitingEstimateAcceptationStatusConfig,
-      requests: awaitingEstimateAcceptationRequests,
-      textColor: "text-slate-900",
-    },
-    {
-      value: "pending",
-      statusConfig: awaitingAssignmentStatusConfig,
-      requests: pendingRequests,
-      textColor: "text-slate-900",
-    },
-    {
-      value: "active",
-      statusConfig: activeStatusConfig,
-      requests: activeRequests,
-      textColor: "text-slate-900",
-    },
-    {
-      value: "awaiting-validation",
-      statusConfig: awaitingValidationStatusConfig,
-      requests: awaitingValidationRequests,
-      textColor: "text-slate-900",
-    },
-    {
-      value: "disputed",
-      statusConfig: disputedStatusConfig,
-      requests: disputedRequests,
-      textColor: "text-slate-900",
-      label: "En litige",
-    },
-    {
-      value: "completed",
-      statusConfig: completedStatusConfig,
-      requests: completedRequests,
-      textColor: "text-slate-900",
-    },
-    {
-      value: "cancelled",
-      statusConfig: cancelledStatusConfig,
-      requests: cancelledRequests,
-      textColor: "text-slate-900",
-    },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -271,31 +152,11 @@ export default function ClientRequestsListComponent({
         ))}
       </div>
 
-      {/* Requests Accordion */}
-      <Accordion
-        type="multiple"
-        className="space-y-4"
-        defaultValue={[
-          "awaiting-payment",
-          "awaiting-estimate",
-          "awaiting-estimate-acceptation",
-          "pending",
-          "active",
-          "awaiting-validation",
-          "disputed",
-        ]}
-      >
-        {accordionSections.map(
-          (section) =>
-            section.requests.length > 0 && (
-              <AccordionSection
-                key={section.value}
-                section={section}
-                onRequestUpdate={onRequestUpdate}
-              />
-            )
-        )}
-      </Accordion>
+      {/* All Requests Sorted */}
+      <RequestGrid
+        requests={sortedRequests}
+        onRequestUpdate={onRequestUpdate}
+      />
     </div>
   );
 }

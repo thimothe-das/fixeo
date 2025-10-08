@@ -18,26 +18,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 import { ServiceRequestStatus } from "@/lib/db/schema";
 import { cn, getCategoryConfig, getStatusConfig } from "@/lib/utils";
 import {
   AlertTriangle,
-  Camera,
-  Eye,
+  ChevronLeft,
+  ChevronRight,
   MapPin,
   ThumbsDown,
   ThumbsUp,
+  User,
   Wrench,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ServiceRequestForArtisan } from "../../components/types";
 
 interface JobsProps {
@@ -195,273 +190,163 @@ export default function Jobs({ assignedRequests }: JobsProps) {
     setSelectedMission(null);
   };
 
-  const MissionCard = useMemo(
-    () =>
-      ({ mission }: { mission: ServiceRequestForArtisan }) => {
-        const photos = mission.photos ? JSON.parse(mission.photos) : [];
-        const categoryConfig = getCategoryConfig(
-          mission.serviceType,
-          "h-5 w-5 "
-        );
-        const statusConfig = getStatusConfig(mission.status, "h-4 w-4");
+  // Extracted MissionCard as a separate component to support internal state
+  const MissionCard = ({ mission }: { mission: ServiceRequestForArtisan }) => {
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const photos = mission.photos ? JSON.parse(mission.photos) : [];
+    const categoryConfig = getCategoryConfig(mission.serviceType, "h-5 w-5");
+    const statusConfig = getStatusConfig(mission.status, "h-4 w-4");
 
-        // Mock data for unread messages and timeline progress
-        const unreadMessages = Math.floor(Math.random() * 4); // 0-3 unread messages
-        const timelineProgress = Math.floor(Math.random() * 4) + 1; // 1-4 completed steps out of 4
-        const totalSteps = 4;
+    // Use photos if available, otherwise use category default photo
+    const images =
+      photos && photos.length > 0 ? photos : [categoryConfig.defaultPhoto];
 
-        return (
-          <Card
-            className={cn(
-              `!h-fit rounded-none bord shadow-sm cursor-pointer hover:shadow-lg transition-all duration-200 border-t-4 relative`,
-              mission.status !== ServiceRequestStatus.DISPUTED_BY_CLIENT &&
-                mission.status !== ServiceRequestStatus.DISPUTED_BY_ARTISAN &&
-                mission.status !== ServiceRequestStatus.DISPUTED_BY_BOTH
-                ? statusConfig.borderTop
-                : "border-t-0"
-            )}
-            onClick={() => router.push(`/workspace/jobs/${mission.id}`)}
-          >
-            {/* Notification Badge */}
-            {unreadMessages > 0 && (
-              <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg border-2 border-white z-10">
-                {unreadMessages}
-              </div>
-            )}
-            {/* Dispute Banner */}
-            {(mission.status === ServiceRequestStatus.DISPUTED_BY_CLIENT ||
-              mission.status === ServiceRequestStatus.DISPUTED_BY_ARTISAN ||
-              mission.status === ServiceRequestStatus.DISPUTED_BY_BOTH) && (
-              <div className="-mt-6 relative bg-gradient-to-r from-red-500 via-red-600 to-red-700 text-white px-4 py-3 shadow-2xl shadow-red-500/25 overflow-hidden">
-                {/* Animated background elements */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/8 to-transparent animate-pulse"></div>
-                <div className="absolute top-0 right-0 w-8 h-8 bg-white/10 rounded-bl-full"></div>
+    const isDisputed =
+      mission.status === ServiceRequestStatus.DISPUTED_BY_CLIENT ||
+      mission.status === ServiceRequestStatus.DISPUTED_BY_ARTISAN ||
+      mission.status === ServiceRequestStatus.DISPUTED_BY_BOTH;
 
-                <div className="relative z-10 flex items-center justify-between">
-                  {/* Left side - Enhanced alert section */}
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <AlertTriangle className="h-4 w-4 text-white drop-shadow-sm" />
-                      <div className="absolute -inset-0.5 bg-white/30 rounded-full animate-ping"></div>
-                    </div>
-                    <div>
-                      <span className="font-bold text-white text-xs tracking-wide uppercase drop-shadow-sm">
-                        Litige en cours
-                      </span>
-                      <div className="text-white/90 text-[10px] font-medium">
-                        Réponse sous 48h
-                      </div>
-                    </div>
-                  </div>
+    const handlePrevImage = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setCurrentImageIndex((prev) =>
+        prev === 0 ? images.length - 1 : prev - 1
+      );
+    };
+
+    const handleNextImage = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setCurrentImageIndex((prev) =>
+        prev === images.length - 1 ? 0 : prev + 1
+      );
+    };
+
+    const handleDotClick = (e: React.MouseEvent, index: number) => {
+      e.stopPropagation();
+      setCurrentImageIndex(index);
+    };
+
+    return (
+      <Card
+        className="!h-fit rounded-lg shadow-sm cursor-pointer hover:shadow-lg transition-all duration-200 relative overflow-hidden p-0 gap-2"
+        onClick={() => router.push(`/workspace/jobs/${mission.id}`)}
+      >
+        {/* Image Carousel Section */}
+        <div className="relative w-full h-48 bg-gray-200 group">
+          {/* Current Image */}
+          <img
+            src={images[currentImageIndex] || "/placeholder.svg"}
+            alt={`${mission.title} - Photo ${currentImageIndex + 1}`}
+            className="w-full h-full object-cover"
+          />
+
+          {/* Dispute Overlay Banner */}
+          {isDisputed && (
+            <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-red-500 via-red-600 to-red-700 text-white px-3 py-2 shadow-lg overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/8 to-transparent animate-pulse"></div>
+              <div className="relative z-10 flex items-center gap-2">
+                <div className="relative">
+                  <AlertTriangle className="h-3 w-3 text-white drop-shadow-sm" />
+                  <div className="absolute -inset-0.5 bg-white/30 rounded-full animate-ping"></div>
                 </div>
-              </div>
-            )}
-
-            <CardContent className="overflow-hidden">
-              <div className="flex flex-col space-y-3">
-                {/* Compact Header with Price and Status */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge
-                            className={`${statusConfig.color} ${statusConfig.colors.bg} ${statusConfig.colors.text} flex items-center gap-2 shrink-0 text-xs font-medium max-w-[120px]`}
-                          >
-                            {statusConfig.icon}
-                            <span className="truncate">
-                              {statusConfig.label}
-                            </span>
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-white">{statusConfig.label}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-lg font-bold text-gray-900">
-                      {mission.estimatedPrice
-                        ? (mission.estimatedPrice / 100).toFixed(2)
-                        : "N/A"}
-                      €
-                    </span>
-                  </div>
-                </div>
-
-                {/* Title and Category */}
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900 leading-5 mb-1 flex items-center gap-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="text-gray-500">
-                            {categoryConfig.icon}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-white">{categoryConfig.type}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    {mission.title}
-                  </h3>
-                </div>
-
-                {/* Location and Client Info */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <div className="flex items-center flex-1 min-w-0">
-                      <MapPin className="h-4 w-4 text-gray-500 mr-3 shrink-0" />
-                      <span className="">{mission.location}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Compact Description and Photos */}
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-500 line-clamp-1 leading-relaxed">
-                    {mission.description || "Aucune description"}
-                  </p>
-
-                  {/* Compact Photos */}
-                  <div className="flex items-center gap-2">
-                    {photos && photos.length > 0 ? (
-                      <>
-                        <div className="flex -space-x-1">
-                          {photos
-                            .slice(0, 2)
-                            .map((photo: string, index: number) => (
-                              <img
-                                key={index}
-                                src={photo || "/placeholder.svg"}
-                                alt={`Photo ${index + 1}`}
-                                className="w-8 h-8 rounded border-2 border-white object-cover"
-                              />
-                            ))}
-                        </div>
-                        {photos.length > 2 && (
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            +{photos.length - 2} photos
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Camera className="h-4 w-4 text-gray-400" />
-                        <span className="text-xs text-gray-500">
-                          Aucune photo
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 justify-center">
-                  <span className="text-xs text-gray-500">Progression:</span>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalSteps }).map((_, index) => (
-                      <div
-                        key={index}
-                        className={cn(
-                          "w-2 h-2 rounded-full",
-                          index < timelineProgress
-                            ? "bg-emerald-500"
-                            : "bg-gray-200"
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs text-gray-500">
-                    {timelineProgress}/{totalSteps}
+                  <span className="font-bold text-white text-[10px] tracking-wide uppercase drop-shadow-sm">
+                    Litige en cours
                   </span>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <div className="flex space-x-2 gap-2 w-full justify-between items-center">
-                    {/* Validation buttons for specific statuses */}
-                    {mission.status === ServiceRequestStatus.IN_PROGRESS ||
-                    mission.status === ServiceRequestStatus.CLIENT_VALIDATED ? (
-                      <div className="flex gap-3 w-full">
-                        <Button
-                          className="flex-1 h-11 bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-sm touch-manipulation"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMission(mission);
-                            setValidationType("approve");
-                            setShowValidationDialog(true);
-                          }}
-                        >
-                          <ThumbsUp className="h-4 w-4 mr-2" />
-                          Valider
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="flex-1 h-11 border-red-300 text-red-600 hover:bg-red-50 font-medium text-sm touch-manipulation"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMission(mission);
-                            setValidationType("dispute");
-                            setShowDisputeDialog(true);
-                          }}
-                        >
-                          <AlertTriangle className="h-4 w-4 mr-2" />
-                          Contester
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2 w-full">
-                        <Button
-                          variant="outline"
-                          className="flex-1 h-11 bg-transparent hover:bg-gray-50 border-gray-200 font-medium text-sm touch-manipulation"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/workspace/jobs/${mission.id}`);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Voir détails
-                        </Button>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-11 w-11 bg-transparent hover:bg-gray-50 border-gray-200 shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Open Google Maps with the mission location
-                                  const encodedLocation = encodeURIComponent(
-                                    mission.location
-                                  );
-                                  window.open(
-                                    `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`,
-                                    "_blank"
-                                  );
-                                }}
-                              >
-                                <MapPin className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Ouvrir dans Google Maps</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    )}
+                  <div className="text-white/90 text-[8px] font-medium">
+                    Réponse sous 48h
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        );
-      },
-    [getCategoryConfig]
-  );
+            </div>
+          )}
+
+          {/* Status Badge Overlay - Top Right */}
+          <div className="absolute top-3 right-3 z-10">
+            <Badge
+              className={`${statusConfig.color} ${statusConfig.colors.bg} ${statusConfig.colors.text} flex items-center gap-1 text-xs font-medium shadow-lg`}
+            >
+              {statusConfig.icon}
+              <span className="truncate max-w-[100px]">
+                {statusConfig.label}
+              </span>
+            </Badge>
+          </div>
+
+          {/* Navigation Arrows - Show on hover if multiple images */}
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={handlePrevImage}
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                onClick={handleNextImage}
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </>
+          )}
+
+          {/* Dot Indicators - Show if multiple images */}
+          {images.length > 1 && (
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+              {images.map((_: string, index: number) => (
+                <button
+                  key={index}
+                  onClick={(e) => handleDotClick(e, index)}
+                  className={cn(
+                    "w-2 h-2 rounded-full transition-all",
+                    index === currentImageIndex
+                      ? "bg-white w-4"
+                      : "bg-white/60 hover:bg-white/80"
+                  )}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Card Content */}
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            {/* Title */}
+            <h3 className="text-base font-semibold text-gray-900 line-clamp-2 leading-snug">
+              {mission.title}
+            </h3>
+
+            {/* Client Name */}
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <User className="h-4 w-4 text-gray-500 shrink-0" />
+              <span className="truncate">
+                {mission.clientName || "Client inconnu"}
+              </span>
+            </div>
+
+            {/* Address */}
+            <div className="flex items-start gap-2 text-sm text-gray-600">
+              <MapPin className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
+              <span className="line-clamp-2">{mission.location}</span>
+            </div>
+
+            {/* Price - Bottom Right */}
+            <div className="flex justify-end pt-2">
+              <div className="text-right">
+                <span className="text-xl font-bold text-gray-900">
+                  {mission.estimatedPrice
+                    ? (mission.estimatedPrice / 100).toFixed(2)
+                    : "N/A"}
+                  €
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">

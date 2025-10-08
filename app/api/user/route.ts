@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(process.env.BASE_URL || "");
+    const { searchParams } = new URL(request.url);
     const includeProfiles = searchParams.get("includeProfiles") === "true";
 
     let user;

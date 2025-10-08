@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import moment from "moment";
 import { useRouter } from "next/navigation";
-import { NewRequest } from "../../(client)/NewRequest";
 
 interface ClientOverviewComponentProps {
   totalRequests: number;
@@ -63,11 +62,13 @@ export function Dashboard({
         <p className="text-blue-100 mb-4">
           Gérez facilement vos demandes de service et suivez leur progression
         </p>
-        <NewRequest
-          className="!w-auto !bg-white !text-blue-600 hover:!bg-blue-200"
-          isModal
-          onRequestCreated={() => {}}
-        />
+        <Button
+          onClick={openNewRequestModal}
+          className="w-auto bg-white text-blue-600 hover:bg-blue-200"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle demande
+        </Button>
       </div>
 
       {/* Statistics Cards */}

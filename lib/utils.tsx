@@ -356,6 +356,8 @@ export const getCategoryConfig = (
     return {
       type: "Inconnu",
       icon: <FileQuestion className={cn("text-slate-700", iconClassName)} />,
+      defaultPhoto:
+        "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop",
       colors: {
         color: "slate-500",
         bg: "bg-slate-50",
@@ -370,6 +372,8 @@ export const getCategoryConfig = (
     return {
       type: "Plomberie",
       icon: <LucideWrench className={cn("text-blue-700", iconClassName)} />,
+      defaultPhoto:
+        "https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=800&auto=format&fit=crop",
       colors: {
         color: "blue-500",
         bg: "bg-blue-50",
@@ -383,6 +387,8 @@ export const getCategoryConfig = (
     return {
       type: "Electricité",
       icon: <Zap className={cn("text-amber-700", iconClassName)} />,
+      defaultPhoto:
+        "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop",
       colors: {
         color: "yellow-700",
         bg: "bg-amber-50",
@@ -396,6 +402,8 @@ export const getCategoryConfig = (
     return {
       type: "Peinture",
       icon: <PaintBucket className={cn("text-violet-700", iconClassName)} />,
+      defaultPhoto:
+        "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800&auto=format&fit=crop",
       colors: {
         color: "violet-500",
         bg: "bg-violet-50",
@@ -409,6 +417,8 @@ export const getCategoryConfig = (
     return {
       type: "Menuiserie",
       icon: <Fence className={cn("text-yellow-950", iconClassName)} />,
+      defaultPhoto:
+        "https://images.unsplash.com/photo-1607400201889-565b1ee75f8e?w=800&auto=format&fit=crop",
       colors: {
         color: "yellow-950",
         bg: "bg-red-800/10",
@@ -422,6 +432,8 @@ export const getCategoryConfig = (
     return {
       type: "Rénovation",
       icon: <Settings className={cn("text-orange-700", iconClassName)} />,
+      defaultPhoto:
+        "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop",
       colors: {
         color: "orange-500",
         bg: "bg-orange-50",
@@ -435,6 +447,8 @@ export const getCategoryConfig = (
     return {
       type: "Dépannage",
       icon: <Cog className={cn("text-gray-700", iconClassName)} />,
+      defaultPhoto:
+        "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&auto=format&fit=crop",
       colors: {
         color: "gray-500",
         bg: "bg-slate-50",
@@ -448,6 +462,8 @@ export const getCategoryConfig = (
     return {
       type: "Autre",
       icon: <Wrench className={cn("text-slate-700", iconClassName)} />,
+      defaultPhoto:
+        "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop",
       colors: {
         color: "slate-500",
         bg: "bg-slate-50",

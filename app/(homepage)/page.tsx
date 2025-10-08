@@ -1,57 +1,49 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { getCategoryConfig, ServiceType } from "@/lib/utils";
+import { User } from "@/lib/db/schema";
+import { fetcher } from "@/lib/utils";
+import { useState } from "react";
+import useSWR from "swr";
 import Form from "./Form";
 import Presentation from "./Presentation";
+import RequestModal from "./RequestModal";
 import Title from "./Title";
 
 export default function FixeoHomePage() {
+  const { data: user } = useSWR<User>("/api/user", fetcher);
+  const userEmail = user?.email;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
+    undefined
+  );
+
+  const handleCategoryClick = (category: string) => {
+    setSelectedCategory(category);
+    setIsModalOpen(true);
+  };
+
+  const handleCtaClick = () => {
+    setSelectedCategory(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedCategory(undefined);
+  };
+
   return (
     <main className="bg-white">
-      <section className="relative bg-gradient-to-br from-slate-50 to-blue-50 py-8 lg:py-12 min-h-[calc(100vh-80px)] flex items-center">
+      <RequestModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        userEmail={userEmail}
+        preSelectedCategory={selectedCategory}
+      />
+      <section className="relative bg-gradient-to-br from-slate-50 to-blue-50 py-12 lg:py-16 min-h-[calc(100vh-80px)] flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <Title />
-          <Form />
-        </div>
-      </section>
-      {/* Service Categories */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Tous types de travaux acceptés
-            </h2>
-            <p className="text-lg text-gray-600">
-              Soumettez votre demande, nos artisans spécialisés y répondront
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {Object.values(ServiceType).map((service, index) => {
-              const categoryConfig = getCategoryConfig(service, "h-10 w-10");
-              return (
-                <Card
-                  key={index}
-                  className="hover:shadow-xl transition-all duration-300 cursor-pointer border-0 shadow-md hover:scale-105 bg-gradient-to-b from-white to-gray-50"
-                >
-                  <CardContent className="p-5 text-center">
-                    <div
-                      className={`w-14 h-14 ${categoryConfig.colors.color} rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm`}
-                    >
-                      {categoryConfig.icon}
-                    </div>
-                    <h3 className="font-semibold text-gray-900 text-sm">
-                      {categoryConfig.type}
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Spécialistes disponibles
-                    </p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+          <Title onCtaClick={handleCtaClick} />
+          <Form onCategoryClick={handleCategoryClick} />
         </div>
       </section>
       {/* How it Works */}

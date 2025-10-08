@@ -42,10 +42,11 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 
+import RequestModal from "@/app/(homepage)/RequestModal";
 import { signOut } from "@/app/(login)/actions";
 import { User as UserType } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
-import { NewRequest } from "./NewRequest";
+import { Plus } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -113,6 +114,7 @@ function ServiceRequestsListSkeleton() {
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [activeSection, setActiveSection] = React.useState("dashboard");
+  const [isRequestModalOpen, setIsRequestModalOpen] = React.useState(false);
 
   const router = useRouter();
   const {
@@ -139,12 +141,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           </SidebarHeader>
 
           <SidebarContent className="p-4">
-            <NewRequest
-              isModal
-              onRequestCreated={() => {
-                mutateRequests();
-              }}
-            />
+            <Button
+              onClick={() => setIsRequestModalOpen(true)}
+              className="w-full bg-fixeo-accent-500 hover:bg-fixeo-accent-600 text-white font-medium py-3 px-4 rounded-lg shadow-sm transition-colors mb-4"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle demande
+            </Button>
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -240,6 +243,16 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           </main>
         </SidebarInset>
       </div>
+
+      <RequestModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        onRequestCreated={() => {
+          mutateRequests();
+          setIsRequestModalOpen(false);
+        }}
+        redirectPath="/workspace/requests"
+      />
     </SidebarProvider>
   );
 }

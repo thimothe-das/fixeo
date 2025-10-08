@@ -3,7 +3,6 @@ import {
   billingEstimates,
   clientProfiles,
   serviceRequests,
-  ServiceRequestStatus,
   users,
 } from "@/lib/db/schema";
 import { isWithinServiceRadius } from "@/lib/utils";
@@ -99,7 +98,7 @@ export async function getServiceRequestsForArtisan(userId: number) {
     .leftJoin(clientProfiles, eq(clientUsers.id, clientProfiles.userId))
     .where(
       and(
-        eq(serviceRequests.status, ServiceRequestStatus.AWAITING_ASSIGNATION),
+        // eq(serviceRequests.status, ServiceRequestStatus.AWAITING_ASSIGNATION),
         isNull(serviceRequests.assignedArtisanId)
       )
     )

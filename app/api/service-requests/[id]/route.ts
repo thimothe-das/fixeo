@@ -159,3 +159,78 @@ export async function GET(
     );
   }
 }
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const requestId = parseInt(id);
+
+    if (isNaN(requestId)) {
+      return NextResponse.json(
+        { error: "Invalid request ID" },
+        { status: 400 }
+      );
+    }
+
+    // Get the service request to check ownership
+    const [existingRequest] = await db
+      .select({
+        userId: serviceRequests.userId,
+        assignedArtisanId: serviceRequests.assignedArtisanId,
+      })
+      .from(serviceRequests)
+      .where(eq(serviceRequests.id, requestId))
+      .limit(1);
+
+    if (!existingRequest) {
+      return NextResponse.json(
+        { error: "Service request not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check if user has permission to update (owner, assigned artisan, or admin)
+    const canUpdate =
+      existingRequest.userId === user.id ||
+      existingRequest.assignedArtisanId === user.id ||
+      user.role === "admin";
+
+    if (!canUpdate) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Parse the request body
+    const body = await request.json();
+    const { photos } = body;
+
+    // Update only the photos field
+    const [updatedRequest] = await db
+      .update(serviceRequests)
+      .set({
+        photos,
+        updatedAt: new Date(),
+      })
+      .where(eq(serviceRequests.id, requestId))
+      .returning();
+
+    return NextResponse.json({
+      success: true,
+      request: updatedRequest,
+    });
+  } catch (error) {
+    console.error("Error updating service request:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

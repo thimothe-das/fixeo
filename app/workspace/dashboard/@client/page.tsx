@@ -1,5 +1,6 @@
 "use client";
 
+import RequestModal from "@/app/(homepage)/RequestModal";
 import { ServiceRequest, ServiceRequestStatus } from "@/lib/db/schema";
 import { useState } from "react";
 import useSWR from "swr";
@@ -51,6 +52,16 @@ export default function DashboardPage() {
         openNewRequestModal={() => {
           setIsNewRequestModalOpen(true);
         }}
+      />
+
+      <RequestModal
+        isOpen={isNewRequestModalOpen}
+        onClose={() => setIsNewRequestModalOpen(false)}
+        onRequestCreated={() => {
+          mutateRequests();
+          setIsNewRequestModalOpen(false);
+        }}
+        redirectPath="/workspace/requests"
       />
     </>
   );

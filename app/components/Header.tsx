@@ -10,14 +10,53 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User } from "@/lib/db/schema";
-import { Home, LogOut, Users } from "lucide-react";
+import { Clock, Home, LogOut, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
 import useSWR, { mutate } from "swr";
+import { getGuestTokens } from "../suivi/[token]/token-storage";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+function PreviousRequestsMenu() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const guestTokens = getGuestTokens();
+
+  if (guestTokens.length === 0) {
+    return null;
+  }
+
+  return (
+    <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          className="rounded-full border-fixeo-main-500 text-fixeo-main-500 hover:bg-fixeo-main-50"
+        >
+          <Clock className="mr-2 h-4 w-4" />
+          Mes Demandes
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <div className="px-2 py-1.5 text-sm font-semibold text-gray-900">
+          Vos demandes précédentes
+        </div>
+        {guestTokens.map((token: string, index: number) => (
+          <DropdownMenuItem key={token} className="cursor-pointer">
+            <Link
+              href={`/suivi/${token}`}
+              className="flex w-full items-center justify-between"
+            >
+              <span className="text-sm">Demande #{index + 1}</span>
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 function UserMenu() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -109,6 +148,9 @@ export default function Header() {
           </span>
         </Link>
         <div className="flex items-center space-x-4">
+          <Suspense fallback={null}>
+            <PreviousRequestsMenu />
+          </Suspense>
           <Suspense fallback={<div className="h-9" />}>
             <UserMenu />
           </Suspense>
