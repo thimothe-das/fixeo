@@ -1,5 +1,5 @@
 import { SignIn } from "@/app/(login)/sign-in/SignIn";
-import { ROLES } from "@/lib/auth/roles";
+import { ROLES } from "@/lib/types/roles";
 import { Suspense } from "react";
 
 export default function SignInArtisanPage() {

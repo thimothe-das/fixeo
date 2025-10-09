@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SignUpFormFields } from "@/lib/auth/form-utils";
-import { ROLES } from "@/lib/auth/roles";
+import { ROLES } from "@/lib/types/roles";
 import { cn } from "@/lib/utils";
 import {
   ClientSignUpType,

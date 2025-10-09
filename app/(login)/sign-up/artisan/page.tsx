@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { ROLES } from "@/lib/auth/roles";
+import { ROLES } from "@/lib/types/roles";
 import { cn, EXPERIENCE_OPTIONS, ServiceType } from "@/lib/utils";
 import {
   artisanSignUpSchema,
