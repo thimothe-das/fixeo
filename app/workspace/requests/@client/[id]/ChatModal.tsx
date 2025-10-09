@@ -45,7 +45,7 @@ export function ChatModal({
   const [newMessage, setNewMessage] = React.useState("");
   const [isSending, setIsSending] = React.useState(false);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-
+  //
   const {
     data: messages,
     error,
