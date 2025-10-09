@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { ROLES } from "@/lib/auth/roles";
 import { cn, EXPERIENCE_OPTIONS, ServiceType } from "@/lib/utils";
 import {
   artisanSignUpSchema,
@@ -83,7 +84,7 @@ function SignUpArtisanForm() {
       experience: "",
       specialties: "",
       description: "",
-      role: "artisan",
+      role: ROLES.PROFESSIONAL,
     },
   });
 
