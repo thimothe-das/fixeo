@@ -453,7 +453,7 @@ export default function RequestDetailPage() {
                       {"06 78 90 12 34"}
                     </p>
                     <div className="flex items-center gap-1 text-sm">
-                      <Star className="h-4 w-4 fill-[#FF385C] text-[#FF385C]" />
+                      <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
                       <span className="font-semibold text-[#222222]">
                         {request.assignedArtisan.rating || "5.0"}
                       </span>
@@ -525,7 +525,7 @@ export default function RequestDetailPage() {
 
                 {/* Dates */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-sm">
                     <div className="flex items-center gap-2 text-[#717171]">
                       <Calendar className="h-4 w-4" />
                       <span>Créée le</span>
@@ -783,7 +783,7 @@ export default function RequestDetailPage() {
           request.assignedArtisan?.firstName &&
           request.assignedArtisan?.lastName
             ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
-            : request.assignedArtisan?.name
+            : request.assignedArtisan?.name || "Nom de l'artisan non disponible"
         }
         artisanAvatar={request.assignedArtisan?.profilePicture}
       />

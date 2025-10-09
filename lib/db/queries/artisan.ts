@@ -36,8 +36,8 @@ export async function getServiceRequestsForArtisan(userId: number) {
   // Create alias for client users
   const clientUsers = alias(users, "client_users");
 
-  // Get requests assigned to this artisan with client information
-  const assignedRequests = await db
+  // Get requests assigned to this artisan with client information and billing estimates
+  const assignedRequestsRaw = await db
     .select({
       id: serviceRequests.id,
       title: serviceRequests.title,
@@ -60,12 +60,41 @@ export async function getServiceRequestsForArtisan(userId: number) {
         lastName: clientProfiles.lastName,
         phone: clientProfiles.phone,
       },
+      billingEstimate: {
+        id: billingEstimates.id,
+        estimatedPrice: billingEstimates.estimatedPrice,
+        status: billingEstimates.status,
+        description: billingEstimates.description,
+        breakdown: billingEstimates.breakdown,
+        createdAt: billingEstimates.createdAt,
+      },
     })
     .from(serviceRequests)
     .leftJoin(clientUsers, eq(serviceRequests.userId, clientUsers.id))
     .leftJoin(clientProfiles, eq(clientUsers.id, clientProfiles.userId))
+    .leftJoin(
+      billingEstimates,
+      eq(serviceRequests.id, billingEstimates.serviceRequestId)
+    )
     .where(eq(serviceRequests.assignedArtisanId, userId))
     .orderBy(desc(serviceRequests.createdAt));
+
+  // Group billing estimates by service request
+  const assignedRequestsMap = new Map();
+  for (const row of assignedRequestsRaw) {
+    if (!assignedRequestsMap.has(row.id)) {
+      assignedRequestsMap.set(row.id, {
+        ...row,
+        billingEstimates: [],
+      });
+    }
+    if (row.billingEstimate && row.billingEstimate.id) {
+      assignedRequestsMap
+        .get(row.id)
+        .billingEstimates.push(row.billingEstimate);
+    }
+  }
+  const assignedRequests = Array.from(assignedRequestsMap.values());
 
   // Get available requests in the area and matching specialties with client information
   const availableRequests = await db
@@ -139,10 +168,18 @@ export async function getServiceRequestsForArtisan(userId: number) {
         ? `${req.client.firstName} ${req.client.lastName}`.trim()
         : req.client?.name || null;
 
+    // Use billing estimate price if available and service request estimatedPrice is not set
+    const finalEstimatedPrice =
+      req.estimatedPrice ||
+      (req.billingEstimates && req.billingEstimates.length > 0
+        ? req.billingEstimates[0].estimatedPrice
+        : null);
+
     return {
       ...req,
       clientName,
       clientPhone: req.client?.phone,
+      estimatedPrice: finalEstimatedPrice,
       isAssigned: true,
     };
   });
