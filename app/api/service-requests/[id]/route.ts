@@ -1,3 +1,4 @@
+import { UserRole } from "@/lib/auth/roles";
 import { db } from "@/lib/db/drizzle";
 import { getUser } from "@/lib/db/queries/common";
 import {
@@ -5,6 +6,7 @@ import {
   clientProfiles,
   professionalProfiles,
   serviceRequests,
+  serviceRequestStatusHistory,
   users,
 } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
@@ -95,7 +97,7 @@ export async function GET(
     const hasAccess =
       request.userId === user.id || // Owner
       request.assignedArtisan?.id === user.id || // Assigned artisan
-      user.role === "admin"; // Admin
+      user.role === UserRole.ADMIN; // Admin
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -116,6 +118,25 @@ export async function GET(
       .where(eq(billingEstimates.serviceRequestId, requestId))
       .orderBy(desc(billingEstimates.createdAt));
 
+    // Get status history for this request
+    const statusHistoryResults = await db
+      .select({
+        status: serviceRequestStatusHistory.status,
+        changedAt: serviceRequestStatusHistory.changedAt,
+      })
+      .from(serviceRequestStatusHistory)
+      .where(eq(serviceRequestStatusHistory.serviceRequestId, requestId))
+      .orderBy(serviceRequestStatusHistory.changedAt);
+
+    // Convert status history to a map for easy lookup
+    const statusHistory: Record<string, string> = {};
+    for (const entry of statusHistoryResults) {
+      // Keep the first occurrence of each status
+      if (!statusHistory[entry.status]) {
+        statusHistory[entry.status] = entry.changedAt.toISOString();
+      }
+    }
+
     // Construct client name from available information
     const clientName =
       request.client?.firstName && request.client?.lastName
@@ -128,6 +149,7 @@ export async function GET(
       clientName,
       clientPhone: request.client?.phone,
       billingEstimates: estimates,
+      statusHistory,
       // Add mock timeline data for now - in a real app this would come from activity logs
       timeline: {
         created: {
@@ -202,7 +224,7 @@ export async function PATCH(
     const canUpdate =
       existingRequest.userId === user.id ||
       existingRequest.assignedArtisanId === user.id ||
-      user.role === "admin";
+      user.role === UserRole.ADMIN;
 
     if (!canUpdate) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

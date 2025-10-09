@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { ServiceRequestStatus } from "@/lib/db/schema";
 import {
   getCategoryConfig,
   getPriorityConfig,
@@ -15,22 +17,31 @@ import {
 } from "@/lib/utils";
 import {
   AlertCircle,
+  Calendar,
+  CheckCircle,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Clock,
+  FileText,
   Flame,
   MapPin,
+  MessageSquare,
+  Phone,
+  Star,
   User,
   X,
 } from "lucide-react";
 import moment from "moment";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import * as React from "react";
 import useSWR from "swr";
 import { ActionDialogs } from "./ActionDialogs";
+import { ChatModal } from "./ChatModal";
 import { HeroGallery } from "./HeroGallery";
 import { PhotoUploadDialog } from "./PhotoUploadDialog";
-import { RequestSidebar } from "./RequestSidebar";
+import { ProgressDrawer } from "./ProgressDrawer";
 
 type ServiceRequest = {
   id: number;
@@ -44,6 +55,7 @@ type ServiceRequest = {
   createdAt: string;
   updatedAt?: string;
   photos?: string;
+  statusHistory?: Record<string, string>;
   assignedArtisan?: {
     id: number;
     name: string;
@@ -79,6 +91,8 @@ export default function RequestDetailPage() {
   const [showValidateDialog, setShowValidateDialog] = React.useState(false);
   const [showDisputeDialog, setShowDisputeDialog] = React.useState(false);
   const [showPhotoUpload, setShowPhotoUpload] = React.useState(false);
+  const [showChatModal, setShowChatModal] = React.useState(false);
+  const [showCallDialog, setShowCallDialog] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [photoModalOpen, setPhotoModalOpen] = React.useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = React.useState(0);
@@ -86,6 +100,9 @@ export default function RequestDetailPage() {
     number | undefined
   >();
   const [descriptionExpanded, setDescriptionExpanded] = React.useState(false);
+  const [showBreakdown, setShowBreakdown] = React.useState(false);
+
+  const router = useRouter();
 
   // Fetch request data
   const {
@@ -239,6 +256,63 @@ export default function RequestDetailPage() {
     }
   };
 
+  // Helper functions
+  const formatPrice = (cents: number): string => {
+    return `${(cents / 100).toFixed(0)} €`;
+  };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const getEstimateStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-yellow-50 text-yellow-700 border-yellow-300"
+          >
+            En attente
+          </Badge>
+        );
+      case "accepted":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-green-50 text-green-700 border-green-300"
+          >
+            Accepté
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-red-50 text-red-700 border-red-300"
+          >
+            Rejeté
+          </Badge>
+        );
+      case "expired":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-gray-50 text-gray-700 border-gray-300"
+          >
+            Expiré
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
   if (error) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -282,17 +356,37 @@ export default function RequestDetailPage() {
       ? request.description.substring(0, 300) + "..."
       : request.description;
 
+  // Parse breakdown
+  const parsedBreakdown = relevantEstimate?.breakdown
+    ? (() => {
+        try {
+          return JSON.parse(relevantEstimate.breakdown);
+        } catch (e) {
+          return null;
+        }
+      })()
+    : null;
+
+  // Check action availability
+  const canAcceptRejectEstimate =
+    request.status === ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION &&
+    relevantEstimate?.status === "pending";
+
+  const canValidateOrDispute =
+    request.status === ServiceRequestStatus.IN_PROGRESS ||
+    request.status === ServiceRequestStatus.ARTISAN_VALIDATED;
+
   return (
-    <div className="bg-white min-h-screen">
+    <div className="min-h-screen">
       {/* Main Container - Airbnb width */}
-      <div className="max-w-7xl mx-auto px-10 lg:px-20 py-6">
+      <div className="max-w-7xl mx-auto px-10 lg:px-10 py-6 bg-white rounded-lg shadow-sm mt-6">
         {/* Page Title */}
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-[26px] font-semibold text-[#222222] mb-2">
               {request.title || "Demande de service"}
             </h1>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
+            <div className="flex items-center gap-3 text-sm text-[#717171]">
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
                 Créée {timeAgo}
@@ -301,28 +395,36 @@ export default function RequestDetailPage() {
               <span>{request.location}</span>
             </div>
           </div>
-          <div
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${
-              statusConfig.colors?.bg || "bg-gray-100"
-            } ${statusConfig.colors?.text || "text-gray-700"} ${
-              statusConfig.colors?.ring || "ring-1 ring-gray-200"
-            }`}
-          >
-            {statusConfig.icon}
-            {statusConfig.label}
+          <div className="flex items-center gap-3">
+            <ProgressDrawer
+              currentStatus={request.status}
+              statusHistory={request.statusHistory}
+            />
+            <div
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${
+                statusConfig.colors?.bg || "bg-gray-100"
+              } ${statusConfig.colors?.text || "text-gray-700"} ${
+                statusConfig.colors?.ring || "ring-1 ring-gray-200"
+              }`}
+            >
+              {statusConfig.icon}
+              {statusConfig.label}
+            </div>
           </div>
         </div>
 
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-20">
-          {/* Left Column - 60% */}
-          <div className="lg:col-span-3 space-y-8">
-            <Separator className="border-[#EBEBEB]" />
+        <Separator className="border-[#EBEBEB] mb-8" />
 
-            {/* Artisan Section */}
+        {/* Two Card Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Artisan Card */}
+          <div className="border border-[#DDDDDD] rounded-xl shadow-sm p-6 flex flex-col min-h-[300px]">
+            <h3 className="text-[18px] font-semibold text-[#222222] mb-4">
+              Votre artisan
+            </h3>
             {request.assignedArtisan?.id ? (
-              <div>
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col flex-1">
+                <div className="flex items-start gap-4 mb-4">
                   {request.assignedArtisan.profilePicture ? (
                     <img
                       src={request.assignedArtisan.profilePicture}
@@ -332,138 +434,316 @@ export default function RequestDetailPage() {
                           ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
                           : request.assignedArtisan.name
                       }
-                      className="w-14 h-14 rounded-full object-cover"
+                      className="w-16 h-16 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
-                      <User className="h-7 w-7 text-gray-400" />
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                      <User className="h-8 w-8 text-gray-400" />
                     </div>
                   )}
-                  <div>
-                    <h3 className="text-lg font-semibold text-[#222222]">
-                      Artisan :{" "}
+                  <div className="flex-1">
+                    <h4 className="text-[16px] font-semibold text-[#222222] mb-1">
                       {request.assignedArtisan.firstName &&
                       request.assignedArtisan.lastName
                         ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
                         : request.assignedArtisan.name}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {request.assignedArtisan.specialty || "Artisan"}
+                    </h4>
+                    <p className="text-sm text-[#717171] mb-2 flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      {"06 78 90 12 34"}
                     </p>
+                    <div className="flex items-center gap-1 text-sm">
+                      <Star className="h-4 w-4 fill-[#FF385C] text-[#FF385C]" />
+                      <span className="font-semibold text-[#222222]">
+                        {request.assignedArtisan.rating || "5.0"}
+                      </span>
+                      {!request.assignedArtisan.rating && (
+                        <Badge
+                          variant="outline"
+                          className="ml-2 text-xs bg-blue-50 text-blue-700 border-blue-200"
+                        >
+                          Nouveau
+                        </Badge>
+                      )}
+                    </div>
                   </div>
+                </div>
+
+                <Separator className="border-[#EBEBEB] mb-4" />
+
+                <div className="flex flex-col gap-3 flex-1">
+                  <Button
+                    onClick={() => setShowChatModal(true)}
+                    className="w-full flex-1 bg-fixeo-main-500 hover:bg-fixeo-main-700 text-white"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Contacter
+                  </Button>
+                  <Button
+                    onClick={() => setShowCallDialog(true)}
+                    variant="outline"
+                    className="w-full flex-1 border-[#DDDDDD] text-[#222222] hover:bg-gray-50"
+                  >
+                    <Phone className="h-4 w-4 mr-2" />
+                    Appeler
+                  </Button>
                 </div>
               </div>
             ) : (
-              <div>
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
-                    <User className="h-7 w-7 text-gray-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-[#222222]">
-                      En attente d'assignation
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Un artisan sera assigné après acceptation du devis
-                    </p>
-                  </div>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                  <User className="h-8 w-8 text-gray-400" />
                 </div>
+                <h4 className="font-semibold text-[#222222] mb-1">
+                  En attente d'assignation
+                </h4>
+                <p className="text-sm text-[#717171]">
+                  Un artisan sera assigné après acceptation du devis
+                </p>
               </div>
             )}
-
-            <Separator className="border-[#EBEBEB]" />
-
-            {/* Info Icons Section */}
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">{categoryConfig.icon}</div>
-                <div>
-                  <h4 className="font-semibold text-[#222222] mb-1">
-                    Type de service
-                  </h4>
-                  <p className="text-gray-600">{categoryConfig.type}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <Flame className="h-5 w-5 text-gray-600" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-[#222222] mb-1">
-                    Niveau d'urgence
-                  </h4>
-                  <p className="text-gray-600 capitalize">
-                    {urgencyConfig.label}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <MapPin className="h-5 w-5 text-gray-600" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-[#222222] mb-1">
-                    Localisation
-                  </h4>
-                  <p className="text-gray-600">{request.location}</p>
-                </div>
-              </div>
-            </div>
-
-            <Separator className="border-[#EBEBEB]" />
-
-            {/* Description Section */}
-            <div>
-              <h3 className="text-[22px] font-semibold text-[#222222] mb-4">
-                Description de la demande
-              </h3>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {displayDescription}
-              </p>
-              {shouldTruncate && (
-                <button
-                  onClick={() => setDescriptionExpanded(!descriptionExpanded)}
-                  className="mt-2 text-[#222222] font-semibold underline hover:no-underline"
-                >
-                  {descriptionExpanded ? "Réduire" : "Lire la suite"}
-                </button>
-              )}
-            </div>
-
-            <Separator className="border-[#EBEBEB]" />
-
-            {/* Photo Grid */}
-            <div>
-              <h3 className="text-[22px] font-semibold text-[#222222] mb-4">
-                Photos
-              </h3>
-              <HeroGallery
-                photos={photos}
-                onShowAllPhotos={() => {
-                  setCurrentPhotoIndex(0);
-                  setPhotoModalOpen(true);
-                }}
-              />
-            </div>
           </div>
 
-          {/* Right Column - 40% Sticky Sidebar */}
-          <div className="lg:col-span-2">
-            <RequestSidebar
-              estimate={relevantEstimate}
-              requestStatus={request.status}
-              createdAt={request.createdAt}
-              updatedAt={request.updatedAt}
-              onAcceptEstimate={() => setShowAcceptDialog(true)}
-              onRejectEstimate={() => setShowRejectDialog(true)}
-              onValidateCompletion={() => setShowValidateDialog(true)}
-              onDispute={() => setShowDisputeDialog(true)}
-              onAddPhotos={() => setShowPhotoUpload(true)}
-              isLoading={isLoading}
-            />
+          {/* Billing Estimate Card */}
+          <div className="border border-[#DDDDDD] rounded-xl shadow-sm p-6">
+            <h3 className="text-[18px] font-semibold text-[#222222] mb-4">
+              Devis estimatif
+            </h3>
+            {relevantEstimate ? (
+              <div className="space-y-4">
+                {/* Price Header */}
+                <div>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-2xl font-semibold text-[#222222]">
+                      {formatPrice(relevantEstimate.estimatedPrice)}
+                    </span>
+                  </div>
+                  {getEstimateStatusBadge(relevantEstimate.status)}
+                </div>
+
+                <Separator className="border-[#EBEBEB]" />
+
+                {/* Dates */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-[#717171]">
+                      <Calendar className="h-4 w-4" />
+                      <span>Créée le</span>
+                    </div>
+                    <span className="font-medium text-[#222222]">
+                      {formatDate(request.createdAt)}
+                    </span>
+                  </div>
+                  {request.updatedAt && (
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 text-[#717171]">
+                        <Calendar className="h-4 w-4" />
+                        <span>Mise à jour</span>
+                      </div>
+                      <span className="font-medium text-[#222222]">
+                        {formatDate(request.updatedAt)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                {canAcceptRejectEstimate && (
+                  <>
+                    <Separator className="border-[#EBEBEB]" />
+                    <Button
+                      onClick={() => setShowAcceptDialog(true)}
+                      disabled={isLoading}
+                      className="w-full bg-[#FF385C] hover:bg-[#E31C5F] text-white"
+                      size="lg"
+                    >
+                      Accepter le devis
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowRejectDialog(true)}
+                      disabled={isLoading}
+                      className="w-full border-[#DDDDDD]"
+                    >
+                      Rejeter
+                    </Button>
+                  </>
+                )}
+
+                {canValidateOrDispute && (
+                  <>
+                    <Separator className="border-[#EBEBEB]" />
+                    <Button
+                      onClick={() => setShowValidateDialog(true)}
+                      disabled={isLoading}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      size="lg"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Valider l'intervention
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDisputeDialog(true)}
+                      disabled={isLoading}
+                      className="w-full text-orange-600 border-orange-300 hover:bg-orange-50"
+                    >
+                      Signaler un problème
+                    </Button>
+                  </>
+                )}
+
+                {/* Breakdown */}
+                {parsedBreakdown && parsedBreakdown.length > 0 && (
+                  <>
+                    <Separator className="border-[#EBEBEB]" />
+                    <div>
+                      <button
+                        onClick={() => setShowBreakdown(!showBreakdown)}
+                        className="w-full flex items-center justify-between text-sm font-medium text-[#222222] hover:text-[#717171]"
+                      >
+                        <span>Détails du devis</span>
+                        {showBreakdown ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </button>
+
+                      {showBreakdown && (
+                        <div className="mt-3 space-y-2">
+                          {parsedBreakdown.map((item: any, index: number) => (
+                            <div
+                              key={index}
+                              className="flex justify-between text-sm"
+                            >
+                              <span className="text-[#717171]">
+                                {item.description}
+                              </span>
+                              <span className="font-medium text-[#222222]">
+                                {formatPrice(item.amount)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* View Full Estimate */}
+                {!canAcceptRejectEstimate && !canValidateOrDispute && (
+                  <>
+                    <Separator className="border-[#EBEBEB]" />
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        router.push(`/workspace/devis/${relevantEstimate.id}`)
+                      }
+                      className="w-full border-[#DDDDDD]"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Voir le devis complet
+                    </Button>
+                  </>
+                )}
+
+                {/* Info message */}
+                {canAcceptRejectEstimate && (
+                  <>
+                    <Separator className="border-[#EBEBEB]" />
+                    <p className="text-xs text-[#717171] text-center">
+                      Aucun montant ne vous sera débité pour le moment
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-[#717171] text-sm">
+                  En attente du devis estimatif
+                </p>
+              </div>
+            )}
           </div>
+        </div>
+
+        <div className="my-14">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">{categoryConfig.icon}</div>
+              <div>
+                <h4 className="font-semibold text-[#222222] mb-1">
+                  Type de service
+                </h4>
+                <p className="text-[#717171]">{categoryConfig.type}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <Flame className="h-5 w-5 text-gray-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-[#222222] mb-1">
+                  Niveau d'urgence
+                </h4>
+                <p className="text-[#717171] capitalize flex items-center gap-2">
+                  {urgencyConfig.icon}
+                  {urgencyConfig.label}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <MapPin className="h-5 w-5 text-gray-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-[#222222] mb-1">
+                  Localisation
+                </h4>
+                <p className="text-[#717171]">{request.location}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Separator className="border-[#EBEBEB] mb-12" />
+
+        {/* Description Section */}
+        <div className="mb-12">
+          <h3 className="text-[22px] font-semibold text-[#222222] mb-4">
+            Description de la demande
+          </h3>
+          <p className="text-[#222222] leading-relaxed whitespace-pre-wrap">
+            {displayDescription}
+          </p>
+          {shouldTruncate && (
+            <button
+              onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+              className="mt-3 text-[#222222] font-semibold underline hover:no-underline"
+            >
+              {descriptionExpanded ? "Réduire" : "Afficher plus"}
+            </button>
+          )}
+        </div>
+
+        <Separator className="border-[#EBEBEB] mb-12" />
+
+        {/* Photo Grid */}
+        <div className="mb-12">
+          <h3 className="text-[22px] font-semibold text-[#222222] mb-4">
+            Photos
+          </h3>
+          <HeroGallery
+            photos={photos}
+            onShowAllPhotos={() => {
+              setCurrentPhotoIndex(0);
+              setPhotoModalOpen(true);
+            }}
+          />
         </div>
       </div>
 
@@ -492,6 +772,67 @@ export default function RequestDetailPage() {
         requestId={requestId}
         onSuccess={() => mutate()}
       />
+
+      {/* Chat Modal */}
+      <ChatModal
+        open={showChatModal}
+        onOpenChange={setShowChatModal}
+        serviceRequestId={requestId}
+        currentUserId={currentUserId}
+        artisanName={
+          request.assignedArtisan?.firstName &&
+          request.assignedArtisan?.lastName
+            ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
+            : request.assignedArtisan?.name
+        }
+        artisanAvatar={request.assignedArtisan?.profilePicture}
+      />
+
+      {/* Call Dialog */}
+      <Dialog open={showCallDialog} onOpenChange={setShowCallDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Appeler l'artisan</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {request.assignedArtisan?.email ? (
+              <>
+                <div className="text-center py-4">
+                  <div className="w-16 h-16 rounded-full bg-[#FF385C]/10 flex items-center justify-center mx-auto mb-3">
+                    <Phone className="h-8 w-8 text-[#FF385C]" />
+                  </div>
+                  <h4 className="font-semibold text-[#222222] mb-2">
+                    {request.assignedArtisan.firstName &&
+                    request.assignedArtisan.lastName
+                      ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
+                      : request.assignedArtisan.name}
+                  </h4>
+                  <p className="text-sm text-[#717171]">
+                    Pour des raisons de confidentialité, veuillez utiliser le
+                    chat pour communiquer avec l'artisan.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    setShowCallDialog(false);
+                    setShowChatModal(true);
+                  }}
+                  className="w-full bg-[#FF385C] hover:bg-[#E31C5F] text-white"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Envoyer un message
+                </Button>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-[#717171]">
+                  Aucune information de contact disponible
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Photo Modal */}
       <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>

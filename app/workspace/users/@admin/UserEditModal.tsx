@@ -21,11 +21,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { cn, getCategoryConfig, ServiceType } from "@/lib/utils";
+import { UserRole } from "@/lib/types/roles";
+import {
+  cn,
+  EXPERIENCE_OPTIONS,
+  getCategoryConfig,
+  ServiceType,
+} from "@/lib/utils";
 import {
   artisanSchema,
   clientSchema,
-  UserRole,
   userSchema,
 } from "@/lib/validation/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,14 +59,6 @@ interface UserEditModalProps {
 
 const specialties = Object.values(ServiceType);
 
-const experienceOptions = [
-  { value: "0-1", label: "Moins d'1 an" },
-  { value: "1-3", label: "1 à 3 ans" },
-  { value: "3-5", label: "3 à 5 ans" },
-  { value: "5-10", label: "5 à 10 ans" },
-  { value: "10+", label: "Plus de 10 ans" },
-];
-
 export function UserEditModal({
   userId,
   setUserId,
@@ -70,9 +67,9 @@ export function UserEditModal({
 }: UserEditModalProps) {
   const [saving, setSaving] = useState(false);
   const getSchema = (role: UserRole) => {
-    return role === "professional"
+    return role === UserRole.PROFESSIONAL
       ? artisanSchema
-      : role === "client"
+      : role === UserRole.CLIENT
       ? clientSchema
       : userSchema;
   };
@@ -506,7 +503,7 @@ export function UserEditModal({
                         <SelectValue placeholder="Sélectionnez" />
                       </SelectTrigger>
                       <SelectContent>
-                        {experienceOptions.map((option) => (
+                        {EXPERIENCE_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>

@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { cn, ServiceType } from "@/lib/utils";
+import { cn, EXPERIENCE_OPTIONS, ServiceType } from "@/lib/utils";
 import {
   artisanSignUpSchema,
   ArtisanSignUpType,
@@ -334,11 +334,11 @@ function SignUpArtisanForm() {
                           <SelectValue placeholder="Sélectionnez" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="0-1">Moins d'1 an</SelectItem>
-                          <SelectItem value="1-3">1 à 3 ans</SelectItem>
-                          <SelectItem value="3-5">3 à 5 ans</SelectItem>
-                          <SelectItem value="5-10">5 à 10 ans</SelectItem>
-                          <SelectItem value="10+">Plus de 10 ans</SelectItem>
+                          {EXPERIENCE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       {error && (

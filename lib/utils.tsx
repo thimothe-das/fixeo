@@ -44,6 +44,14 @@ export enum Urgency {
   FLEXIBLE = "flexible",
 }
 
+export const EXPERIENCE_OPTIONS = [
+  { value: "0-1", label: "Moins d'1 an" },
+  { value: "1-3", label: "1 à 3 ans" },
+  { value: "3-5", label: "3 à 5 ans" },
+  { value: "5-10", label: "5 à 10 ans" },
+  { value: "10+", label: "Plus de 10 ans" },
+] as const;
+
 export const DOWN_PAYMENT_PERCENTAGE = 0.3;
 
 export const getStatusConfig = (status: string, iconClassName: string) => {

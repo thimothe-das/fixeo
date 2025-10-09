@@ -2,8 +2,14 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Send } from "lucide-react";
+import { Send, X } from "lucide-react";
 import * as React from "react";
 import useSWR from "swr";
 
@@ -17,7 +23,9 @@ interface Message {
   isRead: boolean;
 }
 
-interface ConversationSectionProps {
+interface ChatModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   serviceRequestId: number;
   currentUserId?: number;
   artisanName?: string;
@@ -26,31 +34,36 @@ interface ConversationSectionProps {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export function ConversationSection({
+export function ChatModal({
+  open,
+  onOpenChange,
   serviceRequestId,
   currentUserId,
-  artisanName,
+  artisanName = "l'artisan",
   artisanAvatar,
-}: ConversationSectionProps) {
+}: ChatModalProps) {
   const [newMessage, setNewMessage] = React.useState("");
   const [isSending, setIsSending] = React.useState(false);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-  const chatContainerRef = React.useRef<HTMLDivElement>(null);
 
   const {
     data: messages,
     error,
     mutate,
-  } = useSWR<Message[]>(`/api/conversations/${serviceRequestId}`, fetcher, {
-    refreshInterval: 5000, // Refresh every 5 seconds for near real-time
-  });
+  } = useSWR<Message[]>(
+    open ? `/api/conversations/${serviceRequestId}` : null,
+    fetcher,
+    {
+      refreshInterval: open ? 3000 : 0, // Refresh every 3 seconds when modal is open
+    }
+  );
 
   // Auto-scroll to bottom when new messages arrive
   React.useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && open) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, open]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +85,6 @@ export function ConversationSection({
 
       if (response.ok) {
         setNewMessage("");
-        // Optimistically update the UI
         mutate();
       } else {
         const error = await response.json();
@@ -129,55 +141,73 @@ export function ConversationSection({
     return groups;
   }, [messages]);
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800 text-sm">
-          Erreur lors du chargement de la conversation
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div id="conversation" className="space-y-4">
-      <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-        <MessageSquare className="h-5 w-5 mr-2" />
-        Conversation
-      </h2>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl h-[600px] p-0 gap-0 flex flex-col">
+        {/* Header */}
+        <DialogHeader className="px-6 py-4 border-b border-[#EBEBEB] flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={artisanAvatar} />
+                <AvatarFallback className="bg-blue-100 text-blue-700 text-sm">
+                  {artisanName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <DialogTitle className="text-[18px] font-semibold text-[#222222]">
+                {artisanName}
+              </DialogTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        {/* Chat Messages Area */}
-        <div
-          ref={chatContainerRef}
-          className="h-[400px] overflow-y-auto p-4 bg-gray-50"
-        >
-          {!messages || messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <MessageSquare className="h-12 w-12 text-gray-300 mb-3" />
-              <p className="text-gray-500 font-medium">
-                Aucun message pour le moment
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto p-6 bg-white">
+          {error ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-red-600 text-sm">
+                Erreur lors du chargement de la conversation
               </p>
-              <p className="text-gray-400 text-sm mt-1">
-                Commencez la conversation avec {artisanName || "l'artisan"}
+            </div>
+          ) : !messages || messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <Send className="h-8 w-8 text-gray-400" />
+              </div>
+              <p className="text-[#222222] font-medium text-lg mb-2">
+                Commencez la conversation
+              </p>
+              <p className="text-[#717171] text-sm">
+                Envoyez un message à {artisanName}
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {Object.entries(groupedMessages).map(([dateKey, msgs]) => (
                 <div key={dateKey}>
                   {/* Date Separator */}
-                  <div className="flex items-center justify-center my-4">
-                    <div className="bg-white px-3 py-1 rounded-full text-xs text-gray-500 shadow-sm border border-gray-200">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="bg-gray-100 px-3 py-1 rounded-full text-xs text-[#717171] font-medium">
                       {formatDate(msgs[0].timestamp)}
                     </div>
                   </div>
 
                   {/* Messages for this date */}
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {msgs.map((message) => {
                       const isCurrentUser = message.senderId === currentUserId;
-                      const isArtisan = message.senderRole === "professional";
 
                       return (
                         <div
@@ -191,7 +221,7 @@ export function ConversationSection({
                               isCurrentUser ? "flex-row-reverse" : "flex-row"
                             }`}
                           >
-                            {/* Avatar */}
+                            {/* Avatar - only for other user */}
                             {!isCurrentUser && (
                               <Avatar className="h-8 w-8 flex-shrink-0">
                                 <AvatarImage src={artisanAvatar} />
@@ -205,21 +235,23 @@ export function ConversationSection({
                             )}
 
                             {/* Message Bubble */}
-                            <div
-                              className={`rounded-2xl px-4 py-2 ${
-                                isCurrentUser
-                                  ? "bg-[#FF385C] text-white"
-                                  : "bg-white border border-gray-200 text-gray-900"
-                              }`}
-                            >
-                              <p className="text-sm leading-relaxed">
-                                {message.content}
-                              </p>
-                              <p
-                                className={`text-xs mt-1 ${
+                            <div>
+                              <div
+                                className={`rounded-2xl px-4 py-2.5 ${
                                   isCurrentUser
-                                    ? "text-pink-100"
-                                    : "text-gray-400"
+                                    ? "bg-[#FF385C] text-white"
+                                    : "bg-[#F7F7F7] text-[#222222]"
+                                }`}
+                              >
+                                <p className="text-[15px] leading-relaxed break-words">
+                                  {message.content}
+                                </p>
+                              </div>
+                              <p
+                                className={`text-xs mt-1 px-1 ${
+                                  isCurrentUser
+                                    ? "text-right text-[#717171]"
+                                    : "text-left text-[#717171]"
                                 }`}
                               >
                                 {formatTime(message.timestamp)}
@@ -238,26 +270,26 @@ export function ConversationSection({
         </div>
 
         {/* Message Input */}
-        <div className="p-4 bg-white border-t border-gray-200">
-          <form onSubmit={handleSendMessage} className="flex gap-2">
+        <div className="px-6 py-4 border-t border-[#EBEBEB] bg-white flex-shrink-0">
+          <form onSubmit={handleSendMessage} className="flex gap-3">
             <Input
               type="text"
               placeholder="Écrivez votre message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               disabled={isSending}
-              className="flex-1"
+              className="flex-1 border-[#DDDDDD] focus:border-[#FF385C] focus:ring-[#FF385C]"
             />
             <Button
               type="submit"
               disabled={!newMessage.trim() || isSending}
-              className="bg-[#FF385C] hover:bg-[#E31C5F] text-white"
+              className="bg-[#FF385C] hover:bg-[#E31C5F] text-white px-6"
             >
               <Send className="h-4 w-4" />
             </Button>
           </form>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

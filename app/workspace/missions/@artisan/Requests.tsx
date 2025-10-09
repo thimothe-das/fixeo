@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn, getCategoryConfig, Urgency } from "@/lib/utils";
+import { cn, getCategoryConfig, ServiceType, Urgency } from "@/lib/utils";
 import {
   Calendar,
   CheckCircle,
@@ -67,10 +67,10 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
 
   const categories = [
     { value: "all", label: "Toutes catégories" },
-    { value: "plumbing", label: "Plomberie" },
-    { value: "electrical", label: "Électricité" },
-    { value: "heating", label: "Chauffage" },
-    { value: "furniture", label: "Montage meuble" },
+    ...Object.values(ServiceType).map((category) => ({
+      value: getCategoryConfig(category, "h-5 w-5").type,
+      label: getCategoryConfig(category, "h-5 w-5").type,
+    })),
   ];
 
   const sortOptions = [
@@ -156,7 +156,7 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
       timeLeft?: number;
     }
   ) => {
-    if (request.status === "taken" || request.taken) {
+    if (!request.isAssigned) {
       return (
         <Badge variant="secondary" className="bg-gray-100 text-gray-600">
           Prise
@@ -272,7 +272,7 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
       ({ request }: { request: ServiceRequestForArtisan }) => {
         const photos = request.photos ? JSON.parse(request.photos) : [];
         const isUrgent = request.urgency === Urgency.URGENT;
-        const isTaken = request.status === "taken" || request.isAssigned;
+        const isTaken = request.isAssigned;
 
         const [isDescriptionExpanded, setIsDescriptionExpanded] =
           useState(false);
@@ -459,7 +459,7 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
 
                   {/* Bottom Row: Action Buttons */}
                   <div className="flex gap-2 pt-3 border-t border-gray-100">
-                    {request.status === "available" || !request.isAssigned ? (
+                    {!request.isAssigned ? (
                       <>
                         <Button
                           className="flex-1 h-10 bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-sm touch-manipulation"
@@ -647,7 +647,7 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                 )}
 
                 <div className="space-y-3 pt-4">
-                  {job.status === "available" || !job.isAssigned ? (
+                  {!job.isAssigned ? (
                     <div className="flex gap-2">
                       <Button
                         variant="outline"

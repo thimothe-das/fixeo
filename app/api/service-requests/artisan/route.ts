@@ -1,3 +1,4 @@
+import { UserRole } from "@/lib/auth/roles";
 import { getServiceRequestsForArtisan } from "@/lib/db/queries/artisan";
 import { getUser } from "@/lib/db/queries/common";
 import { NextResponse } from "next/server";
@@ -10,7 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (user.role !== "professional") {
+    if (user.role !== UserRole.PROFESSIONAL) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

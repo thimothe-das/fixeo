@@ -12,7 +12,7 @@ import { ArrowRight, Clock, Shield, Star, Users, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type UserRole = "client" | "artisan" | null;
+type UserRole = "client" | "professional" | null;
 
 export function SignUpRoleSelection({
   mode = "signin",

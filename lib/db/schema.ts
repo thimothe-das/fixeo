@@ -38,7 +38,7 @@ export const billingEstimateStatusEnum = pgEnum("billing_estimate_status", [
 // Message Sender Type Enum
 export const messageSenderTypeEnum = pgEnum("message_sender_type", [
   "client",
-  "artisan",
+  "professional",
   "admin",
 ]);
 
@@ -47,7 +47,7 @@ export const users = pgTable("users", {
   name: varchar("name", { length: 100 }),
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: varchar("role", { length: 20 }).notNull().default("member"),
+  role: varchar("role", { length: 20 }).notNull().default("client"),
   stripeCustomerId: text("stripe_customer_id").unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -187,6 +187,19 @@ export const serviceRequests = pgTable("service_requests", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// Service request status history for tracking status changes
+export const serviceRequestStatusHistory = pgTable(
+  "service_request_status_history",
+  {
+    id: serial("id").primaryKey(),
+    serviceRequestId: integer("service_request_id")
+      .notNull()
+      .references(() => serviceRequests.id),
+    status: serviceRequestStatusEnum("status").notNull(),
+    changedAt: timestamp("changed_at").notNull().defaultNow(),
+  }
+);
 
 // Billing estimates table for admin-created estimates
 export const billingEstimates = pgTable("billing_estimates", {
@@ -411,6 +424,6 @@ export enum BillingEstimateStatus {
 
 export enum MessageSenderType {
   CLIENT = "client",
-  ARTISAN = "artisan",
+  PROFESSIONAL = "professional",
   ADMIN = "admin",
 }

@@ -6,7 +6,7 @@ import {
   serviceRequests,
   users,
 } from "@/lib/db/schema";
-import { desc, eq, and } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { NextResponse } from "next/server";
 
@@ -27,7 +27,8 @@ export async function GET(
 
     // Get the guest token from query params or headers
     const { searchParams } = new URL(request.url);
-    const guestToken = searchParams.get("token") || request.headers.get("x-guest-token");
+    const guestToken =
+      searchParams.get("token") || request.headers.get("x-guest-token");
 
     if (!guestToken) {
       return NextResponse.json(
@@ -136,13 +137,15 @@ export async function GET(
       clientEmail: serviceRequest.clientEmail,
       clientName,
       clientPhone: serviceRequest.client?.phone,
-      assignedArtisan: serviceRequest.assignedArtisan?.id ? {
-        id: serviceRequest.assignedArtisan.id,
-        name: serviceRequest.assignedArtisan.name,
-        firstName: serviceRequest.assignedArtisan.firstName,
-        lastName: serviceRequest.assignedArtisan.lastName,
-        specialty: serviceRequest.assignedArtisan.specialty,
-      } : null,
+      assignedArtisan: serviceRequest.assignedArtisan?.id
+        ? {
+            id: serviceRequest.assignedArtisan.id,
+            name: serviceRequest.assignedArtisan.name,
+            firstName: serviceRequest.assignedArtisan.firstName,
+            lastName: serviceRequest.assignedArtisan.lastName,
+            specialty: serviceRequest.assignedArtisan.specialty,
+          }
+        : null,
       billingEstimates: estimates,
       timeline: {
         created: {
@@ -172,4 +175,4 @@ export async function GET(
       { status: 500 }
     );
   }
-} 
+}

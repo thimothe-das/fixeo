@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { UserRole } from "../types/roles";
 import { ServiceType, Urgency } from "../utils";
 
 // Password validation schema
@@ -45,7 +46,7 @@ export const addressSchema = z
 export const commonSignUpSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  role: z.enum(["client", "artisan"]),
+  role: z.nativeEnum(UserRole),
   inviteId: z.string().optional(),
   firstName: firstNameSchema,
   lastName: lastNameSchema,
@@ -178,12 +179,6 @@ export const createServiceRequestSchema = z.object({
 });
 
 export type CreateRequestType = z.infer<typeof createServiceRequestSchema>;
-
-export enum UserRole {
-  USER = "user",
-  PROFESSIONAL = "professional",
-  CLIENT = "client",
-}
 
 export const userSchema = z.object({
   name: z.string().min(1, "Nom requis"),

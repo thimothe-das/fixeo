@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { MessageSenderType, ServiceRequestStatus } from "@/lib/db/schema";
 import {
   AlertCircle,
   AlertTriangle,
@@ -154,18 +155,18 @@ export default function Job() {
       if (response.ok) {
         // Update mission status locally
         if (completionType === "success") {
-          selectedMission.status = "accepted";
+          selectedMission.status = ServiceRequestStatus.IN_PROGRESS;
         } else if (completionType === "validate") {
           selectedMission.status =
-            selectedMission.status === "client_validated"
-              ? "completed"
-              : "artisan_validated";
+            selectedMission.status === ServiceRequestStatus.CLIENT_VALIDATED
+              ? ServiceRequestStatus.COMPLETED
+              : ServiceRequestStatus.ARTISAN_VALIDATED;
         } else if (completionType === "dispute") {
-          selectedMission.status = "disputed";
+          selectedMission.status = ServiceRequestStatus.DISPUTED_BY_ARTISAN;
         } else if (completionType === "issue") {
-          selectedMission.status = "completed_with_issues";
+          selectedMission.status = ServiceRequestStatus.RESOLVED;
         } else if (completionType === "impossible") {
-          selectedMission.status = "could_not_complete";
+          selectedMission.status = ServiceRequestStatus.CANCELLED;
         }
 
         setShowCompletionDialog(false);
@@ -197,7 +198,7 @@ export default function Job() {
       );
 
       if (response.ok) {
-        mission.status = "in-progress";
+        mission.status = ServiceRequestStatus.IN_PROGRESS;
       } else {
         const error = await response.json();
         alert(`Erreur: ${error.error}`);
@@ -212,7 +213,7 @@ export default function Job() {
     if (chatMessage.trim() && selectedMission) {
       const newMessage = {
         id: (selectedMission.messages?.length || 0) + 1,
-        sender: "artisan",
+        sender: MessageSenderType.PROFESSIONAL,
         message: chatMessage,
         createdAt: new Date().toISOString(),
       };
@@ -264,11 +265,11 @@ export default function Job() {
       if (response.ok) {
         if (validationType === "approve") {
           mission.status =
-            mission.status === "client_validated"
-              ? "completed"
-              : "artisan_validated";
+            mission.status === ServiceRequestStatus.CLIENT_VALIDATED
+              ? ServiceRequestStatus.COMPLETED
+              : ServiceRequestStatus.ARTISAN_VALIDATED;
         } else if (validationType === "dispute") {
-          mission.status = "disputed_by_artisan";
+          mission.status = ServiceRequestStatus.DISPUTED_BY_ARTISAN;
         }
 
         setShowValidationDialog(false);
@@ -297,24 +298,14 @@ export default function Job() {
 
   const getPrimaryAction = () => {
     switch (mission.status) {
-      case "scheduled":
+      case ServiceRequestStatus.AWAITING_ASSIGNATION:
         return {
           label: "Commencer la mission",
           icon: <Clock className="h-5 w-5" />,
           onClick: () => handleStartMission(mission),
           className: "bg-blue-600 hover:bg-blue-700 text-white",
         };
-      case "accepted":
-        return {
-          label: "Mission terminée",
-          icon: <CheckCircle className="h-5 w-5" />,
-          onClick: () => {
-            setCompletionType("success");
-            setShowCompletionDialog(true);
-          },
-          className: "bg-emerald-600 hover:bg-emerald-700 text-white",
-        };
-      case "in-progress":
+      case ServiceRequestStatus.IN_PROGRESS:
         return {
           label: "Valider la mission",
           icon: <ThumbsUp className="h-5 w-5" />,
@@ -324,7 +315,7 @@ export default function Job() {
           },
           className: "bg-emerald-600 hover:bg-emerald-700 text-white",
         };
-      case "client_validated":
+      case ServiceRequestStatus.CLIENT_VALIDATED:
         return {
           label: "Confirmer validation",
           icon: <CheckCircle className="h-5 w-5" />,
@@ -358,13 +349,13 @@ export default function Job() {
       {
         step: "Mission en cours",
         completed: [
-          "in-progress",
-          "client_validated",
-          "artisan_validated",
-          "completed",
-        ].includes(mission.status),
+          ServiceRequestStatus.IN_PROGRESS,
+          ServiceRequestStatus.CLIENT_VALIDATED,
+          ServiceRequestStatus.ARTISAN_VALIDATED,
+          ServiceRequestStatus.COMPLETED,
+        ].includes(mission.status as ServiceRequestStatus),
         date:
-          mission.status !== "scheduled"
+          mission.status !== ServiceRequestStatus.AWAITING_ASSIGNATION
             ? moment(mission.createdAt)
                 .add(2, "hours")
                 .format("DD/MM/YYYY à HH:mm")
@@ -374,13 +365,15 @@ export default function Job() {
       {
         step: "Mission terminée",
         completed: [
-          "client_validated",
-          "artisan_validated",
-          "completed",
-        ].includes(mission.status),
-        date: ["client_validated", "artisan_validated", "completed"].includes(
-          mission.status
-        )
+          ServiceRequestStatus.CLIENT_VALIDATED,
+          ServiceRequestStatus.ARTISAN_VALIDATED,
+          ServiceRequestStatus.COMPLETED,
+        ].includes(mission.status as ServiceRequestStatus),
+        date: [
+          ServiceRequestStatus.CLIENT_VALIDATED,
+          ServiceRequestStatus.ARTISAN_VALIDATED,
+          ServiceRequestStatus.COMPLETED,
+        ].includes(mission.status as ServiceRequestStatus)
           ? moment(mission.createdAt)
               .add(4, "hours")
               .format("DD/MM/YYYY à HH:mm")
@@ -389,9 +382,9 @@ export default function Job() {
       },
       {
         step: "Validation finale",
-        completed: mission.status === "completed",
+        completed: mission.status === ServiceRequestStatus.COMPLETED,
         date:
-          mission.status === "completed"
+          mission.status === ServiceRequestStatus.COMPLETED
             ? moment(mission.createdAt)
                 .add(5, "hours")
                 .format("DD/MM/YYYY à HH:mm")
@@ -440,7 +433,7 @@ export default function Job() {
 
   const getActionBanner = () => {
     switch (mission.status) {
-      case "in-progress":
+      case ServiceRequestStatus.IN_PROGRESS:
         return {
           type: "warning",
           title: "Une action est requise",
@@ -472,7 +465,7 @@ export default function Job() {
             </>
           ),
         };
-      case "client_validated":
+      case ServiceRequestStatus.CLIENT_VALIDATED:
         return {
           type: "info",
           title: "Une action est requise",
@@ -504,7 +497,7 @@ export default function Job() {
             </>
           ),
         };
-      case "scheduled":
+      case ServiceRequestStatus.AWAITING_ASSIGNATION:
         return {
           type: "info",
           title: "Une action est requise",
@@ -599,25 +592,9 @@ export default function Job() {
                 </Button>
               )}
 
-              {/* Secondary Actions for Accepted Status */}
-              {mission.status === "accepted" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex items-center gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
-                  onClick={() => {
-                    setCompletionType("issue");
-                    setShowIssueDialog(true);
-                  }}
-                >
-                  <AlertTriangle className="h-3 w-3" />
-                  Problème
-                </Button>
-              )}
-
               {/* Validation Actions for In-Progress */}
-              {(mission.status === "in-progress" ||
-                mission.status === "client_validated") && (
+              {(mission.status === ServiceRequestStatus.IN_PROGRESS ||
+                mission.status === ServiceRequestStatus.CLIENT_VALIDATED) && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -899,14 +876,14 @@ export default function Job() {
                       <div
                         key={message.id}
                         className={`flex ${
-                          message.sender === "artisan"
+                          message.sender === MessageSenderType.PROFESSIONAL
                             ? "justify-end"
                             : "justify-start"
                         }`}
                       >
                         <div
                           className={`max-w-[75%] px-3 py-2 rounded-lg text-sm ${
-                            message.sender === "artisan"
+                            message.sender === MessageSenderType.PROFESSIONAL
                               ? "bg-blue-600 text-white"
                               : "bg-white text-gray-900 border shadow-sm"
                           }`}
@@ -914,7 +891,7 @@ export default function Job() {
                           <p>{message.message}</p>
                           <p
                             className={`text-xs mt-1 ${
-                              message.sender === "artisan"
+                              message.sender === MessageSenderType.PROFESSIONAL
                                 ? "text-blue-200"
                                 : "text-gray-500"
                             }`}
@@ -1226,7 +1203,8 @@ export default function Job() {
                 ✓ Mission validée avec succès
               </p>
               <p className="text-xs text-green-600 mt-1">
-                {selectedMission?.status === "client_validated"
+                {selectedMission?.status ===
+                ServiceRequestStatus.CLIENT_VALIDATED
                   ? "Les deux parties ont validé. La mission sera marquée comme terminée."
                   : "Le client sera notifié de votre validation."}
               </p>

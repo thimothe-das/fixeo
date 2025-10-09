@@ -1,3 +1,4 @@
+import { UserRole } from "@/lib/auth/roles";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "./drizzle";
 import {
@@ -6,6 +7,7 @@ import {
   conversations,
   serviceRequests,
   ServiceRequestStatus,
+  serviceRequestStatusHistory,
   users,
 } from "./schema";
 
@@ -144,6 +146,12 @@ export async function updateBillingEstimateStatus(
         updatedAt: new Date(),
       })
       .where(eq(serviceRequests.id, estimate.serviceRequestId));
+
+    // Record status change in history
+    await db.insert(serviceRequestStatusHistory).values({
+      serviceRequestId: estimate.serviceRequestId,
+      status: ServiceRequestStatus.AWAITING_ASSIGNATION,
+    });
   }
 
   return estimate;
@@ -168,6 +176,12 @@ export async function updateServiceRequestStatus(
     })
     .where(eq(serviceRequests.id, requestId))
     .returning();
+
+  // Record status change in history
+  await db.insert(serviceRequestStatusHistory).values({
+    serviceRequestId: requestId,
+    status,
+  });
 
   // If it's a dispute, we might want to log this separately
   // For now, we'll just store the dispute details in a separate table if needed
@@ -396,7 +410,7 @@ export async function getConversationsByRequestId(serviceRequestId: number) {
 export async function createConversationMessage(messageData: {
   serviceRequestId: number;
   senderId: number;
-  senderType: "client" | "artisan" | "admin";
+  senderType: "client" | "professional" | "admin";
   message: string;
 }) {
   const [message] = await db
@@ -463,7 +477,7 @@ export async function getClientByUserId(userId: number) {
   const user = result[0];
 
   // Return null if user exists but doesn't have client role
-  if (user.role !== "client") {
+  if (user.role !== UserRole.CLIENT) {
     return null;
   }
 

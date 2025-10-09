@@ -113,7 +113,7 @@ interface ConversationMessage {
   id: number;
   serviceRequestId: number;
   senderId: number;
-  senderType: "client" | "artisan" | "admin";
+  senderType: "client" | "professional" | "admin";
   message: string;
   createdAt: string;
   readAt?: string;
@@ -1400,7 +1400,7 @@ export function Request({
                           className={`max-w-[85%] ${
                             message.senderType === "admin"
                               ? "bg-blue-600 text-white"
-                              : message.senderType === "artisan"
+                              : message.senderType === "professional"
                               ? "bg-green-100 text-green-900"
                               : "bg-gray-100 text-gray-900"
                           } rounded-lg p-3`}
@@ -1409,7 +1409,7 @@ export function Request({
                             <span className="text-xs font-medium opacity-75">
                               {message.senderType === "admin"
                                 ? "Admin"
-                                : message.senderType === "artisan"
+                                : message.senderType === "professional"
                                 ? "Artisan"
                                 : "Client"}
                             </span>

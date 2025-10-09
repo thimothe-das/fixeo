@@ -1,6 +1,7 @@
 "use server";
 
 import { validatedActionWithUser } from "@/lib/auth/middleware";
+import { UserRole } from "@/lib/auth/roles";
 import { comparePasswords, hashPassword, setSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/drizzle";
 import { getUserWithTeam } from "@/lib/db/queries/common";
@@ -133,9 +134,9 @@ export const signUpClient = async (data: ClientSignUpType) => {
 
   let newUserRole: string;
   if (isFirstUser && email === "das.thimothe@gmail.com") {
-    newUserRole = "admin"; // First user with specific email becomes admin
+    newUserRole = UserRole.ADMIN; // First user with specific email becomes admin
   } else {
-    newUserRole = "client";
+    newUserRole = UserRole.CLIENT;
   }
 
   const newUser: NewUser = {
@@ -236,9 +237,9 @@ export const signUpArtisan = async (data: ArtisanSignUpType) => {
 
   let newUserRole: string;
   if (isFirstUser && email === "das.thimothe@gmail.com") {
-    newUserRole = "admin"; // First user with specific email becomes admin
+    newUserRole = UserRole.ADMIN; // First user with specific email becomes admin
   } else {
-    newUserRole = "professional";
+    newUserRole = UserRole.PROFESSIONAL;
   }
 
   const newUser: NewUser = {

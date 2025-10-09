@@ -1,6 +1,11 @@
+import { UserRole } from "@/lib/auth/roles";
 import { db } from "@/lib/db/drizzle";
 import { getUser } from "@/lib/db/queries/common";
-import { serviceRequests, ServiceRequestStatus } from "@/lib/db/schema";
+import {
+  serviceRequests,
+  ServiceRequestStatus,
+  serviceRequestStatusHistory,
+} from "@/lib/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -12,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (user.role !== "professional") {
+    if (user.role !== UserRole.PROFESSIONAL) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -54,6 +59,12 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       })
       .where(eq(serviceRequests.id, requestId));
+
+    // Record status change in history
+    await db.insert(serviceRequestStatusHistory).values({
+      serviceRequestId: requestId,
+      status: ServiceRequestStatus.IN_PROGRESS,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

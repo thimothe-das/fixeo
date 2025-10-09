@@ -121,7 +121,7 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
 
       const inProgress = inProgressRequests.length;
       const urgentInProgress = inProgressRequests.filter(
-        (request) => request.urgency === "urgent"
+        (request) => request.urgency === Urgency.URGENT
       ).length;
 
       return {
@@ -140,7 +140,7 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
     // Urgent in-progress assigned requests
     const urgentInProgressRequests = assignedRequests.filter(
       (request) =>
-        request.urgency === "urgent" &&
+        request.urgency === Urgency.URGENT &&
         [
           ServiceRequestStatus.IN_PROGRESS,
           ServiceRequestStatus.CLIENT_VALIDATED,
@@ -176,8 +176,10 @@ export function Dashboard({ stats, assignedRequests }: DashboardProps) {
     return assignedRequests
       .filter((request) => request.status === ServiceRequestStatus.IN_PROGRESS)
       .sort((a, b) => {
-        if (a.urgency === "urgent" && b.urgency !== "urgent") return -1;
-        if (b.urgency === "urgent" && a.urgency !== "urgent") return 1;
+        if (a.urgency === Urgency.URGENT && b.urgency !== Urgency.URGENT)
+          return -1;
+        if (b.urgency === Urgency.URGENT && a.urgency !== Urgency.URGENT)
+          return 1;
 
         return moment(b.createdAt).unix() - moment(a.createdAt).unix();
       });

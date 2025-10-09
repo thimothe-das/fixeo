@@ -140,16 +140,16 @@ export default function ClientRequestsListComponent({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4">
-        {statusCards.map((statusCard, index) => (
+        {/* {statusCards.map((statusCard, index) => (
           <StatusCard
             key={index}
             statusConfig={statusCard.config}
             count={statusCard.count}
             label={statusCard.label}
           />
-        ))}
+        ))} */}
       </div>
 
       {/* All Requests Sorted */}

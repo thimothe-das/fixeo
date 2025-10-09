@@ -1,7 +1,9 @@
-import { NextResponse } from 'next/server';
-import { getConversationsByRequestId, createConversationMessage } from '@/lib/db/queries';
-import { validateUserRole, ROLES } from '@/lib/auth/roles';
-import { MessageSenderType } from '@/lib/db/schema';
+import { ROLES, validateUserRole } from "@/lib/auth/roles";
+import {
+  createConversationMessage,
+  getConversationsByRequestId,
+} from "@/lib/db/queries";
+import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
@@ -9,29 +11,36 @@ export async function GET(
 ) {
   try {
     // Validate user has access
-    const validation = await validateUserRole([ROLES.ADMIN, ROLES.CLIENT, ROLES.PROFESSIONAL]);
-    
+    const validation = await validateUserRole([
+      ROLES.ADMIN,
+      ROLES.CLIENT,
+      ROLES.PROFESSIONAL,
+    ]);
+
     if (!validation.hasAccess) {
       return NextResponse.json(
-        { error: validation.error || 'Access denied' }, 
+        { error: validation.error || "Access denied" },
         { status: validation.user ? 403 : 401 }
       );
     }
 
     const { serviceRequestId } = await params;
     const requestId = parseInt(serviceRequestId);
-    
+
     if (isNaN(requestId)) {
-      return NextResponse.json({ error: 'Invalid service request ID' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid service request ID" },
+        { status: 400 }
+      );
     }
 
     const conversations = await getConversationsByRequestId(requestId);
-    
+
     return NextResponse.json(conversations);
   } catch (error) {
-    console.error('Error fetching conversations:', error);
+    console.error("Error fetching conversations:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -43,43 +52,60 @@ export async function POST(
 ) {
   try {
     // Validate user has access
-    const validation = await validateUserRole([ROLES.ADMIN, ROLES.CLIENT, ROLES.PROFESSIONAL]);
-    
+    const validation = await validateUserRole([
+      ROLES.ADMIN,
+      ROLES.CLIENT,
+      ROLES.PROFESSIONAL,
+    ]);
+
     if (!validation.hasAccess || !validation.user) {
       return NextResponse.json(
-        { error: validation.error || 'Access denied' }, 
+        { error: validation.error || "Access denied" },
         { status: validation.user ? 403 : 401 }
       );
     }
 
     const { serviceRequestId } = await params;
     const requestId = parseInt(serviceRequestId);
-    
+
     if (isNaN(requestId)) {
-      return NextResponse.json({ error: 'Invalid service request ID' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid service request ID" },
+        { status: 400 }
+      );
     }
 
     const body = await request.json();
     const { message } = body;
-    
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+
+    if (
+      !message ||
+      typeof message !== "string" ||
+      message.trim().length === 0
+    ) {
+      return NextResponse.json(
+        { error: "Message is required" },
+        { status: 400 }
+      );
     }
 
     // Determine sender type based on user role
-    let senderType: 'client' | 'artisan' | 'admin';
+    let senderType: "client" | "professional" | "admin";
     switch (validation.user.role) {
-      case 'admin':
-        senderType = 'admin';
+      case "admin":
+        senderType = "admin";
         break;
-      case 'professional':
-        senderType = 'artisan';
+      case "professional":
+        senderType = "professional";
         break;
-      case 'client':
-        senderType = 'client';
+      case "client":
+        senderType = "client";
         break;
       default:
-        return NextResponse.json({ error: 'Invalid user role' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid user role" },
+          { status: 400 }
+        );
     }
 
     const newMessage = await createConversationMessage({
@@ -91,9 +117,9 @@ export async function POST(
 
     return NextResponse.json(newMessage, { status: 201 });
   } catch (error) {
-    console.error('Error creating conversation message:', error);
+    console.error("Error creating conversation message:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

@@ -1,3 +1,4 @@
+import { UserRole } from "@/lib/auth/roles";
 import {
   getServiceRequestWithUser,
   updateServiceRequestStatus,
@@ -44,7 +45,7 @@ export async function POST(
     // Verify the user is the assigned artisan or is an admin
     const isAssignedArtisan =
       serviceRequestData.request.assignedArtisanId === user.id;
-    const isAdmin = user.role === "admin";
+    const isAdmin = user.role === UserRole.ADMIN;
 
     if (!isAssignedArtisan && !isAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

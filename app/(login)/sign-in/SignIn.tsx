@@ -13,7 +13,7 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { signIn } from "../actions";
 
-type UserRole = "client" | "artisan" | null;
+type UserRole = "client" | "professional" | null;
 
 export function SignIn({ role = null }: { role?: UserRole }) {
   const searchParams = useSearchParams();

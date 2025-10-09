@@ -1,22 +1,15 @@
 import { getUser } from "@/lib/db/queries/common";
+import { ROLES, UserRole } from "@/lib/types/roles";
 import { redirect } from "next/navigation";
 
-// Define role hierarchy and permissions
-export const ROLES = {
-  ADMIN: "admin",
-  PROFESSIONAL: "professional",
-  CLIENT: "client",
-  MEMBER: "member", // Default role, same permissions as client
-} as const;
-
-export type UserRole = (typeof ROLES)[keyof typeof ROLES];
+// Re-export for convenience
+export { ROLES, UserRole };
 
 // Role hierarchy (higher index = more permissions)
 const ROLE_HIERARCHY: UserRole[] = [
-  ROLES.MEMBER,
-  ROLES.CLIENT,
-  ROLES.PROFESSIONAL,
-  ROLES.ADMIN,
+  UserRole.CLIENT,
+  UserRole.PROFESSIONAL,
+  UserRole.ADMIN,
 ];
 
 /**
@@ -71,21 +64,21 @@ export async function protectDashboard() {
  * Check if user is admin
  */
 export function isAdmin(userRole: string): boolean {
-  return userRole === ROLES.ADMIN;
+  return userRole === UserRole.ADMIN;
 }
 
 /**
  * Check if user is professional/artisan
  */
 export function isProfessional(userRole: string): boolean {
-  return userRole === ROLES.PROFESSIONAL;
+  return userRole === UserRole.PROFESSIONAL;
 }
 
 /**
  * Check if user is client
  */
 export function isClient(userRole: string): boolean {
-  return userRole === ROLES.CLIENT || userRole === ROLES.MEMBER;
+  return userRole === UserRole.CLIENT;
 }
 
 /**
@@ -128,14 +121,12 @@ export async function validateUserRole(allowedRoles: UserRole[]): Promise<{
  */
 export function getRoleDisplayName(role: string): string {
   switch (role) {
-    case ROLES.ADMIN:
+    case UserRole.ADMIN:
       return "Administrateur";
-    case ROLES.PROFESSIONAL:
+    case UserRole.PROFESSIONAL:
       return "Artisan";
-    case ROLES.CLIENT:
+    case UserRole.CLIENT:
       return "Client";
-    case ROLES.MEMBER:
-      return "Membre";
     default:
       return "Utilisateur";
   }
@@ -150,7 +141,7 @@ export function canAccessResource(
   userId: number
 ): boolean {
   // Admin can access everything
-  if (userRole === ROLES.ADMIN) {
+  if (userRole === UserRole.ADMIN) {
     return true;
   }
 

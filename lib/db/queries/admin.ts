@@ -1,3 +1,4 @@
+import { UserRole } from "@/lib/auth/roles";
 import { db } from "@/lib/db/drizzle";
 import {
   billingEstimates,
@@ -5,6 +6,7 @@ import {
   professionalProfiles,
   serviceRequests,
   ServiceRequestStatus,
+  serviceRequestStatusHistory,
   users,
 } from "@/lib/db/schema";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
@@ -443,7 +445,7 @@ export async function getAdminStats() {
   const awaitingEstimateRequestsResult = await db
     .select()
     .from(serviceRequests)
-    .where(eq(serviceRequests.status, "awaiting_estimate"));
+    .where(eq(serviceRequests.status, ServiceRequestStatus.AWAITING_ESTIMATE));
   const awaitingEstimateRequests = awaitingEstimateRequestsResult.length;
 
   const activeRequestsResult = await db
@@ -455,7 +457,7 @@ export async function getAdminStats() {
   const completedRequestsResult = await db
     .select()
     .from(serviceRequests)
-    .where(eq(serviceRequests.status, "completed"));
+    .where(eq(serviceRequests.status, ServiceRequestStatus.COMPLETED));
   const completedRequests = completedRequestsResult.length;
 
   // Count disputed requests (all dispute statuses)
@@ -464,9 +466,9 @@ export async function getAdminStats() {
     .from(serviceRequests)
     .where(
       or(
-        eq(serviceRequests.status, "disputed_by_client"),
-        eq(serviceRequests.status, "disputed_by_artisan"),
-        eq(serviceRequests.status, "disputed_by_both")
+        eq(serviceRequests.status, ServiceRequestStatus.DISPUTED_BY_CLIENT),
+        eq(serviceRequests.status, ServiceRequestStatus.DISPUTED_BY_ARTISAN),
+        eq(serviceRequests.status, ServiceRequestStatus.DISPUTED_BY_BOTH)
       )
     );
   const disputedRequests = disputedRequestsResult.length;
@@ -488,13 +490,13 @@ export async function getAdminStats() {
   const totalArtisansResult = await db
     .select()
     .from(users)
-    .where(and(eq(users.role, "professional"), isNull(users.deletedAt)));
+    .where(and(eq(users.role, UserRole.PROFESSIONAL), isNull(users.deletedAt)));
   const totalArtisans = totalArtisansResult.length;
 
   const totalClientsResult = await db
     .select()
     .from(users)
-    .where(and(eq(users.role, "client"), isNull(users.deletedAt)));
+    .where(and(eq(users.role, UserRole.CLIENT), isNull(users.deletedAt)));
   const totalClients = totalClientsResult.length;
 
   // Calculate total earnings from accepted billing estimates
@@ -551,6 +553,12 @@ export async function createBillingEstimate(estimateData: {
       updatedAt: new Date(),
     })
     .where(eq(serviceRequests.id, estimateData.serviceRequestId));
+
+  // Record status change in history
+  await db.insert(serviceRequestStatusHistory).values({
+    serviceRequestId: estimateData.serviceRequestId,
+    status: ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION,
+  });
 
   return estimate;
 }

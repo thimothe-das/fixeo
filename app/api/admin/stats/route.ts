@@ -1,3 +1,4 @@
+import { UserRole } from "@/lib/auth/roles";
 import { getAdminStats } from "@/lib/db/queries/admin";
 import { getUser } from "@/lib/db/queries/common";
 import { NextResponse } from "next/server";
@@ -11,7 +12,7 @@ export async function GET() {
     }
 
     // Check if user is admin
-    if (user.role !== "admin" && user.role !== "member") {
+    if (user.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -1,3 +1,4 @@
+import { UserRole } from "@/lib/auth/roles";
 import { db } from "@/lib/db/drizzle";
 import { getAllBillingEstimates } from "@/lib/db/queries";
 import { createBillingEstimate } from "@/lib/db/queries/admin";
@@ -16,7 +17,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (user.role !== "admin" && user.role !== "member") {
+    if (user.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (user.role !== "admin" && user.role !== "member") {
+    if (user.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

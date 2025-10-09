@@ -175,7 +175,7 @@ export function RequestSidebar({
                 <Button
                   onClick={onAcceptEstimate}
                   disabled={isLoading}
-                  className="w-full bg-[#FF385C] hover:bg-[#E31C5F] text-white mb-3"
+                  className="w-full bg-fixeo-accent-500 hover:bg-fixeo-accent-600 text-white mb-3"
                   size="lg"
                 >
                   Accepter le devis
