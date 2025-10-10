@@ -3,6 +3,7 @@ import { db } from "@/lib/db/drizzle";
 import { getUser } from "@/lib/db/queries/common";
 import {
   billingEstimates,
+  BillingEstimateStatus,
   clientProfiles,
   professionalProfiles,
   serviceRequests,
@@ -162,9 +163,13 @@ export async function GET(
             actor: "Admin",
           },
         }),
-        ...(estimates.some((e) => e.status === "accepted") && {
+        ...(estimates.some(
+          (e) => e.status === BillingEstimateStatus.ACCEPTED
+        ) && {
           accepted: {
-            date: estimates.find((e) => e.status === "accepted")?.createdAt,
+            date: estimates.find(
+              (e) => e.status === BillingEstimateStatus.ACCEPTED
+            )?.createdAt,
             actor: "Client",
           },
         }),

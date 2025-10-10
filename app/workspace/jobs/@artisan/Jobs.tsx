@@ -4,14 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -26,8 +18,6 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
-  ThumbsDown,
-  ThumbsUp,
   User,
   Wrench,
 } from "lucide-react";
@@ -43,16 +33,6 @@ export default function Jobs({ assignedRequests }: JobsProps) {
   const router = useRouter();
   const [filterStatus, setFilterStatus] = useState("all");
   const [missionsSortBy, setMissionsSortBy] = useState("date");
-
-  // Validation and dispute states
-  const [selectedMission, setSelectedMission] =
-    useState<ServiceRequestForArtisan | null>(null);
-  const [showValidationDialog, setShowValidationDialog] = useState(false);
-  const [showDisputeDialog, setShowDisputeDialog] = useState(false);
-  const [validationType, setValidationType] = useState<"approve" | "dispute">(
-    "approve"
-  );
-  const [isSubmittingValidation, setIsSubmittingValidation] = useState(false);
 
   const statusOptions = [
     {
@@ -147,48 +127,6 @@ export default function Jobs({ assignedRequests }: JobsProps) {
           return 0;
       }
     });
-
-  // Validation and dispute handlers
-  const handleValidateCompletion = async () => {
-    if (!selectedMission) return;
-
-    setIsSubmittingValidation(true);
-    try {
-      const response = await fetch(
-        `/api/service-requests/${selectedMission.id}/validate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            action: validationType,
-          }),
-        }
-      );
-
-      if (response.ok) {
-        setShowValidationDialog(false);
-        setShowDisputeDialog(false);
-        resetValidationForm();
-        // Refresh the page to get updated data
-        window.location.reload();
-      } else {
-        const error = await response.json();
-        alert(`Erreur: ${error.error}`);
-      }
-    } catch (error) {
-      console.error("Error validating completion:", error);
-      alert("Erreur lors de la validation");
-    } finally {
-      setIsSubmittingValidation(false);
-    }
-  };
-
-  const resetValidationForm = () => {
-    setValidationType("approve");
-    setSelectedMission(null);
-  };
 
   // Extracted MissionCard as a separate component to support internal state
   const MissionCard = ({ mission }: { mission: ServiceRequestForArtisan }) => {
@@ -424,98 +362,6 @@ export default function Jobs({ assignedRequests }: JobsProps) {
           </CardContent>
         </Card>
       )}
-
-      {/* Validation Success Dialog */}
-      <Dialog
-        open={showValidationDialog}
-        onOpenChange={setShowValidationDialog}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ThumbsUp className="h-5 w-5 text-green-600" />
-              Valider la mission
-            </DialogTitle>
-            <DialogDescription>
-              Confirmez que les travaux ont été réalisés de manière
-              satisfaisante.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-700 font-medium">
-                ✓ Mission validée avec succès
-              </p>
-              <p className="text-xs text-green-600 mt-1">
-                Le client sera notifié de votre validation et le paiement sera
-                déclenché.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowValidationDialog(false)}
-            >
-              Annuler
-            </Button>
-            <Button
-              onClick={handleValidateCompletion}
-              disabled={isSubmittingValidation}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              {isSubmittingValidation
-                ? "En cours..."
-                : "Confirmer la validation"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dispute Dialog */}
-      <Dialog open={showDisputeDialog} onOpenChange={setShowDisputeDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ThumbsDown className="h-5 w-5 text-red-600" />
-              Contester la mission
-            </DialogTitle>
-            <DialogDescription>
-              Confirmez que vous souhaitez contester cette mission.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-700 font-medium">
-                ⚠️ Litige signalé
-              </p>
-              <p className="text-xs text-red-600 mt-1">
-                Un litige sera ouvert et notre équipe examinera la situation. Le
-                paiement sera suspendu en attendant la résolution.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDisputeDialog(false)}
-            >
-              Annuler
-            </Button>
-            <Button
-              onClick={handleValidateCompletion}
-              disabled={isSubmittingValidation}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {isSubmittingValidation ? "En cours..." : "Confirmer le litige"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

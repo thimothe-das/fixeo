@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +40,10 @@ import {
   XCircle,
 } from "lucide-react";
 import moment from "moment";
+import "moment/locale/fr";
 import { useMemo, useState } from "react";
+
+moment.locale("fr");
 
 type ServiceRequestForArtisan = {
   id: number;
@@ -53,9 +66,14 @@ type ServiceRequestForArtisan = {
 interface RequestsProps {
   requests?: ServiceRequestForArtisan[];
   onAcceptRequest: (requestId: number) => void;
+  onRefuseRequest: (requestId: number) => void;
 }
 
-export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
+export function Requests({
+  requests = [],
+  onAcceptRequest,
+  onRefuseRequest,
+}: RequestsProps) {
   const [requestSelectedJob, setRequestSelectedJob] =
     useState<ServiceRequestForArtisan | null>(null);
   const [selectedFilters, setSelectedFilters] = useState({
@@ -69,6 +87,13 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
   const [showPhotoGallery, setShowPhotoGallery] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
+
+  // Confirmation modal state
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [showRefuseModal, setShowRefuseModal] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<number | null>(
+    null
+  );
 
   const categories = [
     { value: "all", label: "Toutes catégories" },
@@ -389,9 +414,7 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                   {/* Time Created */}
                   <div className="flex items-center text-sm text-gray-600">
                     <Clock className="h-4 w-4 text-gray-500 mr-2" />
-                    <span>
-                      {moment(request.createdAt).format("DD/MM/YYYY à HH:mm")}
-                    </span>
+                    <span>Créée {moment(request.createdAt).fromNow()}</span>
                   </div>
 
                   {/* Location with Navigation */}
@@ -454,7 +477,8 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                           className="flex-1 h-10 bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-sm touch-manipulation"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onAcceptRequest(request.id);
+                            setSelectedRequestId(request.id);
+                            setShowAcceptModal(true);
                           }}
                         >
                           <CheckCircle className="h-4 w-4 mr-1" />
@@ -465,7 +489,8 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                           className="flex-1 h-10 border-gray-300 text-gray-600 hover:bg-gray-50 font-medium text-sm touch-manipulation"
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Handle refuse logic here
+                            setSelectedRequestId(request.id);
+                            setShowRefuseModal(true);
                           }}
                         >
                           <XCircle className="h-4 w-4 mr-1" />
@@ -549,8 +574,7 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                   <div className="space-y-2 text-sm">
                     <p className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-gray-500" />
-                      Créée le{" "}
-                      {moment(job.createdAt).format("DD/MM/YYYY à HH:mm")}
+                      Créée {moment(job.createdAt).fromNow()}
                     </p>
                     <p className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-gray-500" />
@@ -641,7 +665,11 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                       <Button
                         variant="outline"
                         className="flex-1 bg-transparent"
-                        onClick={onClose}
+                        onClick={() => {
+                          setSelectedRequestId(job.id);
+                          setShowRefuseModal(true);
+                          onClose();
+                        }}
                       >
                         <XCircle className="h-4 w-4 mr-2" />
                         Refuser
@@ -649,7 +677,8 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                       <Button
                         className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-11 text-white"
                         onClick={() => {
-                          onAcceptRequest(job.id);
+                          setSelectedRequestId(job.id);
+                          setShowAcceptModal(true);
                           onClose();
                         }}
                       >
@@ -830,6 +859,64 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
 
       {/* Photo Gallery Modal */}
       <PhotoGalleryModal />
+
+      {/* Accept Confirmation Modal */}
+      <AlertDialog open={showAcceptModal} onOpenChange={setShowAcceptModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer l'acceptation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir accepter cette demande ? En acceptant,
+              vous vous engagez à effectuer cette mission et le client sera
+              notifié de votre acceptation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => {
+                if (selectedRequestId) {
+                  onAcceptRequest(selectedRequestId);
+                  setShowAcceptModal(false);
+                  setSelectedRequestId(null);
+                }
+              }}
+            >
+              Accepter la mission
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Refuse Confirmation Modal */}
+      <AlertDialog open={showRefuseModal} onOpenChange={setShowRefuseModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer le refus</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir refuser cette demande ? Cette demande ne
+              vous sera plus affichée et vous ne pourrez plus l'accepter par la
+              suite.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => {
+                if (selectedRequestId) {
+                  onRefuseRequest(selectedRequestId);
+                  setShowRefuseModal(false);
+                  setSelectedRequestId(null);
+                }
+              }}
+            >
+              Refuser la demande
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

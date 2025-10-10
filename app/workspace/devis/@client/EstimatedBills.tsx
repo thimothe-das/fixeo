@@ -20,12 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getCategoryConfig, getStatusConfig } from "@/lib/utils";
+import { BillingEstimateStatus } from "@/lib/db/schema";
+import { getBillingEstimateStatusConfig, getCategoryConfig } from "@/lib/utils";
 import {
   AlertTriangle,
   Calculator,
   CheckCircle,
-  Clock,
   Euro,
   FileText,
   XCircle,
@@ -59,51 +59,6 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
     "/api/client/billing-estimates",
     fetcher
   );
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      case "accepted":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "rejected":
-        return "bg-red-100 text-red-700 border-red-200";
-      case "expired":
-        return "bg-gray-100 text-gray-700 border-gray-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "En attente de validation";
-      case "accepted":
-        return "Accepté";
-      case "rejected":
-        return "Refusé";
-      case "expired":
-        return "Expiré";
-      default:
-        return status;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Clock className="h-3 w-3" />;
-      case "accepted":
-        return <CheckCircle className="h-3 w-3" />;
-      case "rejected":
-        return <XCircle className="h-3 w-3" />;
-      case "expired":
-        return <AlertTriangle className="h-3 w-3" />;
-      default:
-        return <FileText className="h-3 w-3" />;
-    }
-  };
 
   const handleEstimateResponse = async (
     estimateId: number,
@@ -173,13 +128,21 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
 
   // Sort estimates: pending first, then by creation date
   const sortedEstimates = filteredEstimates.sort((a, b) => {
-    if (a.status === "pending" && b.status !== "pending") return -1;
-    if (a.status !== "pending" && b.status === "pending") return 1;
+    if (
+      a.status === BillingEstimateStatus.PENDING &&
+      b.status !== BillingEstimateStatus.PENDING
+    )
+      return -1;
+    if (
+      a.status !== BillingEstimateStatus.PENDING &&
+      b.status === BillingEstimateStatus.PENDING
+    )
+      return 1;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   const pendingCount = (estimates || []).filter(
-    (e) => e.status === "pending"
+    (e) => e.status === BillingEstimateStatus.PENDING
   ).length;
 
   const totalAmount = (estimates || []).reduce(
@@ -188,11 +151,11 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
   );
 
   const acceptedCount = (estimates || []).filter(
-    (e) => e.status === "accepted"
+    (e) => e.status === BillingEstimateStatus.ACCEPTED
   ).length;
 
   const rejectedCount = (estimates || []).filter(
-    (e) => e.status === "rejected"
+    (e) => e.status === BillingEstimateStatus.REJECTED
   ).length;
 
   if (error) {
@@ -370,10 +333,11 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                   estimate.validUntil &&
                   new Date(estimate.validUntil) < new Date();
                 const needsResponse =
-                  estimate.status === "pending" && !isExpired;
-                const statusConfig = getStatusConfig(
+                  estimate.status === BillingEstimateStatus.PENDING &&
+                  !isExpired;
+                const estimateStatusConfig = getBillingEstimateStatusConfig(
                   estimate.status,
-                  "h-4 w-4 "
+                  "h-3 w-3"
                 );
                 const categoryConfig = getCategoryConfig(
                   estimate.serviceRequest?.serviceType,
@@ -395,13 +359,11 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                             {categoryConfig.type}
                           </h3>
                           <Badge
-                            className={`${getStatusColor(
-                              estimate.status
-                            )} border text-xs font-medium px-2 py-1 pointer-events-none`}
+                            className={`${estimateStatusConfig.colors.bg} ${estimateStatusConfig.colors.text} border-${estimateStatusConfig.colors.color} border text-xs font-medium px-2 py-1 pointer-events-none`}
                           >
-                            {getStatusIcon(estimate.status)}
+                            {estimateStatusConfig.icon}
                             <span className="ml-1">
-                              {getStatusLabel(estimate.status)}
+                              {estimateStatusConfig.label}
                             </span>
                           </Badge>
                         </div>
@@ -415,19 +377,22 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                           <div className="text-lg font-semibold text-gray-900">
                             {(estimate.estimatedPrice / 100).toFixed(2)} €
                           </div>
-                          {estimate.status === "pending" && (
+                          {estimate.status ===
+                            BillingEstimateStatus.PENDING && (
                             <p className="text-xs text-gray-500 mb-2">
                               Créé le{" "}
                               {moment(estimate.createdAt).format("DD/MM/YYYY")}
                             </p>
                           )}
-                          {estimate.status === "accepted" && (
+                          {estimate.status ===
+                            BillingEstimateStatus.ACCEPTED && (
                             <p className="text-xs text-gray-500">
                               Accepté le{" "}
                               {moment(estimate.createdAt).format("DD/MM/YYYY")}
                             </p>
                           )}
-                          {estimate.status === "rejected" && (
+                          {estimate.status ===
+                            BillingEstimateStatus.REJECTED && (
                             <p className="text-xs text-gray-500">
                               Refusé le:{" "}
                               {moment(estimate.createdAt).format("DD/MM/YYYY")}

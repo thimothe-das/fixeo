@@ -1,5 +1,6 @@
 import { db } from "@/lib/db/drizzle";
 import {
+  BillingEstimateStatus,
   billingEstimates,
   clientProfiles,
   professionalProfiles,
@@ -158,9 +159,13 @@ export async function GET(
             actor: "Admin",
           },
         }),
-        ...(estimates.some((e) => e.status === "accepted") && {
+        ...(estimates.some(
+          (e) => e.status === BillingEstimateStatus.ACCEPTED
+        ) && {
           accepted: {
-            date: estimates.find((e) => e.status === "accepted")?.createdAt,
+            date: estimates.find(
+              (e) => e.status === BillingEstimateStatus.ACCEPTED
+            )?.createdAt,
             actor: "Client",
           },
         }),

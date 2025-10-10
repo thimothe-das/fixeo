@@ -1,5 +1,6 @@
 import { db } from "@/lib/db/drizzle";
 import {
+  artisanRefusedRequests,
   billingEstimates,
   clientProfiles,
   serviceRequests,
@@ -98,7 +99,8 @@ export async function getServiceRequestsForArtisan(userId: number) {
   const assignedRequests = Array.from(assignedRequestsMap.values());
 
   // Get available requests in the area and matching specialties with client information
-  const availableRequests = await db
+  // Also exclude requests that this artisan has refused
+  const availableRequestsRaw = await db
     .select({
       id: serviceRequests.id,
       title: serviceRequests.title,
@@ -114,6 +116,7 @@ export async function getServiceRequestsForArtisan(userId: number) {
       clientEmail: serviceRequests.clientEmail,
       assignedArtisanId: serviceRequests.assignedArtisanId,
       locationCoordinates: serviceRequests.locationCoordinates,
+      refusedByArtisan: artisanRefusedRequests.id,
       client: {
         id: clientUsers.id,
         name: clientUsers.name,
@@ -126,6 +129,13 @@ export async function getServiceRequestsForArtisan(userId: number) {
     .from(serviceRequests)
     .leftJoin(clientUsers, eq(serviceRequests.userId, clientUsers.id))
     .leftJoin(clientProfiles, eq(clientUsers.id, clientProfiles.userId))
+    .leftJoin(
+      artisanRefusedRequests,
+      and(
+        eq(artisanRefusedRequests.serviceRequestId, serviceRequests.id),
+        eq(artisanRefusedRequests.artisanId, userId)
+      )
+    )
     .where(
       and(
         eq(serviceRequests.status, ServiceRequestStatus.AWAITING_ASSIGNATION),
@@ -134,16 +144,18 @@ export async function getServiceRequestsForArtisan(userId: number) {
     )
     .orderBy(desc(serviceRequests.createdAt))
     .limit(20);
+
+  // Filter out refused requests
+  const availableRequests = availableRequestsRaw.filter(
+    (req) => !req.refusedByArtisan
+  );
+
+  console.log(userSpecialties, availableRequests);
   // Filter by specialties and location
   const filteredAvailable = availableRequests.filter((request) => {
     const matchesSpecialty =
       userSpecialties.length === 0 ||
       userSpecialties.some((specialty) => {
-        console.log(
-          "specialty",
-          specialty.toLowerCase(),
-          request.serviceType.toLowerCase()
-        );
         return request.serviceType
           .toLowerCase()
           .includes(specialty.toLowerCase());
@@ -154,11 +166,7 @@ export async function getServiceRequestsForArtisan(userId: number) {
       user.professionalProfile.serviceAreaCoordinates,
       request.locationCoordinates
     );
-    console.log(
-      "matchesLocation",
-      user.professionalProfile.serviceAreaCoordinates
-    );
-    console.log("matchesSpecialty", request.locationCoordinates);
+
     return matchesSpecialty && matchesLocation;
   });
 
@@ -235,6 +243,14 @@ export async function getBillingEstimateByIdForArtisan(
         createdAt: serviceRequests.createdAt,
         assignedArtisanId: serviceRequests.assignedArtisanId,
       },
+      client: {
+        id: clientProfiles.userId,
+        firstName: clientProfiles.firstName,
+        lastName: clientProfiles.lastName,
+        phone: clientProfiles.phone,
+        address: clientProfiles.address,
+        addressCity: clientProfiles.addressCity,
+      },
     })
     .from(billingEstimates)
     .leftJoin(users, eq(billingEstimates.adminId, users.id))
@@ -242,6 +258,7 @@ export async function getBillingEstimateByIdForArtisan(
       serviceRequests,
       eq(billingEstimates.serviceRequestId, serviceRequests.id)
     )
+    .leftJoin(clientProfiles, eq(serviceRequests.userId, clientProfiles.userId))
     .where(
       and(
         eq(billingEstimates.id, estimateId),

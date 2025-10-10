@@ -3,7 +3,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ServiceRequestStatus } from "@/lib/db/schema";
+import { BillingEstimateStatus, ServiceRequestStatus } from "@/lib/db/schema";
+import { getBillingEstimateStatusConfig } from "@/lib/utils";
 import {
   Calendar,
   CheckCircle,
@@ -51,46 +52,15 @@ const formatDate = (dateString: string): string => {
 };
 
 const getEstimateStatusBadge = (status: string) => {
-  switch (status) {
-    case "pending":
-      return (
-        <Badge
-          variant="outline"
-          className="bg-yellow-50 text-yellow-700 border-yellow-300"
-        >
-          En attente
-        </Badge>
-      );
-    case "accepted":
-      return (
-        <Badge
-          variant="outline"
-          className="bg-green-50 text-green-700 border-green-300"
-        >
-          Accepté
-        </Badge>
-      );
-    case "rejected":
-      return (
-        <Badge
-          variant="outline"
-          className="bg-red-50 text-red-700 border-red-300"
-        >
-          Rejeté
-        </Badge>
-      );
-    case "expired":
-      return (
-        <Badge
-          variant="outline"
-          className="bg-gray-50 text-gray-700 border-gray-300"
-        >
-          Expiré
-        </Badge>
-      );
-    default:
-      return null;
-  }
+  const config = getBillingEstimateStatusConfig(status);
+  return (
+    <Badge
+      variant="outline"
+      className={`${config.colors.bg} ${config.colors.text} border-${config.colors.color}`}
+    >
+      {config.label}
+    </Badge>
+  );
 };
 
 export function RequestSidebar({
@@ -120,7 +90,7 @@ export function RequestSidebar({
 
   const canAcceptRejectEstimate =
     requestStatus === ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION &&
-    estimate?.status === "pending";
+    estimate?.status === BillingEstimateStatus.PENDING;
 
   const canValidateOrDispute =
     requestStatus === ServiceRequestStatus.IN_PROGRESS ||

@@ -199,7 +199,7 @@ export function ArtisanLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 p-6 overflow-auto bg-gray-50">
+          <main className="flex-1 p-6 bg-gray-50">
             <Suspense fallback={<ServiceRequestsListSkeleton />}>
               {children}
             </Suspense>

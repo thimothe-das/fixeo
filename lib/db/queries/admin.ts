@@ -2,6 +2,7 @@ import { UserRole } from "@/lib/auth/roles";
 import { db } from "@/lib/db/drizzle";
 import {
   billingEstimates,
+  BillingEstimateStatus,
   clientProfiles,
   professionalProfiles,
   serviceRequests,
@@ -485,7 +486,7 @@ export async function getAdminStats() {
   const pendingEstimatesResult = await db
     .select()
     .from(billingEstimates)
-    .where(eq(billingEstimates.status, "pending"));
+    .where(eq(billingEstimates.status, BillingEstimateStatus.PENDING));
   const pendingEstimates = pendingEstimatesResult.length;
 
   // Count users by role

@@ -244,3 +244,17 @@ export const clientSchema = z.object({
 export type ClientType = z.infer<typeof clientSchema>;
 
 export type AnyUserType = UserType | ArtisanType | ClientType;
+
+// Billing estimate rejection schema
+export const rejectEstimateSchema = z.object({
+  reason: z
+    .string()
+    .min(10, "La raison doit contenir au moins 10 caractères")
+    .max(500, "La raison ne peut pas dépasser 500 caractères")
+    .trim(),
+  // Future fields can be added here:
+  // alternativePrice: z.number().optional(),
+  // preferredDate: z.date().optional(),
+});
+
+export type RejectEstimateType = z.infer<typeof rejectEstimateSchema>;

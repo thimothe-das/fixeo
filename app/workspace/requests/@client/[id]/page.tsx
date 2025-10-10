@@ -9,8 +9,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { ServiceRequestStatus } from "@/lib/db/schema";
+import { BillingEstimateStatus, ServiceRequestStatus } from "@/lib/db/schema";
 import {
+  getBillingEstimateStatusConfig,
   getCategoryConfig,
   getPriorityConfig,
   getStatusConfig,
@@ -268,46 +269,15 @@ export default function RequestDetailPage() {
   };
 
   const getEstimateStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-yellow-50 text-yellow-700 border-yellow-300"
-          >
-            En attente
-          </Badge>
-        );
-      case "accepted":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-green-50 text-green-700 border-green-300"
-          >
-            Accepté
-          </Badge>
-        );
-      case "rejected":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-red-50 text-red-700 border-red-300"
-          >
-            Rejeté
-          </Badge>
-        );
-      case "expired":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-gray-50 text-gray-700 border-gray-300"
-          >
-            Expiré
-          </Badge>
-        );
-      default:
-        return null;
-    }
+    const config = getBillingEstimateStatusConfig(status);
+    return (
+      <Badge
+        variant="outline"
+        className={`${config.colors.bg} ${config.colors.text} border-${config.colors.color}`}
+      >
+        {config.label}
+      </Badge>
+    );
   };
 
   if (error) {
@@ -367,7 +337,7 @@ export default function RequestDetailPage() {
   // Check action availability
   const canAcceptRejectEstimate =
     request.status === ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION &&
-    relevantEstimate?.status === "pending";
+    relevantEstimate?.status === BillingEstimateStatus.PENDING;
 
   const canValidateOrDispute =
     request.status === ServiceRequestStatus.IN_PROGRESS ||
@@ -540,7 +510,7 @@ export default function RequestDetailPage() {
                     <Button
                       onClick={() => setShowAcceptDialog(true)}
                       disabled={isLoading}
-                      className="w-full bg-[#FF385C] hover:bg-[#E31C5F] text-white"
+                      className="w-full bg-fixeo-main-500 hover:bg-fixeo-main-600 text-white"
                       size="lg"
                     >
                       Accepter le devis

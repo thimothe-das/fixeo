@@ -208,7 +208,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1">
             <Suspense fallback={<ServiceRequestsListSkeleton />}>
               {children}
             </Suspense>

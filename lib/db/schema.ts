@@ -235,6 +235,28 @@ export const conversations = pgTable("conversations", {
   readAt: timestamp("read_at"),
 });
 
+// Artisan refused requests table to track which artisans refused which requests
+export const artisanRefusedRequests = pgTable(
+  "artisan_refused_requests",
+  {
+    id: serial("id").primaryKey(),
+    artisanId: integer("artisan_id")
+      .notNull()
+      .references(() => users.id),
+    serviceRequestId: integer("service_request_id")
+      .notNull()
+      .references(() => serviceRequests.id),
+    refusedAt: timestamp("refused_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    // Ensure an artisan can only refuse a request once
+    uniqueArtisanRequest: {
+      columns: [table.artisanId, table.serviceRequestId],
+      name: "unique_artisan_service_request",
+    },
+  })
+);
+
 export const teamsRelations = relations(teams, ({ many }) => ({
   teamMembers: many(teamMembers),
   activityLogs: many(activityLogs),
@@ -350,6 +372,20 @@ export const conversationsRelations = relations(conversations, ({ one }) => ({
   }),
 }));
 
+export const artisanRefusedRequestsRelations = relations(
+  artisanRefusedRequests,
+  ({ one }) => ({
+    artisan: one(users, {
+      fields: [artisanRefusedRequests.artisanId],
+      references: [users.id],
+    }),
+    serviceRequest: one(serviceRequests, {
+      fields: [artisanRefusedRequests.serviceRequestId],
+      references: [serviceRequests.id],
+    }),
+  })
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Team = typeof teams.$inferSelect;
@@ -370,6 +406,9 @@ export type BillingEstimate = typeof billingEstimates.$inferSelect;
 export type NewBillingEstimate = typeof billingEstimates.$inferInsert;
 export type Conversation = typeof conversations.$inferSelect;
 export type NewConversation = typeof conversations.$inferInsert;
+export type ArtisanRefusedRequest = typeof artisanRefusedRequests.$inferSelect;
+export type NewArtisanRefusedRequest =
+  typeof artisanRefusedRequests.$inferInsert;
 export type TeamDataWithMembers = Team & {
   teamMembers: (TeamMember & {
     user: Pick<User, "id" | "name" | "email">;

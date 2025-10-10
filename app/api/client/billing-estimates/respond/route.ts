@@ -1,7 +1,11 @@
 import { db } from "@/lib/db/drizzle";
 import { updateBillingEstimateStatus } from "@/lib/db/queries";
 import { getUser } from "@/lib/db/queries/common";
-import { billingEstimates, serviceRequests } from "@/lib/db/schema";
+import {
+  BillingEstimateStatus,
+  billingEstimates,
+  serviceRequests,
+} from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -52,7 +56,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    if (estimate[0].status !== "pending") {
+    if (estimate[0].status !== BillingEstimateStatus.PENDING) {
       return NextResponse.json(
         { error: "Estimate cannot be modified" },
         { status: 400 }
@@ -60,7 +64,10 @@ export async function POST(request: Request) {
     }
 
     // Update estimate status
-    const status = action === "accept" ? "accepted" : "rejected";
+    const status =
+      action === "accept"
+        ? BillingEstimateStatus.ACCEPTED
+        : BillingEstimateStatus.REJECTED;
     const updatedEstimate = await updateBillingEstimateStatus(
       parseInt(estimateId),
       status,

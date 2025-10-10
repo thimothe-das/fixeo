@@ -10,12 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BillingEstimateStatus } from "@/lib/db/schema";
+import { getBillingEstimateStatusConfig } from "@/lib/utils";
 import {
   AlertTriangle,
   Building2,
   Calculator,
   CheckCircle,
-  Clock,
   Euro,
   Search,
   XCircle,
@@ -46,51 +47,6 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
     fetcher
   );
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      case "accepted":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "rejected":
-        return "bg-red-100 text-red-700 border-red-200";
-      case "expired":
-        return "bg-gray-100 text-gray-700 border-gray-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "En attente de validation";
-      case "accepted":
-        return "Accepté";
-      case "rejected":
-        return "Refusé";
-      case "expired":
-        return "Expiré";
-      default:
-        return status;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Clock className="h-3 w-3" />;
-      case "accepted":
-        return <CheckCircle className="h-3 w-3" />;
-      case "rejected":
-        return <XCircle className="h-3 w-3" />;
-      case "expired":
-        return <AlertTriangle className="h-3 w-3" />;
-      default:
-        return <Calculator className="h-3 w-3" />;
-    }
-  };
-
   // Filter estimates
   const filteredEstimates = (estimates || []).filter((estimate) => {
     const matchesSearch =
@@ -110,13 +66,21 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
 
   // Sort estimates: pending first, then by creation date
   const sortedEstimates = filteredEstimates.sort((a, b) => {
-    if (a.status === "pending" && b.status !== "pending") return -1;
-    if (a.status !== "pending" && b.status === "pending") return 1;
+    if (
+      a.status === BillingEstimateStatus.PENDING &&
+      b.status !== BillingEstimateStatus.PENDING
+    )
+      return -1;
+    if (
+      a.status !== BillingEstimateStatus.PENDING &&
+      b.status === BillingEstimateStatus.PENDING
+    )
+      return 1;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   const pendingCount = (estimates || []).filter(
-    (e) => e.status === "pending"
+    (e) => e.status === BillingEstimateStatus.PENDING
   ).length;
 
   const totalAmount = (estimates || []).reduce(
@@ -125,11 +89,11 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
   );
 
   const acceptedCount = (estimates || []).filter(
-    (e) => e.status === "accepted"
+    (e) => e.status === BillingEstimateStatus.ACCEPTED
   ).length;
 
   const rejectedCount = (estimates || []).filter(
-    (e) => e.status === "rejected"
+    (e) => e.status === BillingEstimateStatus.REJECTED
   ).length;
 
   if (error) {
@@ -323,6 +287,10 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                 const isExpired =
                   estimate.validUntil &&
                   new Date(estimate.validUntil) < new Date();
+                const estimateStatusConfig = getBillingEstimateStatusConfig(
+                  estimate.status,
+                  "h-3 w-3"
+                );
 
                 return (
                   <div
@@ -339,20 +307,20 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                             {estimate.serviceRequest?.serviceType}
                           </h3>
                           <Badge
-                            className={`${getStatusColor(
-                              estimate.status
-                            )} border text-xs font-medium px-2 py-1`}
+                            className={`${estimateStatusConfig.colors.bg} ${estimateStatusConfig.colors.text} border-${estimateStatusConfig.colors.color} border text-xs font-medium px-2 py-1`}
                           >
-                            {getStatusIcon(estimate.status)}
+                            {estimateStatusConfig.icon}
                             <span className="ml-1">
-                              {getStatusLabel(estimate.status)}
+                              {estimateStatusConfig.label}
                             </span>
                           </Badge>
-                          {isExpired && estimate.status === "pending" && (
-                            <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">
-                              Expiré
-                            </Badge>
-                          )}
+                          {isExpired &&
+                            estimate.status ===
+                              BillingEstimateStatus.PENDING && (
+                              <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">
+                                Expiré
+                              </Badge>
+                            )}
                         </div>
                         <p className="text-sm text-gray-600 mb-1">
                           {estimate.description}

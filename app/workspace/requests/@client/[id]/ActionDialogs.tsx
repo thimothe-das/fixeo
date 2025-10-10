@@ -18,8 +18,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  RejectEstimateType,
+  rejectEstimateSchema,
+} from "@/lib/validation/schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import * as React from "react";
+import { Controller, useForm } from "react-hook-form";
 
 interface ActionDialogsProps {
   // Accept/Reject Estimate
@@ -62,21 +68,29 @@ export function ActionDialogs({
   onDispute,
   isLoading = false,
 }: ActionDialogsProps) {
-  const [rejectReason, setRejectReason] = React.useState("");
   const [disputeReason, setDisputeReason] = React.useState("");
   const [disputeDetails, setDisputeDetails] = React.useState("");
+
+  // React Hook Form for rejection
+  const {
+    control: rejectControl,
+    handleSubmit: handleRejectSubmit,
+    reset: resetRejectForm,
+    formState: { errors: rejectErrors },
+  } = useForm<RejectEstimateType>({
+    resolver: zodResolver(rejectEstimateSchema),
+    defaultValues: {
+      reason: "",
+    },
+  });
 
   const handleAccept = async () => {
     await onAcceptEstimate();
   };
 
-  const handleReject = async () => {
-    if (!rejectReason.trim()) {
-      alert("Veuillez indiquer une raison pour le rejet");
-      return;
-    }
-    await onRejectEstimate(rejectReason);
-    setRejectReason("");
+  const handleReject = async (data: RejectEstimateType) => {
+    await onRejectEstimate(data.reason);
+    resetRejectForm();
   };
 
   const handleValidate = async () => {
@@ -138,7 +152,15 @@ export function ActionDialogs({
       </Dialog>
 
       {/* Reject Estimate Dialog */}
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+      <Dialog
+        open={showRejectDialog}
+        onOpenChange={(open) => {
+          setShowRejectDialog(open);
+          if (!open) {
+            resetRejectForm();
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -150,41 +172,58 @@ export function ActionDialogs({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="reject-reason">
-                Raison du rejet <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="reject-reason"
-                placeholder="Ex: Prix trop élevé, délai trop long, etc."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                rows={4}
-                className="mt-1"
-              />
+          <form onSubmit={handleRejectSubmit(handleReject)}>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="reject-reason">
+                  Raison du rejet <span className="text-red-500">*</span>
+                </Label>
+                <Controller
+                  control={rejectControl}
+                  name="reason"
+                  render={({ field, fieldState: { error } }) => (
+                    <div>
+                      <Textarea
+                        {...field}
+                        id="reject-reason"
+                        placeholder="Ex: Prix trop élevé, délai trop long, etc."
+                        rows={4}
+                        className="mt-1"
+                      />
+                      {error && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center">
+                          <AlertCircle className="h-4 w-4 mr-1" />
+                          {error.message}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                />
+              </div>
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowRejectDialog(false);
-                setRejectReason("");
-              }}
-              disabled={isLoading}
-            >
-              Annuler
-            </Button>
-            <Button
-              onClick={handleReject}
-              disabled={isLoading || !rejectReason.trim()}
-              variant="destructive"
-            >
-              {isLoading ? "Rejet..." : "Rejeter le devis"}
-            </Button>
-          </DialogFooter>
+            <DialogFooter className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowRejectDialog(false);
+                  resetRejectForm();
+                }}
+                disabled={isLoading}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                variant="destructive"
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isLoading ? "Rejet..." : "Rejeter le devis"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 

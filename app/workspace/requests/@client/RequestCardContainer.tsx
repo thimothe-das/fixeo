@@ -2,8 +2,12 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { ServiceRequestStatus } from "@/lib/db/schema";
-import { getCategoryConfig, getStatusConfig } from "@/lib/utils";
+import { BillingEstimateStatus, ServiceRequestStatus } from "@/lib/db/schema";
+import {
+  getBillingEstimateStatusConfig,
+  getCategoryConfig,
+  getStatusConfig,
+} from "@/lib/utils";
 import { Check, User, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -39,30 +43,37 @@ export default function RequestCardContainer({
     if (!relevantEstimate) return null;
 
     const { status } = relevantEstimate;
+    const config = getBillingEstimateStatusConfig(status, "h-3 w-3");
 
-    if (status === "accepted") {
+    if (status === BillingEstimateStatus.ACCEPTED) {
       return (
-        <div className="inline-flex items-center gap-1 text-emerald-600">
+        <div
+          className={`inline-flex items-center gap-1 text-${config.colors.color}`}
+        >
           <Check className="h-3 w-3" />
-          <span className="text-xs">Accepté</span>
+          <span className="text-xs">{config.label}</span>
         </div>
       );
     }
 
-    if (status === "rejected") {
+    if (status === BillingEstimateStatus.REJECTED) {
       return (
-        <div className="inline-flex items-center gap-1 text-red-600">
+        <div
+          className={`inline-flex items-center gap-1 text-${config.colors.color}`}
+        >
           <X className="h-3 w-3" />
-          <span className="text-xs">Refusé</span>
+          <span className="text-xs">{config.label}</span>
         </div>
       );
     }
 
-    if (status === "pending") {
+    if (status === BillingEstimateStatus.PENDING) {
       return (
-        <div className="inline-flex items-center gap-1 text-amber-600">
+        <div
+          className={`inline-flex items-center gap-1 text-${config.colors.color}`}
+        >
           <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-          <span className="text-xs">En attente</span>
+          <span className="text-xs">{config.label}</span>
         </div>
       );
     }

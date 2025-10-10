@@ -21,6 +21,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MessageSenderType, ServiceRequestStatus } from "@/lib/db/schema";
+import { cn } from "@/lib/utils";
 import {
   AlertCircle,
   AlertTriangle,
@@ -28,8 +29,11 @@ import {
   Camera,
   CheckCircle,
   Clock,
+  CreditCard,
   Eye,
+  FileCheck,
   FileText,
+  Hourglass,
   MapPin,
   Megaphone,
   MessageSquare,
@@ -37,6 +41,8 @@ import {
   Send,
   ThumbsDown,
   ThumbsUp,
+  Trophy,
+  UserCheck,
   Wrench,
   XCircle,
 } from "lucide-react";
@@ -88,6 +94,7 @@ export default function Job() {
   const [disputeReason, setDisputeReason] = useState("");
   const [disputeDetails, setDisputeDetails] = useState("");
   const [isSubmittingValidation, setIsSubmittingValidation] = useState(false);
+  const router = useRouter();
 
   const {
     data: mission,
@@ -126,7 +133,6 @@ export default function Job() {
   }
 
   const photos = mission?.photos ? JSON.parse(mission.photos) : [];
-  const router = useRouter();
 
   const handleMissionCompletion = async () => {
     if (!selectedMission) return;
@@ -275,7 +281,7 @@ export default function Job() {
         setShowValidationDialog(false);
         setShowDisputeDialog(false);
         resetValidationForm();
-        // In a real app, you would refresh the data
+        mutate(); // Refresh SWR data
       } else {
         const error = await response.json();
         alert(`Erreur: ${error.error}`);
@@ -310,6 +316,7 @@ export default function Job() {
           label: "Valider la mission",
           icon: <ThumbsUp className="h-5 w-5" />,
           onClick: () => {
+            setSelectedMission(mission);
             setValidationType("approve");
             setShowValidationDialog(true);
           },
@@ -320,6 +327,7 @@ export default function Job() {
           label: "Confirmer validation",
           icon: <CheckCircle className="h-5 w-5" />,
           onClick: () => {
+            setSelectedMission(mission);
             setValidationType("approve");
             setShowValidationDialog(true);
           },
@@ -331,67 +339,73 @@ export default function Job() {
   };
 
   const getTimelineSteps = () => {
+    const statusHistory = mission.statusHistory;
+
+    // Helper to format date from statusHistory or return undefined
+    const getDateForStatus = (status: string) => {
+      if (statusHistory && statusHistory[status]) {
+        return moment(statusHistory[status]).format("DD/MM/YYYY à HH:mm");
+      }
+      return undefined;
+    };
+
     const steps = [
       {
-        step: "Mission créée",
-        completed: true,
-        date: moment(mission.createdAt).format("DD/MM/YYYY à HH:mm"),
-        icon: "📝",
+        step: "Mission disponible",
+        completed: true, // Always true when viewing
+        date:
+          getDateForStatus("awaiting_assignation") ||
+          moment(mission.createdAt).format("DD/MM/YYYY à HH:mm"),
+        icon: <FileCheck className="h-4 w-4" />,
       },
       {
-        step: "Mission acceptée par l'artisan",
-        completed: true,
-        date: moment(mission.createdAt)
-          .add(1, "hour")
-          .format("DD/MM/YYYY à HH:mm"),
-        icon: "🤝",
+        step: "Mission acceptée",
+        completed: mission.status !== ServiceRequestStatus.AWAITING_ASSIGNATION,
+        date: getDateForStatus("in_progress"),
+        icon: <UserCheck className="h-4 w-4" />,
       },
       {
-        step: "Mission en cours",
+        step: "Intervention en cours",
         completed: [
           ServiceRequestStatus.IN_PROGRESS,
           ServiceRequestStatus.CLIENT_VALIDATED,
           ServiceRequestStatus.ARTISAN_VALIDATED,
+          ServiceRequestStatus.AWAITING_PAYMENT,
           ServiceRequestStatus.COMPLETED,
         ].includes(mission.status as ServiceRequestStatus),
-        date:
-          mission.status !== ServiceRequestStatus.AWAITING_ASSIGNATION
-            ? moment(mission.createdAt)
-                .add(2, "hours")
-                .format("DD/MM/YYYY à HH:mm")
-            : undefined,
-        icon: "⚡",
+        date: getDateForStatus("in_progress"),
+        icon: <Wrench className="h-4 w-4" />,
       },
       {
-        step: "Mission terminée",
+        step: "Validation des travaux",
         completed: [
           ServiceRequestStatus.CLIENT_VALIDATED,
           ServiceRequestStatus.ARTISAN_VALIDATED,
+          ServiceRequestStatus.AWAITING_PAYMENT,
           ServiceRequestStatus.COMPLETED,
         ].includes(mission.status as ServiceRequestStatus),
-        date: [
-          ServiceRequestStatus.CLIENT_VALIDATED,
-          ServiceRequestStatus.ARTISAN_VALIDATED,
-          ServiceRequestStatus.COMPLETED,
-        ].includes(mission.status as ServiceRequestStatus)
-          ? moment(mission.createdAt)
-              .add(4, "hours")
-              .format("DD/MM/YYYY à HH:mm")
-          : undefined,
-        icon: "✅",
+        date:
+          getDateForStatus("client_validated") ||
+          getDateForStatus("artisan_validated"),
+        icon: <ThumbsUp className="h-4 w-4" />,
       },
       {
-        step: "Validation finale",
+        step: "Paiement",
+        completed: [
+          ServiceRequestStatus.AWAITING_PAYMENT,
+          ServiceRequestStatus.COMPLETED,
+        ].includes(mission.status as ServiceRequestStatus),
+        date: getDateForStatus("awaiting_payment"),
+        icon: <CreditCard className="h-4 w-4" />,
+      },
+      {
+        step: "Mission terminée",
         completed: mission.status === ServiceRequestStatus.COMPLETED,
-        date:
-          mission.status === ServiceRequestStatus.COMPLETED
-            ? moment(mission.createdAt)
-                .add(5, "hours")
-                .format("DD/MM/YYYY à HH:mm")
-            : undefined,
-        icon: "🎉",
+        date: getDateForStatus("completed"),
+        icon: <Trophy className="h-4 w-4" />,
       },
     ];
+
     return steps;
   };
 
@@ -446,6 +460,7 @@ export default function Job() {
                 variant="destructive"
                 className="h-8 text-xs bg-red-600 text-white hover:bg-red-700 border-red-600"
                 onClick={() => {
+                  setSelectedMission(mission);
                   setValidationType("dispute");
                   setShowDisputeDialog(true);
                 }}
@@ -456,6 +471,7 @@ export default function Job() {
                 size="sm"
                 className="h-8 text-xs bg-emerald-600 text-white hover:bg-emerald-700"
                 onClick={() => {
+                  setSelectedMission(mission);
                   setValidationType("approve");
                   setShowValidationDialog(true);
                 }}
@@ -478,6 +494,7 @@ export default function Job() {
                 variant="destructive"
                 className="h-8 text-xs bg-red-600 text-white hover:bg-red-700 border-red-600"
                 onClick={() => {
+                  setSelectedMission(mission);
                   setValidationType("dispute");
                   setShowDisputeDialog(true);
                 }}
@@ -488,6 +505,7 @@ export default function Job() {
                 size="sm"
                 className="h-8 text-xs bg-emerald-600 text-white hover:bg-emerald-700"
                 onClick={() => {
+                  setSelectedMission(mission);
                   setValidationType("approve");
                   setShowValidationDialog(true);
                 }}
@@ -600,6 +618,7 @@ export default function Job() {
                   variant="outline"
                   className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
                   onClick={() => {
+                    setSelectedMission(mission);
                     setValidationType("dispute");
                     setShowDisputeDialog(true);
                   }}
@@ -802,7 +821,7 @@ export default function Job() {
                           >
                             <div className="flex flex-col items-center">
                               <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 ${
+                                className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                                   step.completed
                                     ? "bg-emerald-500 border-emerald-500 text-white"
                                     : "bg-gray-100 border-gray-300 text-gray-400"
@@ -835,6 +854,41 @@ export default function Job() {
                                   {step.date}
                                 </p>
                               )}
+                              {/* Show waiting indicators */}
+                              {index === 1 &&
+                                mission.status ===
+                                  ServiceRequestStatus.AWAITING_ASSIGNATION && (
+                                  <div className="mt-2 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full flex items-center gap-2">
+                                    <Hourglass className="h-4 w-4" />
+                                    <span>En attente de votre acceptation</span>
+                                  </div>
+                                )}
+                              {index === 3 &&
+                                mission.status ===
+                                  ServiceRequestStatus.IN_PROGRESS && (
+                                  <div className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full flex items-center gap-2">
+                                    <Hourglass className="h-4 w-4" />
+                                    <span>En attente de votre validation</span>
+                                  </div>
+                                )}
+                              {index === 3 &&
+                                mission.status ===
+                                  ServiceRequestStatus.CLIENT_VALIDATED && (
+                                  <div className="mt-2 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full flex items-center gap-2">
+                                    <Hourglass className="h-4 w-4" />
+                                    <span>
+                                      En attente de votre confirmation
+                                    </span>
+                                  </div>
+                                )}
+                              {index === 3 &&
+                                mission.status ===
+                                  ServiceRequestStatus.ARTISAN_VALIDATED && (
+                                  <div className="mt-2 px-3 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full flex items-center gap-2">
+                                    <Hourglass className="h-4 w-4" />
+                                    <span>En attente de validation client</span>
+                                  </div>
+                                )}
                             </div>
                           </div>
                         ))}
@@ -1168,11 +1222,10 @@ export default function Job() {
               disabled={
                 isSubmittingCompletion || !issueType || !completionNotes.trim()
               }
-              className={
-                completionType === "impossible"
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-orange-600 hover:bg-orange-700"
-              }
+              className={cn(
+                "bg-orange-600 hover:bg-orange-700 text-white",
+                completionType === "impossible" && "bg-red-600 hover:bg-red-700"
+              )}
             >
               {isSubmittingCompletion ? "En cours..." : "Signaler le problème"}
             </Button>
@@ -1316,7 +1369,7 @@ export default function Job() {
                 !disputeReason ||
                 !disputeDetails.trim()
               }
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               {isSubmittingValidation ? "En cours..." : "Signaler le problème"}
             </Button>

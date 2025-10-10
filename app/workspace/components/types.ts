@@ -17,6 +17,7 @@ export type ServiceRequestForArtisan = {
   date?: string;
   time?: string;
   notes?: string;
+  statusHistory?: Record<string, string>;
   client?: {
     id: number | null;
     name: string | null;
@@ -110,7 +111,7 @@ export type BillingEstimateForAdmin = {
   description: string;
   breakdown?: string; // JSON string
   validUntil?: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'expired';
+  status: "pending" | "accepted" | "rejected" | "expired";
   clientResponse?: string;
   createdAt: string;
   updatedAt: string;
@@ -128,7 +129,7 @@ export type BillingEstimateForClient = {
   description: string;
   breakdown?: string; // JSON string
   validUntil?: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'expired';
+  status: "pending" | "accepted" | "rejected" | "expired";
   clientResponse?: string;
   createdAt: string;
   updatedAt: string;
@@ -140,6 +141,14 @@ export type BillingEstimateForClient = {
     status: string;
     createdAt: string;
     title: string;
+  };
+  client?: {
+    id: number | null;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    address: string | null;
+    addressCity: string | null;
   };
 };
 
@@ -170,4 +179,4 @@ export type AdminStats = {
     date: string;
     earnings: number; // In cents
   }>;
-}; 
+};

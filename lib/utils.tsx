@@ -22,7 +22,7 @@ import {
   Zap,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
-import { ServiceRequestStatus } from "./db/schema";
+import { BillingEstimateStatus, ServiceRequestStatus } from "./db/schema";
 import { checkoutAction } from "./payments/actions";
 
 export function cn(...inputs: ClassValue[]) {
@@ -144,7 +144,7 @@ export const getStatusConfig = (status: string, iconClassName: string) => {
       };
     case ServiceRequestStatus.CLIENT_VALIDATED:
       return {
-        label: "À valider",
+        label: "Validée par le client",
         borderTop: "border-t-orange-500",
         icon: <Flag className={cn("text-orange-500 h-5 w-5", iconClassName)} />,
         colors: {
@@ -158,7 +158,7 @@ export const getStatusConfig = (status: string, iconClassName: string) => {
       };
     case ServiceRequestStatus.ARTISAN_VALIDATED:
       return {
-        label: "Validée",
+        label: "Validée par l'artisan",
         borderTop: "border-t-cyan-800",
         icon: (
           <UserCheck className={cn("text-cyan-500 h-5 w-5", iconClassName)} />
@@ -288,6 +288,91 @@ export const getStatusConfig = (status: string, iconClassName: string) => {
           bg: "bg-gray-100 hover:bg-gray-100",
           text: "text-gray-700",
           ring: "ring 1 ring-gray-200",
+          accent: "border-gray-500",
+          borderTop: "border-t-gray-500",
+        },
+      };
+  }
+};
+
+export const getBillingEstimateStatusConfig = (
+  status: string,
+  iconClassName: string = ""
+) => {
+  switch (status) {
+    case BillingEstimateStatus.PENDING:
+      return {
+        label: "En attente de validation",
+        icon: (
+          <Clock className={cn("text-orange-500 h-5 w-5", iconClassName)} />
+        ),
+        colors: {
+          color: "orange-500",
+          bg: "bg-orange-100 hover:bg-orange-100",
+          text: "text-orange-700",
+          ring: "ring-1 ring-orange-200",
+          accent: "border-orange-500",
+          borderTop: "border-t-orange-500",
+        },
+      };
+    case BillingEstimateStatus.ACCEPTED:
+      return {
+        label: "Accepté",
+        icon: (
+          <CheckCircle
+            className={cn("text-green-500 h-5 w-5", iconClassName)}
+          />
+        ),
+        colors: {
+          color: "green-500",
+          bg: "bg-green-100 hover:bg-green-100",
+          text: "text-green-700",
+          ring: "ring-1 ring-green-200",
+          accent: "border-green-500",
+          borderTop: "border-t-green-500",
+        },
+      };
+    case BillingEstimateStatus.REJECTED:
+      return {
+        label: "Refusé",
+        icon: <XCircle className={cn("text-red-500 h-5 w-5", iconClassName)} />,
+        colors: {
+          color: "red-500",
+          bg: "bg-red-100 hover:bg-red-100",
+          text: "text-red-700",
+          ring: "ring-1 ring-red-200",
+          accent: "border-red-500",
+          borderTop: "border-t-red-500",
+        },
+      };
+    case BillingEstimateStatus.EXPIRED:
+      return {
+        label: "Expiré",
+        icon: (
+          <AlertTriangle
+            className={cn("text-gray-500 h-5 w-5", iconClassName)}
+          />
+        ),
+        colors: {
+          color: "gray-500",
+          bg: "bg-gray-100 hover:bg-gray-100",
+          text: "text-gray-700",
+          ring: "ring-1 ring-gray-200",
+          accent: "border-gray-500",
+          borderTop: "border-t-gray-500",
+        },
+      };
+    default:
+      return {
+        label: status,
+        icon: (
+          <Calculator className={cn("text-gray-500 h-5 w-5", iconClassName)} />
+        ),
+        colors: {
+          color: "gray-500",
+          bg: "bg-gray-100 hover:bg-gray-100",
+          text: "text-gray-700",
+          ring: "ring-1 ring-gray-200",
           accent: "border-gray-500",
           borderTop: "border-t-gray-500",
         },

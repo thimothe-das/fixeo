@@ -9,7 +9,7 @@ import {
   updateTeamSubscription,
 } from "@/lib/db/queries/client";
 import { getUser } from "@/lib/db/queries/common";
-import { Team } from "@/lib/db/schema";
+import { BillingEstimateStatus, Team } from "@/lib/db/schema";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
 
@@ -246,7 +246,10 @@ export async function handleSuccessfulPayment(
 
     // Update the service request status to awaiting_estimate
     await updateServiceRequestDownPaymentSuccess(requestId, guestToken);
-    await updateBillingEstimateStatus(billingEstimate.id, "accepted");
+    await updateBillingEstimateStatus(
+      billingEstimate.id,
+      BillingEstimateStatus.ACCEPTED
+    );
     console.log(
       `Updated service request ${requestId} status to awaiting_estimate after payment`
     );

@@ -3,6 +3,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "./drizzle";
 import {
   billingEstimates,
+  BillingEstimateStatus,
   clientProfiles,
   conversations,
   serviceRequests,
@@ -97,6 +98,14 @@ export async function getBillingEstimateById(
         createdAt: serviceRequests.createdAt,
         assignedArtisanId: serviceRequests.assignedArtisanId,
       },
+      client: {
+        id: clientProfiles.userId,
+        firstName: clientProfiles.firstName,
+        lastName: clientProfiles.lastName,
+        phone: clientProfiles.phone,
+        address: clientProfiles.address,
+        addressCity: clientProfiles.addressCity,
+      },
     })
     .from(billingEstimates)
     .leftJoin(users, eq(billingEstimates.adminId, users.id))
@@ -104,6 +113,7 @@ export async function getBillingEstimateById(
       serviceRequests,
       eq(billingEstimates.serviceRequestId, serviceRequests.id)
     )
+    .leftJoin(clientProfiles, eq(serviceRequests.userId, clientProfiles.userId))
     .where(eq(billingEstimates.id, estimateId));
 
   const result = await query.limit(1);
@@ -138,7 +148,7 @@ export async function updateBillingEstimateStatus(
     .returning();
 
   // If accepted, update the service request status
-  if (status === "accepted" && estimate) {
+  if (status === BillingEstimateStatus.ACCEPTED && estimate) {
     await db
       .update(serviceRequests)
       .set({
