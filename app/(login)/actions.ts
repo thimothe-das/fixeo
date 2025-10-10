@@ -49,7 +49,7 @@ async function logActivity(
 
 export const signIn = async (data: SignInType) => {
   const { email, password } = data;
-
+  //
   const userWithTeam = await db
     .select({
       user: users,
