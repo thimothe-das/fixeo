@@ -180,3 +180,36 @@ export type AdminStats = {
     earnings: number; // In cents
   }>;
 };
+
+// Mission action types from normalized table
+export type MissionAction = {
+  id: number;
+  serviceRequestId: number;
+  timestamp: Date | string;
+  actorId: number | null;
+  actorType: "client" | "artisan" | "admin";
+  actionType:
+    | "dispute"
+    | "validation"
+    | "completion"
+    | "status_change"
+    | "note";
+  status: string | null;
+  disputeReason: string | null;
+  disputeDetails: string | null;
+  completionNotes: string | null;
+  validationNotes: string | null;
+  issueType: string | null;
+  additionalData: string | null; // JSON string containing photos, etc.
+  createdAt: Date | string;
+  actor?: {
+    id: number | null;
+    name: string | null;
+    email: string | null;
+  };
+};
+
+// Update ServiceRequestForArtisan to include action history
+export type ServiceRequestWithActions = ServiceRequestForArtisan & {
+  actions?: MissionAction[];
+};

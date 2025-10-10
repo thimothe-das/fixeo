@@ -23,6 +23,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { MessageSenderType, ServiceRequestStatus } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 import {
+  disputeFormSchema,
+  type DisputeFormType,
+} from "@/lib/validation/schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
   AlertCircle,
   AlertTriangle,
   ArrowLeft,
@@ -49,6 +54,7 @@ import {
 import moment from "moment";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import useSWR from "swr";
 import { ServiceRequestForArtisan } from "../../../components/types";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -91,10 +97,18 @@ export default function Job() {
   const [validationType, setValidationType] = useState<"approve" | "dispute">(
     "approve"
   );
-  const [disputeReason, setDisputeReason] = useState("");
-  const [disputeDetails, setDisputeDetails] = useState("");
   const [isSubmittingValidation, setIsSubmittingValidation] = useState(false);
   const router = useRouter();
+
+  // Dispute form with react-hook-form
+  const disputeForm = useForm<DisputeFormType>({
+    resolver: zodResolver(disputeFormSchema),
+    defaultValues: {
+      disputeReason: "",
+      disputeDetails: "",
+      photos: [],
+    },
+  });
 
   const {
     data: mission,
@@ -242,15 +256,23 @@ export default function Job() {
 
   const resetValidationForm = () => {
     setValidationType("approve");
-    setDisputeReason("");
-    setDisputeDetails("");
+    disputeForm.reset();
   };
 
   const handleValidateCompletion = async (
     mission: ServiceRequestForArtisan
   ) => {
+    // Validate form if disputing
+    if (validationType === "dispute") {
+      const isValid = await disputeForm.trigger();
+      if (!isValid) {
+        return;
+      }
+    }
+
     setIsSubmittingValidation(true);
     try {
+      const formData = disputeForm.getValues();
       const response = await fetch(
         `/api/service-requests/${mission.id}/validate`,
         {
@@ -261,9 +283,11 @@ export default function Job() {
           body: JSON.stringify({
             action: validationType,
             disputeReason:
-              validationType === "dispute" ? disputeReason : undefined,
+              validationType === "dispute" ? formData.disputeReason : undefined,
             disputeDetails:
-              validationType === "dispute" ? disputeDetails : undefined,
+              validationType === "dispute"
+                ? formData.disputeDetails
+                : undefined,
           }),
         }
       );
@@ -1299,12 +1323,17 @@ export default function Job() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <form className="space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">
                 Motif du litige *
               </label>
-              <Select value={disputeReason} onValueChange={setDisputeReason}>
+              <Select
+                value={disputeForm.watch("disputeReason")}
+                onValueChange={(value) =>
+                  disputeForm.setValue("disputeReason", value)
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionnez le motif principal" />
                 </SelectTrigger>
@@ -1329,6 +1358,11 @@ export default function Job() {
                   <SelectItem value="other">Autre problème</SelectItem>
                 </SelectContent>
               </Select>
+              {disputeForm.formState.errors.disputeReason && (
+                <p className="text-sm text-red-600 mt-1">
+                  {disputeForm.formState.errors.disputeReason.message}
+                </p>
+              )}
             </div>
 
             <div>
@@ -1337,11 +1371,29 @@ export default function Job() {
               </label>
               <Textarea
                 placeholder="Décrivez précisément le problème rencontré..."
-                value={disputeDetails}
-                onChange={(e) => setDisputeDetails(e.target.value)}
+                {...disputeForm.register("disputeDetails")}
                 rows={4}
-                required
               />
+              {disputeForm.formState.errors.disputeDetails && (
+                <p className="text-sm text-red-600 mt-1">
+                  {disputeForm.formState.errors.disputeDetails.message}
+                </p>
+              )}
+            </div>
+
+            {/* Photo upload placeholder - ready for future implementation */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Photos justificatives (optionnel)
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                <div className="text-center">
+                  <Camera className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">
+                    Ajoutez des photos du problème (bientôt disponible)
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -1351,7 +1403,7 @@ export default function Job() {
                 paiement sera suspendu en attendant la résolution.
               </p>
             </div>
-          </div>
+          </form>
 
           <DialogFooter>
             <Button
@@ -1366,8 +1418,8 @@ export default function Job() {
               }
               disabled={
                 isSubmittingValidation ||
-                !disputeReason ||
-                !disputeDetails.trim()
+                !disputeForm.watch("disputeReason") ||
+                !disputeForm.watch("disputeDetails")?.trim()
               }
               className="bg-red-600 hover:bg-red-700 text-white"
             >

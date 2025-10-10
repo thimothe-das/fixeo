@@ -8,13 +8,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PaymentSuccessModal } from "@/components/ui/payment-success-modal";
 import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
 import { BillingEstimateStatus, ServiceRequestStatus } from "@/lib/db/schema";
 import {
   getBillingEstimateStatusConfig,
   getCategoryConfig,
   getPriorityConfig,
   getStatusConfig,
+  handleAcceptQuote,
 } from "@/lib/utils";
 import {
   AlertCircle,
@@ -32,7 +35,7 @@ import {
   User,
 } from "lucide-react";
 import moment from "moment";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import useSWR from "swr";
 import { ActionDialogs } from "./ActionDialogs";
@@ -99,8 +102,11 @@ export default function RequestDetailPage() {
   >();
   const [descriptionExpanded, setDescriptionExpanded] = React.useState(false);
   const [showBreakdown, setShowBreakdown] = React.useState(false);
+  const [paymentVerificationState, setPaymentVerificationState] =
+    React.useState<"idle" | "loading" | "success" | "error">("idle");
 
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Fetch request data
   const {
@@ -125,34 +131,65 @@ export default function RequestDetailPage() {
     fetchUser();
   }, []);
 
+  // Payment verification after redirect from Stripe
+  React.useEffect(() => {
+    const checkPayment = searchParams.get("check_payment");
+
+    if (checkPayment === "1") {
+      // Clean URL parameter immediately
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("check_payment");
+      router.replace(newUrl.pathname + newUrl.search);
+
+      // Verify payment from backend
+      const verifyPayment = async () => {
+        setPaymentVerificationState("loading");
+        try {
+          const response = await fetch(
+            `/api/payments/status?requestId=${requestId}`
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.paymentCompleted === true) {
+              setPaymentVerificationState("success");
+              // Refresh request data to show updated status
+              await mutate();
+            } else {
+              setPaymentVerificationState("error");
+            }
+          } else {
+            setPaymentVerificationState("error");
+          }
+        } catch (error) {
+          console.error("Error verifying payment:", error);
+          setPaymentVerificationState("error");
+        }
+      };
+
+      verifyPayment();
+    }
+  }, [searchParams, requestId, router, mutate]);
+
   // Handle estimate actions
   const handleAcceptEstimate = async () => {
     if (!request?.billingEstimates?.[0]) return;
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/client/billing-estimates/respond", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          estimateId: request.billingEstimates[0].id,
-          action: "accept",
-        }),
-      });
-
-      if (response.ok) {
-        await mutate();
-        setShowAcceptDialog(false);
-      } else {
-        const error = await response.json();
-        alert(`Erreur: ${error.error}`);
-      }
+      // Use the payment-enabled acceptance flow with 30% deposit
+      // cancelUrl should be a path (not full URL), BASE_URL is prepended in stripe.ts
+      const cancelUrl = `/workspace/requests/${requestId}`;
+      await handleAcceptQuote(
+        requestId,
+        cancelUrl,
+        request.billingEstimates[0].estimatedPrice
+      );
+      // Note: User will be redirected to Stripe checkout
+      // After payment, they'll return and the estimate will be accepted
     } catch (error) {
       console.error("Error accepting estimate:", error);
       alert("Erreur lors de l'acceptation du devis");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -825,6 +862,65 @@ export default function RequestDetailPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Verification Loading Overlay */}
+      {paymentVerificationState === "loading" && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
+            <Spinner className="h-12 w-12" />
+            <p className="text-lg font-semibold text-gray-900">
+              Vérification du paiement...
+            </p>
+            <p className="text-sm text-gray-600">
+              Veuillez patienter quelques instants
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Success Modal */}
+      <PaymentSuccessModal
+        isOpen={paymentVerificationState === "success"}
+        onClose={() => setPaymentVerificationState("idle")}
+        title="Acompte payé avec succès !"
+        description="Votre acompte de 30% a été reçu. Un artisan sera assigné à votre demande dans les plus brefs délais."
+        confirmText="D'accord"
+      />
+
+      {/* Payment Error Dialog */}
+      <Dialog
+        open={paymentVerificationState === "error"}
+        onOpenChange={() => setPaymentVerificationState("idle")}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              Erreur de vérification
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Impossible de vérifier le paiement. Veuillez rafraîchir la page ou
+              contacter le support si le problème persiste.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setPaymentVerificationState("idle")}
+              >
+                Fermer
+              </Button>
+              <Button
+                onClick={() => window.location.reload()}
+                className="bg-fixeo-main-500 hover:bg-fixeo-main-600"
+              >
+                Rafraîchir la page
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -258,3 +258,69 @@ export const rejectEstimateSchema = z.object({
 });
 
 export type RejectEstimateType = z.infer<typeof rejectEstimateSchema>;
+
+// Mission dispute schema
+export const disputeFormSchema = z.object({
+  disputeReason: z
+    .string()
+    .min(1, "Le motif du litige est requis")
+    .max(50, "Le motif ne peut pas dépasser 50 caractères"),
+  disputeDetails: z
+    .string()
+    .min(20, "La description doit contenir au moins 20 caractères")
+    .max(2000, "La description ne peut pas dépasser 2000 caractères")
+    .trim(),
+  photos: z.array(z.string()).max(10, "Maximum 10 photos").optional(),
+  // Future fields can be added here without breaking existing code:
+  // desiredResolution: z.string().optional(),
+  // requestedCompensation: z.number().optional(),
+});
+
+export type DisputeFormType = z.infer<typeof disputeFormSchema>;
+
+// Mission validation schema
+export const validationFormSchema = z.object({
+  notes: z
+    .string()
+    .max(1000, "Les notes ne peuvent pas dépasser 1000 caractères")
+    .optional(),
+  photos: z.array(z.string()).max(10, "Maximum 10 photos").optional(),
+  // Future fields:
+  // rating: z.number().min(1).max(5).optional(),
+  // completionTime: z.number().optional(),
+});
+
+export type ValidationFormType = z.infer<typeof validationFormSchema>;
+
+// Mission completion schema (for artisan marking work as done)
+export const completionFormSchema = z.object({
+  completionNotes: z
+    .string()
+    .max(1000, "Les notes ne peuvent pas dépasser 1000 caractères")
+    .optional(),
+  completionPhotos: z.array(z.string()).max(10, "Maximum 10 photos").optional(),
+  issueType: z.string().optional(),
+  // Future fields:
+  // materialsUsed: z.array(z.string()).optional(),
+  // timeSpent: z.number().optional(),
+});
+
+export type CompletionFormType = z.infer<typeof completionFormSchema>;
+
+// Mission action schema (for storing in history)
+export const missionActionSchema = z.object({
+  timestamp: z.string().or(z.date()),
+  actorId: z.number(),
+  actorType: z.enum(["client", "artisan", "admin"]),
+  actionType: z.enum([
+    "dispute",
+    "validation",
+    "completion",
+    "status_change",
+    "note",
+  ]),
+  status: z.string().optional(),
+  data: z.record(z.any()), // Flexible data field for any additional information
+});
+
+export type MissionActionType = z.infer<typeof missionActionSchema>;

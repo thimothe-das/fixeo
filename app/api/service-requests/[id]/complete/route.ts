@@ -108,6 +108,14 @@ export async function POST(
         completionNotes: notes,
         completionPhotos: photos,
         issueType,
+        actorId: user.id,
+        actorType: "artisan",
+        actionType:
+          type === "dispute"
+            ? "dispute"
+            : type === "validate"
+            ? "validation"
+            : "completion",
       }
     );
 

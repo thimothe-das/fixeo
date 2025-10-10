@@ -6,6 +6,7 @@ import {
   BillingEstimateStatus,
   clientProfiles,
   conversations,
+  serviceRequestActions,
   serviceRequests,
   ServiceRequestStatus,
   serviceRequestStatusHistory,
@@ -176,8 +177,14 @@ export async function updateServiceRequestStatus(
     completionNotes?: string;
     completionPhotos?: string;
     issueType?: string;
+    actorId?: number;
+    actorType?: "client" | "artisan" | "admin";
+    actionType?: "dispute" | "validation" | "completion" | "status_change";
+    photos?: string[];
+    notes?: string;
   }
 ) {
+  // Update the service request status
   const [updatedRequest] = await db
     .update(serviceRequests)
     .set({
@@ -193,8 +200,36 @@ export async function updateServiceRequestStatus(
     status,
   });
 
-  // If it's a dispute, we might want to log this separately
-  // For now, we'll just store the dispute details in a separate table if needed
+  // Create action entry if we have additional data
+  if (additionalData && Object.keys(additionalData).length > 0) {
+    // Prepare additional data as JSON (for photos and future fields)
+    const additionalDataJson: any = {};
+    if (additionalData.photos) {
+      additionalDataJson.photos = additionalData.photos;
+    }
+    if (additionalData.completionPhotos) {
+      additionalDataJson.completionPhotos = additionalData.completionPhotos;
+    }
+
+    await db.insert(serviceRequestActions).values({
+      serviceRequestId: requestId,
+      timestamp: new Date(),
+      actorId: additionalData.actorId || null,
+      actorType: additionalData.actorType || "admin",
+      actionType: additionalData.actionType || "status_change",
+      status,
+      disputeReason: additionalData.disputeReason || null,
+      disputeDetails: additionalData.disputeDetails || null,
+      completionNotes: additionalData.completionNotes || null,
+      validationNotes: additionalData.notes || null,
+      issueType: additionalData.issueType || null,
+      additionalData:
+        Object.keys(additionalDataJson).length > 0
+          ? JSON.stringify(additionalDataJson)
+          : null,
+      createdAt: new Date(),
+    });
+  }
 
   return updatedRequest;
 }
@@ -492,4 +527,33 @@ export async function getClientByUserId(userId: number) {
   }
 
   return user;
+}
+
+export async function getServiceRequestActions(serviceRequestId: number) {
+  return await db
+    .select({
+      id: serviceRequestActions.id,
+      serviceRequestId: serviceRequestActions.serviceRequestId,
+      timestamp: serviceRequestActions.timestamp,
+      actorId: serviceRequestActions.actorId,
+      actorType: serviceRequestActions.actorType,
+      actionType: serviceRequestActions.actionType,
+      status: serviceRequestActions.status,
+      disputeReason: serviceRequestActions.disputeReason,
+      disputeDetails: serviceRequestActions.disputeDetails,
+      completionNotes: serviceRequestActions.completionNotes,
+      validationNotes: serviceRequestActions.validationNotes,
+      issueType: serviceRequestActions.issueType,
+      additionalData: serviceRequestActions.additionalData,
+      createdAt: serviceRequestActions.createdAt,
+      actor: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+    })
+    .from(serviceRequestActions)
+    .leftJoin(users, eq(serviceRequestActions.actorId, users.id))
+    .where(eq(serviceRequestActions.serviceRequestId, serviceRequestId))
+    .orderBy(desc(serviceRequestActions.timestamp));
 }

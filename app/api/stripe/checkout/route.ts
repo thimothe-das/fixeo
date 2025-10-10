@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 
         await setSession(user[0]);
         const redirectUrl = requestId
-          ? `/workspace/dashboard?requestId=${requestId}`
+          ? `/workspace/requests/${requestId}?check_payment=1`
           : "/workspace/dashboard";
 
         return NextResponse.redirect(

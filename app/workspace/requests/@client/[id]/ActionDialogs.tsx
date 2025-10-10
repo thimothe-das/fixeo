@@ -17,13 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
   RejectEstimateType,
   rejectEstimateSchema,
 } from "@/lib/validation/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 import * as React from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -115,20 +116,52 @@ export function ActionDialogs({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
-              Accepter le devis
+              Accepter le devis et payer l'acompte
             </DialogTitle>
-            <DialogDescription>
-              Vous êtes sur le point d'accepter ce devis. Une fois accepté, un
-              artisan pourra être assigné à votre demande.
-            </DialogDescription>
+            <DialogDescription>Paiement par Stripe</DialogDescription>
           </DialogHeader>
 
           {estimatePrice && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-green-800 mb-1">Montant estimé</p>
-              <p className="text-2xl font-bold text-green-900">
-                {formatPrice(estimatePrice)}
-              </p>
+            <div className="space-y-4">
+              <div className="border rounded-lg p-4 bg-slate-50">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      Montant total estimé
+                    </span>
+                    <span className="text-lg font-semibold">
+                      {formatPrice(estimatePrice)}
+                    </span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">
+                      Acompte requis (30%)
+                    </span>
+                    <span className="text-xl font-bold text-primary">
+                      {formatPrice(Math.round(estimatePrice * 0.3))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      Solde restant (70%)
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {formatPrice(Math.round(estimatePrice * 0.7))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-900 flex items-center gap-2">
+                  <Info className="h-4 w-4 mr-1 shrink-0" />
+                  <span>
+                    Le solde sera débité automatiquement lors de la validation
+                    de l'intervention par les deux parties.
+                  </span>
+                </p>
+              </div>
             </div>
           )}
 
@@ -145,7 +178,7 @@ export function ActionDialogs({
               disabled={isLoading}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {isLoading ? "Acceptation..." : "Accepter le devis"}
+              {isLoading ? "Traitement..." : "Payer l'acompte"}
             </Button>
           </DialogFooter>
         </DialogContent>

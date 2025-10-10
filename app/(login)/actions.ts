@@ -127,23 +127,11 @@ export const signUpClient = async (data: ClientSignUpType) => {
 
   const passwordHash = await hashPassword(password);
 
-  const userCount = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(users);
-  const isFirstUser = Number(userCount[0].count) === 0;
-
-  let newUserRole: string;
-  if (isFirstUser && email === "das.thimothe@gmail.com") {
-    newUserRole = UserRole.ADMIN; // First user with specific email becomes admin
-  } else {
-    newUserRole = UserRole.CLIENT;
-  }
-
   const newUser: NewUser = {
     email,
     passwordHash,
     name: `${firstName} ${lastName}`,
-    role: newUserRole,
+    role: UserRole.CLIENT,
   };
 
   const [createdUser] = await db.insert(users).values(newUser).returning();

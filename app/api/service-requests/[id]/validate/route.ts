@@ -123,6 +123,13 @@ export async function POST(
       {
         disputeReason,
         disputeDetails,
+        actorId: user.id,
+        actorType: isClient
+          ? "client"
+          : isAssignedArtisan
+          ? "artisan"
+          : "admin",
+        actionType: action === "dispute" ? "dispute" : "validation",
       }
     );
 

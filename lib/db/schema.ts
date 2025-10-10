@@ -201,6 +201,28 @@ export const serviceRequestStatusHistory = pgTable(
   }
 );
 
+// Service request actions for tracking disputes, validations, completions
+export const serviceRequestActions = pgTable("service_request_actions", {
+  id: serial("id").primaryKey(),
+  serviceRequestId: integer("service_request_id")
+    .notNull()
+    .references(() => serviceRequests.id),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  actorId: integer("actor_id").references(() => users.id),
+  actorType: varchar("actor_type", { length: 20 }).notNull(),
+  actionType: varchar("action_type", { length: 20 }).notNull(),
+  status: varchar("status", { length: 50 }),
+  // Action-specific fields
+  disputeReason: varchar("dispute_reason", { length: 50 }),
+  disputeDetails: text("dispute_details"),
+  completionNotes: text("completion_notes"),
+  validationNotes: text("validation_notes"),
+  issueType: varchar("issue_type", { length: 50 }),
+  // Flexible JSON for photos and future fields
+  additionalData: text("additional_data"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Billing estimates table for admin-created estimates
 export const billingEstimates = pgTable("billing_estimates", {
   id: serial("id").primaryKey(),
@@ -344,6 +366,7 @@ export const serviceRequestsRelations = relations(
     }),
     billingEstimates: many(billingEstimates),
     conversations: many(conversations),
+    actions: many(serviceRequestActions),
   })
 );
 
@@ -386,6 +409,20 @@ export const artisanRefusedRequestsRelations = relations(
   })
 );
 
+export const serviceRequestActionsRelations = relations(
+  serviceRequestActions,
+  ({ one }) => ({
+    serviceRequest: one(serviceRequests, {
+      fields: [serviceRequestActions.serviceRequestId],
+      references: [serviceRequests.id],
+    }),
+    actor: one(users, {
+      fields: [serviceRequestActions.actorId],
+      references: [users.id],
+    }),
+  })
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Team = typeof teams.$inferSelect;
@@ -409,6 +446,8 @@ export type NewConversation = typeof conversations.$inferInsert;
 export type ArtisanRefusedRequest = typeof artisanRefusedRequests.$inferSelect;
 export type NewArtisanRefusedRequest =
   typeof artisanRefusedRequests.$inferInsert;
+export type ServiceRequestAction = typeof serviceRequestActions.$inferSelect;
+export type NewServiceRequestAction = typeof serviceRequestActions.$inferInsert;
 export type TeamDataWithMembers = Team & {
   teamMembers: (TeamMember & {
     user: Pick<User, "id" | "name" | "email">;
