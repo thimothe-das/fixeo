@@ -10,7 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn, getCategoryConfig, ServiceType, Urgency } from "@/lib/utils";
+import {
+  cn,
+  getCategoryConfig,
+  getPriorityConfig,
+  ServiceType,
+  Urgency,
+} from "@/lib/utils";
 import {
   Calendar,
   CheckCircle,
@@ -20,7 +26,6 @@ import {
   Eye,
   MapPin,
   Navigation,
-  Timer,
   Wrench,
   XCircle,
 } from "lucide-react";
@@ -156,30 +161,14 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
       timeLeft?: number;
     }
   ) => {
-    if (!request.isAssigned) {
-      return (
-        <Badge variant="secondary" className="bg-gray-100 text-gray-600">
-          Prise
-        </Badge>
-      );
-    }
-    if (request.urgent || request.urgency === Urgency.URGENT) {
-      const isExpiringSoon = (request.timeLeft || 60) < 30;
-      return (
-        <Badge
-          variant="destructive"
-          className={`${
-            isExpiringSoon ? "animate-pulse" : ""
-          } flex items-center gap-1`}
-        >
-          <Timer className="h-3 w-3" />
-          Urgent - {formatTimeLeft(request.timeLeft || 60)}
-        </Badge>
-      );
-    }
+    const urgencyConfig = getPriorityConfig(request.urgency, "h-3 w-3");
     return (
-      <Badge variant="outline" className="text-green-600 border-green-200">
-        Flexible
+      <Badge
+        variant="outline"
+        className={`${urgencyConfig.colors.bg} ${urgencyConfig.colors.text} inline-flex items-center gap-2`}
+      >
+        {urgencyConfig.icon}
+        {urgencyConfig.label}
       </Badge>
     );
   };
@@ -658,7 +647,7 @@ export function Requests({ requests = [], onAcceptRequest }: RequestsProps) {
                         Refuser
                       </Button>
                       <Button
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-11"
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-11 text-white"
                         onClick={() => {
                           onAcceptRequest(job.id);
                           onClose();

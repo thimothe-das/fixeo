@@ -1807,6 +1807,84 @@ async function seed() {
       status: ServiceRequestStatus.COMPLETED,
       changedAt: daysAgo(10),
     },
+    // Request 13 - Peinture chambre enfant - completed
+    {
+      serviceRequestId: requests[12].id,
+      status: ServiceRequestStatus.AWAITING_ESTIMATE,
+      changedAt: daysAgo(50),
+    },
+    {
+      serviceRequestId: requests[12].id,
+      status: ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION,
+      changedAt: daysAgo(48),
+    },
+    {
+      serviceRequestId: requests[12].id,
+      status: ServiceRequestStatus.AWAITING_ASSIGNATION,
+      changedAt: daysAgo(45),
+    },
+    {
+      serviceRequestId: requests[12].id,
+      status: ServiceRequestStatus.IN_PROGRESS,
+      changedAt: daysAgo(35),
+    },
+    {
+      serviceRequestId: requests[12].id,
+      status: ServiceRequestStatus.COMPLETED,
+      changedAt: daysAgo(15),
+    },
+    // Request 20 - Menuiserie bois - completed
+    {
+      serviceRequestId: requests[19].id,
+      status: ServiceRequestStatus.AWAITING_ESTIMATE,
+      changedAt: daysAgo(80),
+    },
+    {
+      serviceRequestId: requests[19].id,
+      status: ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION,
+      changedAt: daysAgo(78),
+    },
+    {
+      serviceRequestId: requests[19].id,
+      status: ServiceRequestStatus.AWAITING_ASSIGNATION,
+      changedAt: daysAgo(75),
+    },
+    {
+      serviceRequestId: requests[19].id,
+      status: ServiceRequestStatus.IN_PROGRESS,
+      changedAt: daysAgo(60),
+    },
+    {
+      serviceRequestId: requests[19].id,
+      status: ServiceRequestStatus.COMPLETED,
+      changedAt: daysAgo(30),
+    },
+    // Request 23 - Réparation VMC - completed
+    {
+      serviceRequestId: requests[22].id,
+      status: ServiceRequestStatus.AWAITING_ESTIMATE,
+      changedAt: daysAgo(42),
+    },
+    {
+      serviceRequestId: requests[22].id,
+      status: ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION,
+      changedAt: daysAgo(40),
+    },
+    {
+      serviceRequestId: requests[22].id,
+      status: ServiceRequestStatus.AWAITING_ASSIGNATION,
+      changedAt: daysAgo(38),
+    },
+    {
+      serviceRequestId: requests[22].id,
+      status: ServiceRequestStatus.IN_PROGRESS,
+      changedAt: daysAgo(37),
+    },
+    {
+      serviceRequestId: requests[22].id,
+      status: ServiceRequestStatus.COMPLETED,
+      changedAt: daysAgo(35),
+    },
     // Request 14 - Disputed
     {
       serviceRequestId: requests[13].id,

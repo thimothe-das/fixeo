@@ -236,7 +236,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 overflow-auto bg-gray-50 relative">
+          <main className="flex-1 bg-gray-50 relative">
             <Suspense fallback={<ServiceRequestsListSkeleton />}>
               {children}
             </Suspense>

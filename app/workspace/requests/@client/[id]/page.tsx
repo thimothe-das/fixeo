@@ -19,10 +19,8 @@ import {
   AlertCircle,
   Calendar,
   CheckCircle,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
   Clock,
   FileText,
   Flame,
@@ -31,7 +29,6 @@ import {
   Phone,
   Star,
   User,
-  X,
 } from "lucide-react";
 import moment from "moment";
 import { useParams, useRouter } from "next/navigation";
@@ -379,29 +376,29 @@ export default function RequestDetailPage() {
   return (
     <div className="min-h-screen">
       {/* Main Container - Airbnb width */}
-      <div className="max-w-7xl mx-auto px-10 lg:px-10 py-6 bg-white rounded-lg shadow-sm mt-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-10 py-6 bg-white rounded-lg shadow-sm mt-6">
         {/* Page Title */}
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-[26px] font-semibold text-[#222222] mb-2">
+        <div className="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-6">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-[26px] font-semibold text-[#222222] mb-2 break-words">
               {request.title || "Demande de service"}
             </h1>
-            <div className="flex items-center gap-3 text-sm text-[#717171]">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-[#717171]">
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
                 Créée {timeAgo}
               </span>
-              <span className="mx-1">·</span>
-              <span>{request.location}</span>
+              <span className="hidden sm:inline mx-1">·</span>
+              <span className="truncate">{request.location}</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
             <ProgressDrawer
               currentStatus={request.status}
               statusHistory={request.statusHistory}
             />
             <div
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${
+              className={`flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-sm font-semibold shadow-sm ${
                 statusConfig.colors?.bg || "bg-gray-100"
               } ${statusConfig.colors?.text || "text-gray-700"} ${
                 statusConfig.colors?.ring || "ring-1 ring-gray-200"
@@ -511,40 +508,29 @@ export default function RequestDetailPage() {
             </h3>
             {relevantEstimate ? (
               <div className="space-y-4">
-                {/* Price Header */}
+                {/* Price Header with Badge */}
                 <div>
-                  <div className="flex items-baseline gap-2 mb-2">
+                  <div className="flex items-center gap-3 mb-2">
                     <span className="text-2xl font-semibold text-[#222222]">
                       {formatPrice(relevantEstimate.estimatedPrice)}
                     </span>
+                    {getEstimateStatusBadge(relevantEstimate.status)}
                   </div>
-                  {getEstimateStatusBadge(relevantEstimate.status)}
-                </div>
-
-                <Separator className="border-[#EBEBEB]" />
-
-                {/* Dates */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="flex items-center gap-2 text-[#717171]">
+                  {/* Dates as subtitles */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-[#717171]">
                       <Calendar className="h-4 w-4" />
-                      <span>Créée le</span>
+                      <span>Créée le {formatDate(request.createdAt)}</span>
                     </div>
-                    <span className="font-medium text-[#222222]">
-                      {formatDate(request.createdAt)}
-                    </span>
-                  </div>
-                  {request.updatedAt && (
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 text-[#717171]">
+                    {request.updatedAt && (
+                      <div className="flex items-center gap-2 text-sm text-[#717171]">
                         <Calendar className="h-4 w-4" />
-                        <span>Mise à jour</span>
+                        <span>
+                          Mise à jour le {formatDate(request.updatedAt)}
+                        </span>
                       </div>
-                      <span className="font-medium text-[#222222]">
-                        {formatDate(request.updatedAt)}
-                      </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
@@ -590,44 +576,6 @@ export default function RequestDetailPage() {
                     >
                       Signaler un problème
                     </Button>
-                  </>
-                )}
-
-                {/* Breakdown */}
-                {parsedBreakdown && parsedBreakdown.length > 0 && (
-                  <>
-                    <Separator className="border-[#EBEBEB]" />
-                    <div>
-                      <button
-                        onClick={() => setShowBreakdown(!showBreakdown)}
-                        className="w-full flex items-center justify-between text-sm font-medium text-[#222222] hover:text-[#717171]"
-                      >
-                        <span>Détails du devis</span>
-                        {showBreakdown ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </button>
-
-                      {showBreakdown && (
-                        <div className="mt-3 space-y-2">
-                          {parsedBreakdown.map((item: any, index: number) => (
-                            <div
-                              key={index}
-                              className="flex justify-between text-sm"
-                            >
-                              <span className="text-[#717171]">
-                                {item.description}
-                              </span>
-                              <span className="font-medium text-[#222222]">
-                                {formatPrice(item.amount)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                   </>
                 )}
 
@@ -881,15 +829,6 @@ export default function RequestDetailPage() {
                 </Button>
               </>
             )}
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2 bg-black/20 hover:bg-black/40 text-white"
-              onClick={() => setPhotoModalOpen(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
 
           {/* Photo thumbnails */}

@@ -224,12 +224,12 @@ export default function EstimatedBill() {
       }
     >
       {/* Top Status Bar */}
-      {estimate.status === "pending" && (
-        <div className="bg-gradient-to-r from-orange-100 to-yellow-100 border-b border-orange-200 py-3 absolute top-0 left-0 right-0 ">
-          <div className="max-w-7xl mx-auto flex items-center px-4 gap-4 justify-center">
+      {estimate.status === "pending" && !isExpired && (
+        <div className="bg-orange-100 border-b border-orange-200 py-3 md:py-4 sticky top-0 z-40 w-full -mt-3">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center px-4 gap-2 md:gap-4 justify-center">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-orange-500" />
-              <span className="text-sm text-orange-800 font-medium">
+              <Clock className="h-5 w-5 text-orange-600" />
+              <span className="text-xs md:text-sm text-orange-800 font-medium">
                 Cette facture est en attente de votre réponse
               </span>
             </div>
@@ -240,68 +240,110 @@ export default function EstimatedBill() {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-6 py-8 pb-24">
+      {estimate.status === "accepted" && (
+        <div className="bg-green-100 border-b border-green-200 py-3 md:py-4 sticky top-0 z-40 w-full -mt-3">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center px-4 gap-2 md:gap-4 justify-center">
+            <div className="flex items-center gap-4">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="text-xs md:text-sm text-green-800 font-medium">
+                Facture acceptée • Le travail peut commencer
+              </span>
+            </div>
+            <Badge className="text-xs bg-green-600 text-white font-bold uppercase tracking-wide">
+              Acceptée le {moment(estimate.createdAt).format("DD/MM/YYYY")}
+            </Badge>
+          </div>
+        </div>
+      )}
+
+      {estimate.status === "rejected" && (
+        <div className="bg-red-100 border-b border-red-200 py-3 md:py-4 sticky top-0 z-40 w-full -mt-3">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center px-4 gap-2 md:gap-4 justify-center">
+            <div className="flex items-center gap-4">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <span className="text-xs md:text-sm text-red-800 font-medium">
+                Facture refusée • Un nouveau devis peut être demandé si
+                nécessaire
+              </span>
+            </div>
+            <Badge className="text-xs bg-red-600 text-white font-bold uppercase tracking-wide">
+              Refusée
+            </Badge>
+          </div>
+        </div>
+      )}
+
+      {estimate.status === "pending" && isExpired && (
+        <div className="bg-gray-100 border-b border-gray-200 py-3 md:py-4 sticky top-0 z-40 w-full -mt-3">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center px-4 gap-2 md:gap-4 justify-center">
+            <div className="flex items-center gap-4">
+              <Clock className="h-5 w-5 text-gray-600" />
+              <span className="text-xs md:text-sm text-gray-800 font-medium">
+                Facture expirée • Contactez l'administration pour obtenir un
+                nouveau devis
+              </span>
+            </div>
+            <Badge className="text-xs bg-gray-600 text-white font-bold uppercase tracking-wide">
+              Expirée
+            </Badge>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-8 pb-32 md:pb-24 mt-6">
         {/* Header */}
-        <div className="rounded-lg p-4 mb-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-blue-200 rounded-lg flex items-center justify-center">
-                <FileText className="h-6 w-6 text-blue-600" />
+        <div className="rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div className="flex items-start gap-3 md:gap-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                <FileText className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              <div className="flex-1">
+                <h1 className="text-lg md:text-2xl font-bold text-gray-900 mb-2">
                   Devis estimé pour{" "}
                   <span className="text-blue-600 font-bold uppercase">
                     {estimate.serviceRequest?.title}
                   </span>
                 </h1>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
+                <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-600">
                   <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4 text-gray-600" />
+                    <Calendar className="h-3 w-3 md:h-4 md:w-4 text-gray-600" />
                     Créé le {moment(estimate.createdAt).format("DD/MM/YYYY")}
                   </span>
                   {estimate.validUntil && (
                     <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4 text-gray-600" />
+                      <Clock className="h-3 w-3 md:h-4 md:w-4 text-gray-600" />
                       Valide jusqu'au:{" "}
                       {moment(estimate.validUntil).format("DD/MM/YYYY")}
                     </span>
                   )}
                   <span className="flex items-center gap-1">
-                    <Building className="h-4 w-4 text-gray-600" />
+                    <Building className="h-3 w-3 md:h-4 md:w-4 text-gray-600" />
                     {estimate.serviceRequest?.location}
                   </span>
                 </div>
               </div>
-              <div className="mt-2">
-                <Badge
-                  className={`${getStatusColor(
-                    estimate.status
-                  )} text-xs font-medium px-3 py-1`}
-                >
-                  <Clock className="h-4 w-4 text-orange-600 mr-1" />
-                  {getStatusLabel(estimate.status)}
-                </Badge>
-              </div>
             </div>
-            <div className="text-right">
-              <div className="text-4xl font-bold text-gray-900 mb-1">
+            <div className="text-left md:text-right border-t md:border-t-0 pt-4 md:pt-0">
+              <div className="text-2xl md:text-4xl font-bold text-gray-900 mb-1">
                 {(estimate.estimatedPrice / 100).toFixed(2)}€
               </div>
-              <div className="text-lg text-gray-600">Montant estimé</div>
-              <div className="text-sm text-green-600 mt-& flex items-center gap-1">
-                <Info className="h-4 w-4 text-green-600" /> Inclus les taxes et
-                frais
+              <div className="text-base md:text-lg text-gray-600">
+                Montant estimé
+              </div>
+              <div className="text-xs md:text-sm text-green-600 mt-1 flex items-center gap-1">
+                <Info className="h-3 w-3 md:h-4 md:w-4 text-green-600" /> Inclus
+                les taxes et frais
               </div>
             </div>
           </div>
         </div>
 
         {/* Bill From, Bill To, Project Details */}
-        <div className="rounded-lg py-8 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="rounded-lg py-4 md:py-8 mb-4 md:mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
             {/* Bill From */}
-            <div className="bg-gray-50 rounded-lg p-4 ">
+            <div className="bg-gray-50 rounded-lg p-3 md:p-4">
               <h3 className="font-semibold text-gray-900 mb-2">
                 Devis réalisé par
               </h3>
@@ -315,7 +357,7 @@ export default function EstimatedBill() {
             </div>
 
             {/* Bill To */}
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-gray-50 rounded-lg p-3 md:p-4">
               <h3 className="font-semibold text-gray-900 mb-2">Facture à</h3>
               <div className="space-y-2">
                 {userLoading ? (
@@ -349,17 +391,19 @@ export default function EstimatedBill() {
             </div>
 
             {/* Project Details */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2 justify-between align-center ">
-                <h3 className="font-semibold text-gray-900 ">
+            <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+              <div className="flex items-center gap-2 mb-2 justify-between">
+                <h3 className="font-semibold text-gray-900">
                   Détails du projet
                 </h3>
                 <Badge
-                  className={`ml- 2  flex items-center gap-2 ${categoryConfig.colors.bg} ${categoryConfig.colors.text}`}
+                  className={`flex items-center gap-1 text-xs ${categoryConfig.colors.bg} ${categoryConfig.colors.text}`}
                   variant="outline"
                 >
                   {categoryConfig.icon}
-                  {categoryConfig.type}
+                  <span className="hidden sm:inline">
+                    {categoryConfig.type}
+                  </span>
                 </Badge>
               </div>
 
@@ -386,25 +430,26 @@ export default function EstimatedBill() {
 
         {/* Budget Breakdown */}
         <div className="">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3">
             En détail
           </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <table className="w-full min-w-[640px] md:min-w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="text-left px-2 md:px-4 py-2 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Description
                   </th>
-                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="text-center px-2 md:px-4 py-2 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Quantité
                   </th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="text-right px-2 md:px-4 py-2 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Prix unitaire
                   </th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                    <span className="text-xs text-gray-500">
+                  <th className="text-right px-2 md:px-4 py-2 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <span className="hidden md:inline">Total</span>
+                    <span className="md:hidden">Total</span>
+                    <span className="hidden md:inline text-xs text-gray-500 block">
                       (Inclus les taxes et frais)
                     </span>
                   </th>
@@ -414,13 +459,13 @@ export default function EstimatedBill() {
                 {breakdownData.length > 0 ? (
                   breakdownData.map((item, index) => (
                     <tr key={index}>
-                      <td className="px-4 py-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <ReceiptText className="h-4 w-4 text-blue-600" />
+                      <td className="px-2 md:px-4 py-3 md:py-4">
+                        <div className="flex items-start gap-2 md:gap-3">
+                          <div className="w-6 h-6 md:w-8 md:h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <ReceiptText className="h-3 w-3 md:h-4 md:w-4 text-blue-600" />
                           </div>
                           <div>
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium text-gray-900 text-xs md:text-sm">
                               {item.description}
                             </div>
 
@@ -433,21 +478,21 @@ export default function EstimatedBill() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className="text-gray-900 font-medium">
+                      <td className="px-2 md:px-4 py-3 md:py-4 text-center">
+                        <span className="text-gray-900 font-medium text-xs md:text-sm">
                           {item.quantity || 80}
                         </span>
                         <div className="text-xs text-gray-500">
                           {(item as any).unit || ""}
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <span className="text-gray-900 font-medium">
+                      <td className="px-2 md:px-4 py-3 md:py-4 text-right">
+                        <span className="text-gray-900 font-medium text-xs md:text-sm">
                           {((item.unitPrice || 12500) / 100).toFixed(2)}€
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <span className="text-gray-900 font-bold">
+                      <td className="px-2 md:px-4 py-3 md:py-4 text-right">
+                        <span className="text-gray-900 font-bold text-xs md:text-sm">
                           {(
                             (item.total ||
                               Math.round(
@@ -461,7 +506,10 @@ export default function EstimatedBill() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center border">
+                    <td
+                      colSpan={4}
+                      className="px-2 md:px-4 py-4 md:py-6 text-center border"
+                    >
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                           <ReceiptText className="h-8 w-8 text-gray-400" />
@@ -483,13 +531,16 @@ export default function EstimatedBill() {
               {/* Total Row */}
               <tfoot className="bg-gray-50 border-gray-300">
                 <tr>
-                  <td colSpan={3} className="px-4 py-4 text-right">
-                    <span className="text-lg font-bold text-gray-900">
+                  <td
+                    colSpan={3}
+                    className="px-2 md:px-4 py-3 md:py-4 text-right"
+                  >
+                    <span className="text-sm md:text-lg font-bold text-gray-900">
                       Total estimé:
                     </span>
                   </td>
-                  <td className="px-4 py-4 text-right">
-                    <span className="text-xl font-bold text-blue-600">
+                  <td className="px-2 md:px-4 py-3 md:py-4 text-right">
+                    <span className="text-base md:text-xl font-bold text-blue-600">
                       {(estimate.estimatedPrice / 100).toFixed(2)}€
                     </span>
                   </td>
@@ -497,134 +548,99 @@ export default function EstimatedBill() {
               </tfoot>
             </table>
           </div>
-
-          {estimate.status === "accepted" && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex items-center gap-3 px-6 py-4 bg-green-50 border border-green-200 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold text-green-800">
-                    Facture acceptée
-                  </div>
-                  <div className="text-sm text-green-700">
-                    Acceptée le{" "}
-                    {moment(estimate.createdAt).format("DD/MM/YYYY")} • Le
-                    travail peut commencer
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {estimate.status === "rejected" && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex items-center gap-3 px-6 py-4 bg-red-50 border border-red-200 rounded-lg">
-                <AlertTriangle className="h-6 w-6 text-red-600 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold text-red-800">
-                    Facture refusée
-                  </div>
-                  <div className="text-sm text-red-700">
-                    Un nouveau devis peut être demandé si nécessaire
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
-
-        {!canRespond && estimate.status === "pending" && isExpired && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-              <div className="flex items-center gap-2 text-red-800">
-                <Clock className="h-5 w-5" />
-                <span className="text-sm font-medium">Facture expirée</span>
-              </div>
-              <p className="text-sm text-red-700 mt-1">
-                Ce devis a expiré. Contactez l'administration pour obtenir un
-                nouveau devis.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Sticky Action Buttons */}
       {canRespond && (
-        <div
-          className="fixed bottom-0 bg-white  p-4 mx-5 z-1"
-          style={{ left: "var(--sidebar-width, 250px)", right: "0" }}
-        >
-          <div className="max-w-6xl mx-auto px-6 flex gap-3">
-            <AlertDialog
-              open={showRejectDialog}
-              onOpenChange={setShowRejectDialog}
-            >
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="flex-1 border-red-300 text-red-700 hover:bg-red-50 py-3 text-base font-medium"
-                  disabled={isResponding}
-                >
-                  <XCircle className="h-4 w-4" /> Refuser le devis
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Refuser le devis</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Êtes-vous sûr de vouloir refuser ce devis ? L'artisan sera
-                    notifié de votre décision.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleReject}
+        <>
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+            @media (min-width: 768px) {
+              .action-buttons-wrapper {
+                left: var(--sidebar-width, 0) !important;
+              }
+            }
+          `,
+            }}
+          />
+          <div className="action-buttons-wrapper fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-3 md:p-4 z-10">
+            <div className="max-w-6xl mx-auto px-4 md:px-6 flex gap-2 md:gap-3">
+              <AlertDialog
+                open={showRejectDialog}
+                onOpenChange={setShowRejectDialog}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-red-300 text-red-700 hover:bg-red-50 py-3 h-11 md:h-12 text-sm md:text-base font-medium"
                     disabled={isResponding}
-                    className="bg-rose-600 hover:bg-rose-700 text-white"
                   >
-                    {isResponding ? "En cours..." : "Refuser"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                    <XCircle className="h-4 w-4 mr-1" />
+                    <span className="hidden sm:inline">Refuser le devis</span>
+                    <span className="sm:hidden">Refuser</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Refuser le devis</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir refuser ce devis ? L'artisan sera
+                      notifié de votre décision.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleReject}
+                      disabled={isResponding}
+                      className="bg-rose-600 hover:bg-rose-700 text-white"
+                    >
+                      {isResponding ? "En cours..." : "Refuser"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
 
-            <AlertDialog
-              open={showAcceptDialog}
-              onOpenChange={setShowAcceptDialog}
-            >
-              <AlertDialogTrigger asChild>
-                <Button
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 text-base font-medium"
-                  disabled={isResponding}
-                >
-                  <CheckCircle className="h-4 w-4" /> Accepter le devis
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Accepter le devis</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Êtes-vous sûr de vouloir accepter ce devis de{" "}
-                    {(estimate.estimatedPrice / 100).toFixed(2)}€ ? Cette action
-                    déclenchera le début des travaux.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleAccept}
+              <AlertDialog
+                open={showAcceptDialog}
+                onOpenChange={setShowAcceptDialog}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 h-11 md:h-12 text-sm md:text-base font-medium"
                     disabled={isResponding}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
-                    {isResponding ? "En cours..." : "Accepter"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    <span className="hidden sm:inline">Accepter le devis</span>
+                    <span className="sm:hidden">Accepter</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Accepter le devis</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir accepter ce devis de{" "}
+                      {(estimate.estimatedPrice / 100).toFixed(2)}€ ? Cette
+                      action déclenchera le début des travaux.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleAccept}
+                      disabled={isResponding}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      {isResponding ? "En cours..." : "Accepter"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

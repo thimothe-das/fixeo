@@ -344,14 +344,15 @@ export async function getUserByIdWithProfiles(userId: number) {
 export async function getRequestsTimeSeriesData(days: number = 30) {
   const result = await db.execute(sql`
       SELECT 
-        DATE(created_at) as date,
-        COUNT(*) as count
-      FROM service_requests
-      WHERE created_at >= CURRENT_DATE - INTERVAL '${sql.raw(
-        days.toString()
-      )} days'
-      GROUP BY DATE(created_at)
-      ORDER BY DATE(created_at) ASC
+        DATE(sh.changed_at) as date,
+        COUNT(DISTINCT sh.service_request_id) as count
+      FROM service_request_status_history sh
+      WHERE sh.status IN ('completed', 'resolved')
+        AND sh.changed_at >= CURRENT_DATE - INTERVAL '${sql.raw(
+          days.toString()
+        )} days'
+      GROUP BY DATE(sh.changed_at)
+      ORDER BY DATE(sh.changed_at) ASC
     `);
 
   // Fill in missing dates with 0 count
@@ -387,15 +388,17 @@ export async function getRequestsTimeSeriesData(days: number = 30) {
 export async function getEarningsTimeSeriesData(days: number = 30) {
   const result = await db.execute(sql`
       SELECT 
-        DATE(be.created_at) as date,
+        DATE(sh.changed_at) as date,
         COALESCE(SUM(be.estimated_price), 0) as earnings
-      FROM billing_estimates be
-      WHERE be.status = 'accepted' 
-        AND be.created_at >= CURRENT_DATE - INTERVAL '${sql.raw(
+      FROM service_request_status_history sh
+      INNER JOIN billing_estimates be ON sh.service_request_id = be.service_request_id
+      WHERE sh.status IN ('completed', 'resolved')
+        AND be.status = 'accepted'
+        AND sh.changed_at >= CURRENT_DATE - INTERVAL '${sql.raw(
           days.toString()
         )} days'
-      GROUP BY DATE(be.created_at)
-      ORDER BY DATE(be.created_at) ASC
+      GROUP BY DATE(sh.changed_at)
+      ORDER BY DATE(sh.changed_at) ASC
     `);
 
   // Fill in missing dates with 0 earnings
@@ -457,7 +460,12 @@ export async function getAdminStats() {
   const completedRequestsResult = await db
     .select()
     .from(serviceRequests)
-    .where(eq(serviceRequests.status, ServiceRequestStatus.COMPLETED));
+    .where(
+      or(
+        eq(serviceRequests.status, ServiceRequestStatus.COMPLETED),
+        eq(serviceRequests.status, ServiceRequestStatus.RESOLVED)
+      )
+    );
   const completedRequests = completedRequestsResult.length;
 
   // Count disputed requests (all dispute statuses)
@@ -499,11 +507,13 @@ export async function getAdminStats() {
     .where(and(eq(users.role, UserRole.CLIENT), isNull(users.deletedAt)));
   const totalClients = totalClientsResult.length;
 
-  // Calculate total earnings from accepted billing estimates
+  // Calculate total earnings from accepted billing estimates with completed/resolved requests
   const totalEarningsResult = await db.execute(sql`
-      SELECT COALESCE(SUM(estimated_price), 0) as total_earnings
-      FROM billing_estimates
-      WHERE status = 'accepted'
+      SELECT COALESCE(SUM(be.estimated_price), 0) as total_earnings
+      FROM billing_estimates be
+      INNER JOIN service_requests sr ON be.service_request_id = sr.id
+      WHERE be.status = 'accepted'
+        AND sr.status IN ('completed', 'resolved')
     `);
   const totalEarnings =
     parseInt(String(totalEarningsResult[0]?.total_earnings)) || 0;

@@ -135,11 +135,20 @@ export function Users({ setUserId }: { setUserId: (userId: string) => void }) {
     hasPreviousPage: false,
   });
   const [loading, setLoading] = useState(true);
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUsers = async (page: number = 1, pageSize: number = 10) => {
+  const fetchUsers = async (
+    page: number = 1,
+    pageSize: number = 10,
+    isInitialLoad: boolean = false
+  ) => {
     try {
-      setLoading(true);
+      if (isInitialLoad) {
+        setLoading(true);
+      } else {
+        setIsPaginationLoading(true);
+      }
       setError(null);
 
       const params = new URLSearchParams({
@@ -161,11 +170,12 @@ export function Users({ setUserId }: { setUserId: (userId: string) => void }) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
+      setIsPaginationLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUsers(pagination.currentPage, pagination.pageSize);
+    fetchUsers(pagination.currentPage, pagination.pageSize, true);
   }, []);
 
   const handlePageChange = (page: number) => {
@@ -235,172 +245,222 @@ export function Users({ setUserId }: { setUserId: (userId: string) => void }) {
             <p className="text-gray-500">Aucun utilisateur trouvé.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Téléphone</TableHead>
-                  <TableHead>Détails</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Créé le</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium">#{user.id}</TableCell>
+          <div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Nom</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Téléphone</TableHead>
+                    <TableHead>Détails</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Créé le</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isPaginationLoading
+                    ? // Skeleton loading rows
+                      [...Array(pagination.pageSize)].map((_, i) => (
+                        <TableRow key={`skeleton-${i}`}>
+                          <TableCell>
+                            <Skeleton className="h-5 w-12 bg-gray-200" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-5 w-32 bg-gray-200" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-5 w-40 bg-gray-200" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-6 w-24 rounded-full bg-gray-200" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-5 w-24 bg-gray-200" />
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-2">
+                              <Skeleton className="h-3 w-32 bg-gray-200" />
+                              <Skeleton className="h-3 w-28 bg-gray-200" />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-5 w-20 bg-gray-200" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-5 w-24 bg-gray-200" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-8 w-8 rounded-md bg-gray-200" />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    : users.map((user) => (
+                        <TableRow key={user.id} className="hover:bg-gray-50">
+                          <TableCell className="font-medium">
+                            #{user.id}
+                          </TableCell>
 
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-500" />
-                        <span className="font-medium">
-                          {getDisplayName(user)}
-                        </span>
-                      </div>
-                    </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-gray-500" />
+                              <span className="font-medium">
+                                {getDisplayName(user)}
+                              </span>
+                            </div>
+                          </TableCell>
 
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Mail className="h-3 w-3 text-gray-400" />
-                        <span className="text-sm">{user.email}</span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge
-                        className={`${getRoleColor(
-                          user.role
-                        )} text-xs pointer-events-none`}
-                      >
-                        <Shield className="h-3 w-3 mr-1" />
-                        {formatRole(user.role)}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell>
-                      {getPhone(user) ? (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Phone className="h-3 w-3 text-gray-400" />
-                          <span>{getPhone(user)}</span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-sm">—</span>
-                      )}
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="space-y-1 max-w-[200px]">
-                        {user.professionalProfile?.serviceArea && (
-                          <div className="flex items-center gap-1 text-xs text-gray-600">
-                            <MapPin className="h-3 w-3 text-gray-400" />
-                            <span title={user.professionalProfile.serviceArea}>
-                              {truncateText(
-                                user.professionalProfile.serviceArea,
-                                25
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        {user.professionalProfile?.siret && (
-                          <div className="flex items-center gap-1 text-xs text-gray-600">
-                            <Building className="h-3 w-3 text-gray-400" />
-                            <span>SIRET: {user.professionalProfile.siret}</span>
-                          </div>
-                        )}
-                        {user.professionalProfile?.specialties && (
-                          <div className="text-xs text-gray-600">
-                            <span title={user.professionalProfile.specialties}>
-                              {getSpecialties(
-                                user.professionalProfile.specialties
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        {user.clientProfile?.address && (
-                          <div className="flex items-center gap-1 text-xs text-gray-600">
-                            <MapPin className="h-3 w-3 text-gray-400" />
-                            <span title={user.clientProfile.address}>
-                              {truncateText(user.clientProfile.address, 25)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        {user.professionalProfile?.isVerified !== null &&
-                          user.professionalProfile?.isVerified !==
-                            undefined && (
+                          <TableCell>
                             <div className="flex items-center gap-1">
-                              {user.professionalProfile?.isVerified ? (
-                                <>
-                                  <CheckCircle className="h-3 w-3 text-green-500" />
-                                  <span className="text-xs text-green-600">
-                                    Vérifié
+                              <Mail className="h-3 w-3 text-gray-400" />
+                              <span className="text-sm">{user.email}</span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <Badge
+                              className={`${getRoleColor(
+                                user.role
+                              )} text-xs pointer-events-none`}
+                            >
+                              <Shield className="h-3 w-3 mr-1" />
+                              {formatRole(user.role)}
+                            </Badge>
+                          </TableCell>
+
+                          <TableCell>
+                            {getPhone(user) ? (
+                              <div className="flex items-center gap-1 text-sm">
+                                <Phone className="h-3 w-3 text-gray-400" />
+                                <span>{getPhone(user)}</span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-sm">—</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="space-y-1 max-w-[200px]">
+                              {user.professionalProfile?.serviceArea && (
+                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                  <MapPin className="h-3 w-3 text-gray-400" />
+                                  <span
+                                    title={user.professionalProfile.serviceArea}
+                                  >
+                                    {truncateText(
+                                      user.professionalProfile.serviceArea,
+                                      25
+                                    )}
                                   </span>
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="h-3 w-3 text-red-500" />
-                                  <span className="text-xs text-red-600">
-                                    Non vérifié
+                                </div>
+                              )}
+                              {user.professionalProfile?.siret && (
+                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                  <Building className="h-3 w-3 text-gray-400" />
+                                  <span>
+                                    SIRET: {user.professionalProfile.siret}
                                   </span>
-                                </>
+                                </div>
+                              )}
+                              {user.professionalProfile?.specialties && (
+                                <div className="text-xs text-gray-600">
+                                  <span
+                                    title={user.professionalProfile.specialties}
+                                  >
+                                    {getSpecialties(
+                                      user.professionalProfile.specialties
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                              {user.clientProfile?.address && (
+                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                  <MapPin className="h-3 w-3 text-gray-400" />
+                                  <span title={user.clientProfile.address}>
+                                    {truncateText(
+                                      user.clientProfile.address,
+                                      25
+                                    )}
+                                  </span>
+                                </div>
                               )}
                             </div>
-                          )}
-                        {user.professionalProfile?.experience && (
-                          <span className="text-xs text-gray-600">
-                            Expérience: {user.professionalProfile.experience}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
+                          </TableCell>
 
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm text-gray-600">
-                        <Calendar className="h-3 w-3 text-gray-400" />
-                        <span>
-                          {moment(user.createdAt).format("DD/MM/YYYY")}
-                        </span>
-                      </div>
-                    </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              {user.professionalProfile?.isVerified !== null &&
+                                user.professionalProfile?.isVerified !==
+                                  undefined && (
+                                  <div className="flex items-center gap-1">
+                                    {user.professionalProfile?.isVerified ? (
+                                      <>
+                                        <CheckCircle className="h-3 w-3 text-green-500" />
+                                        <span className="text-xs text-green-600">
+                                          Vérifié
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <XCircle className="h-3 w-3 text-red-500" />
+                                        <span className="text-xs text-red-600">
+                                          Non vérifié
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              {user.professionalProfile?.experience && (
+                                <span className="text-xs text-gray-600">
+                                  Expérience:{" "}
+                                  {user.professionalProfile.experience}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
 
-                    <TableCell>
-                      <Button
-                        onClick={() => {
-                          setUserId(user.id.toString());
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        title="Modifier l'utilisateur"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm text-gray-600">
+                              <Calendar className="h-3 w-3 text-gray-400" />
+                              <span>
+                                {moment(user.createdAt).format("DD/MM/YYYY")}
+                              </span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <Button
+                              onClick={() => {
+                                setUserId(user.id.toString());
+                              }}
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              title="Modifier l'utilisateur"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {users.length > 0 && (
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                pageSize={pagination.pageSize}
+                totalCount={pagination.totalCount}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            )}
           </div>
-        )}
-
-        {users.length > 0 && (
-          <Pagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            pageSize={pagination.pageSize}
-            totalCount={pagination.totalCount}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-          />
         )}
       </CardContent>
     </Card>

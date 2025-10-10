@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   Card,
   CardContent,
@@ -8,20 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Users,
-  FileText,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Wrench,
-  UserCheck,
-  BarChart3,
-  Euro,
-} from "lucide-react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartConfig,
   ChartContainer,
@@ -35,20 +20,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertCircle,
+  BarChart3,
+  CheckCircle,
+  Clock,
+  Euro,
+  FileText,
+  UserCheck,
+  Users,
+  Wrench,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import type {
   AdminStats,
   ServiceRequestForAdmin,
 } from "../../components/types";
-import { useRouter } from "next/navigation";
 
 const chartConfig = {
-  requests: {
-    label: "Demandes",
-    color: "var(--chart-1)",
-  },
   earnings: {
     label: "Revenus",
-    color: "var(--chart-2)",
+    color: "var(--chart-1)",
   },
 } satisfies ChartConfig;
 
@@ -62,29 +56,12 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
   const [timeRange, setTimeRange] = React.useState("30d");
 
   const filteredData = React.useMemo(() => {
-    if (!stats?.requestsTimeSeriesData || !stats?.earningsTimeSeriesData)
-      return [];
+    if (!stats?.earningsTimeSeriesData) return [];
 
-    // Combine requests and earnings data by date
-    const requestsMap = new Map(
-      stats.requestsTimeSeriesData.map((item) => [item.date, item.count])
-    );
-    const earningsMap = new Map(
-      stats.earningsTimeSeriesData.map((item) => [item.date, item.earnings])
-    );
-
-    // Get all unique dates and combine data
-    const allDates = Array.from(
-      new Set([
-        ...stats.requestsTimeSeriesData.map((item) => item.date),
-        ...stats.earningsTimeSeriesData.map((item) => item.date),
-      ])
-    ).sort();
-
-    const data = allDates.map((date) => ({
-      date,
-      count: requestsMap.get(date) || 0,
-      earnings: (earningsMap.get(date) || 0) / 100, // Convert from cents to euros
+    // Convert earnings data from cents to euros
+    const data = stats.earningsTimeSeriesData.map((item) => ({
+      date: item.date,
+      earnings: item.earnings / 100, // Convert from cents to euros
     }));
 
     if (timeRange === "7d") {
@@ -93,7 +70,7 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
       return data.slice(-14);
     }
     return data; // 30d - return all data
-  }, [stats?.requestsTimeSeriesData, stats?.earningsTimeSeriesData, timeRange]);
+  }, [stats?.earningsTimeSeriesData, timeRange]);
 
   return (
     <div className="p-3 space-y-6">
@@ -242,16 +219,16 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
         </Card>
       </div>
 
-      {/* Requests Timeline Chart */}
+      {/* Earnings Timeline Chart */}
       <Card className="w-full">
         <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
           <div className="grid flex-1 gap-1">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
-              Demandes et revenus au fil du temps
+              Revenus au fil du temps
             </CardTitle>
             <CardDescription>
-              Évolution du nombre de demandes et des revenus
+              Évolution des revenus des demandes complétées
             </CardDescription>
           </div>
           <Select value={timeRange} onValueChange={setTimeRange}>
@@ -287,23 +264,8 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
               config={chartConfig}
               className="aspect-auto h-[300px] w-full mt-4"
             >
-              <AreaChart
-                data={filteredData}
-                margin={{ top: 20, right: 20, left: 0, bottom: 0 }}
-              >
+              <AreaChart data={filteredData}>
                 <defs>
-                  <linearGradient id="fillRequests" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="var(--color-requests)"
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--color-requests)"
-                      stopOpacity={0.1}
-                    />
-                  </linearGradient>
                   <linearGradient id="fillEarnings" x1="0" y1="0" x2="0" y2="1">
                     <stop
                       offset="5%"
@@ -334,18 +296,11 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
                   }}
                 />
                 <YAxis
-                  yAxisId="left"
-                  orientation="left"
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => `${value}`}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  tickLine={false}
-                  axisLine={false}
+                  tickMargin={8}
                   tickFormatter={(value) => `€${value}`}
+                  domain={[0, "auto"]}
                 />
                 <ChartTooltip
                   cursor={false}
@@ -359,35 +314,20 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
                           year: "numeric",
                         });
                       }}
-                      formatter={(value, name) => {
-                        if (name === "earnings") {
-                          return [
-                            `${Number(value).toLocaleString("fr-FR", {
-                              minimumFractionDigits: 2,
-                            })}€`,
-                          ];
-                        }
-                        return [value, " Demandes"];
-                      }}
+                      formatter={(value) => [
+                        `€${Number(value).toLocaleString("fr-FR", {
+                          minimumFractionDigits: 2,
+                        })}`,
+                      ]}
                       indicator="dot"
                     />
                   }
-                />
-                <Area
-                  dataKey="count"
-                  type="monotone"
-                  fill="url(#fillRequests)"
-                  stroke="var(--color-requests)"
-                  strokeWidth={2}
-                  yAxisId="left"
                 />
                 <Area
                   dataKey="earnings"
                   type="monotone"
                   fill="url(#fillEarnings)"
                   stroke="var(--color-earnings)"
-                  strokeWidth={2}
-                  yAxisId="right"
                 />
               </AreaChart>
             </ChartContainer>

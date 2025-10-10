@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Upload, X } from "lucide-react";
+import { Upload } from "lucide-react";
 import * as React from "react";
 
 interface PhotoUploadDialogProps {
@@ -236,16 +236,6 @@ export function PhotoUploadDialog({
                     className="object-cover w-full h-24 rounded-lg border border-gray-200"
                     onLoad={(e) => URL.revokeObjectURL(e.currentTarget.src)}
                   />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => removePhoto(index)}
-                    disabled={isUploading}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
                 </div>
               ))}
             </div>
