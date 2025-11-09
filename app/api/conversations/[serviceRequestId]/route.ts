@@ -115,7 +115,49 @@ export async function POST(
       message: message.trim(),
     });
 
-    return NextResponse.json(newMessage, { status: 201 });
+    // Fetch user profile to get full name
+    const { db } = await import("@/lib/db/drizzle");
+    const user = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.id, validation.user.id),
+      with: {
+        clientProfile: true,
+        professionalProfile: true,
+      },
+    });
+
+    const senderName =
+      user?.clientProfile?.firstName && user?.clientProfile?.lastName
+        ? `${user.clientProfile.firstName} ${user.clientProfile.lastName}`
+        : user?.professionalProfile?.firstName &&
+          user?.professionalProfile?.lastName
+        ? `${user.professionalProfile.firstName} ${user.professionalProfile.lastName}`
+        : user?.name || "Unknown";
+
+    // Format message for client
+    const formattedMessage = {
+      id: newMessage.id,
+      content: newMessage.message,
+      senderId: newMessage.senderId,
+      senderName,
+      senderRole: newMessage.senderType,
+      timestamp: newMessage.createdAt.toISOString(),
+      isRead: false,
+    };
+
+    // Broadcast message via Socket.IO
+    try {
+      const io = global.io;
+      if (io) {
+        const roomName = `request-${requestId}`;
+        io.to(roomName).emit("newMessage", formattedMessage);
+        console.log(`Message broadcasted to room ${roomName}`);
+      }
+    } catch (socketError) {
+      console.error("Error broadcasting message via Socket.IO:", socketError);
+      // Don't fail the request if Socket.IO broadcast fails
+    }
+
+    return NextResponse.json(formattedMessage, { status: 201 });
   } catch (error) {
     console.error("Error creating conversation message:", error);
     return NextResponse.json(

@@ -8,7 +8,7 @@ import {
   getCategoryConfig,
   getStatusConfig,
 } from "@/lib/utils";
-import { Check, User, X } from "lucide-react";
+import { Check, FileQuestion, User, UserRoundSearch, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -69,11 +69,9 @@ export default function RequestCardContainer({
 
     if (status === BillingEstimateStatus.PENDING) {
       return (
-        <div
-          className={`inline-flex items-center gap-1 text-${config.colors.color}`}
-        >
-          <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-          <span className="text-xs">{config.label}</span>
+        <div className={`flex items-center gap-1 text-${config.colors.color}`}>
+          <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0 " />
+          <span className="text-xs ">A accepter</span>
         </div>
       );
     }
@@ -86,101 +84,124 @@ export default function RequestCardContainer({
       className="block group rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden !p-0 cursor-pointer border-slate-200 hover:border-slate-300"
       onClick={handleCardClick}
     >
-      {/* Full-width Photo */}
-      <div className="relative w-full h-48 overflow-hidden bg-slate-100">
-        <img
-          src={displayPhoto}
-          alt={request.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        {/* Status Badge Overlay */}
-        <div className="absolute top-3 right-3">
-          <Badge
-            className={`rounded-full text-xs px-3 py-1 font-medium ${statusConfig.colors.bg} ${statusConfig.colors.text} shadow-lg border-2 border-white`}
-          >
-            <span className="flex items-center gap-1.5">
-              {statusConfig.icon}
-              {statusConfig.label}
-            </span>
-          </Badge>
-        </div>
-      </div>
-
-      {/* Card Content */}
-      <div className="p-4 space-y-3">
-        {/* Title */}
-        <h3 className="text-lg font-bold text-slate-900 line-clamp-2 min-h-[3.5rem] leading-tight">
-          {request.title}
-        </h3>
-
-        {/* Price with Status Indicator */}
-        {relevantEstimate && (
-          <div className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
-            <div>
-              <p className="text-xs text-slate-600 font-medium mb-0.5">Devis</p>
-              <p className="text-xl font-bold text-slate-900">
-                {formatPrice(relevantEstimate.estimatedPrice)}
-              </p>
+      <div className="flex flex-col justify-between h-full">
+        {/* Full-width Photo */}
+        <div>
+          <div className="relative w-full h-48 overflow-hidden bg-slate-100">
+            <img
+              src={displayPhoto}
+              alt={request.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+            {/* Status Badge Overlay */}
+            <div className="absolute top-3 right-3">
+              <Badge
+                className={`rounded-full text-xs px-3 py-1 font-medium ${statusConfig.colors.bg} ${statusConfig.colors.text} shadow-lg border-2 border-white`}
+              >
+                <span className="flex items-center gap-1.5">
+                  {statusConfig.icon}
+                  {statusConfig.label}
+                </span>
+              </Badge>
             </div>
-            {getEstimateStatusIndicator()}
           </div>
-        )}
 
-        {/* No Estimate */}
-        {!relevantEstimate &&
-          request.status !== ServiceRequestStatus.AWAITING_PAYMENT && (
-            <div className="py-2 px-3 bg-slate-50 rounded-lg">
-              <p className="text-sm text-slate-500 text-center">
-                Devis en préparation
+          {/* Card Content */}
+          <div className="p-4 pb-0">
+            {/* Title */}
+            <h3 className="text-lg font-bold text-slate-900 line-clamp-2 min-h-[3.5rem] leading-tight">
+              {request.title}
+            </h3>
+          </div>
+        </div>
+        <div className="p-4 space-y-3 overflow-y-auto">
+          {/* Price with Status Indicator */}
+          {relevantEstimate && (
+            <div className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
+              <div>
+                <p className="text-xs text-slate-600 font-medium mb-0.5">
+                  Devis
+                </p>
+                <p className="text-xl font-bold text-slate-900 whitespace-nowrap">
+                  {formatPrice(relevantEstimate.estimatedPrice)}
+                </p>
+              </div>
+              {getEstimateStatusIndicator()}
+            </div>
+          )}
+
+          {/* No Estimate */}
+          {!relevantEstimate &&
+            request.status === ServiceRequestStatus.AWAITING_ESTIMATE && (
+              <div className="py-3 px-4 bg-blue-50 rounded-lg min-h-[65px] flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <FileQuestion className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-blue-900">
+                    Devis en préparation
+                  </p>
+                  <p className="text-xs text-blue-700 mt-0.5">
+                    Un administrateur prépare votre devis
+                  </p>
+                </div>
+              </div>
+            )}
+
+          {/* Awaiting Payment */}
+          {request.status === ServiceRequestStatus.AWAITING_PAYMENT && (
+            <div className="py-2 px-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700 font-medium text-center">
+                En attente de paiement
               </p>
             </div>
           )}
 
-        {/* Awaiting Payment */}
-        {request.status === ServiceRequestStatus.AWAITING_PAYMENT && (
-          <div className="py-2 px-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700 font-medium text-center">
-              En attente de paiement
-            </p>
-          </div>
-        )}
+          {/* Assigned Artisan */}
+          {request.assignedArtisan ? (
+            <div className="flex items-center gap-3 py-2 px-3 bg-slate-50 rounded-lg">
+              {/* Photo */}
+              {request.assignedArtisan.profilePicture ? (
+                <img
+                  src={request.assignedArtisan.profilePicture}
+                  alt={request.assignedArtisan.name}
+                  className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center border-2 border-white shadow-sm">
+                  <User className="h-5 w-5 text-slate-500" />
+                </div>
+              )}
 
-        {/* Assigned Artisan */}
-        {request.assignedArtisan ? (
-          <div className="flex items-center gap-3 py-2 px-3 bg-slate-50 rounded-lg">
-            {/* Photo */}
-            {request.assignedArtisan.profilePicture ? (
-              <img
-                src={request.assignedArtisan.profilePicture}
-                alt={request.assignedArtisan.name}
-                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center border-2 border-white shadow-sm">
-                <User className="h-5 w-5 text-slate-500" />
+              {/* Name */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-slate-600 font-medium mb-0.5">
+                  Artisan
+                </p>
+                <p className="text-sm font-semibold text-slate-900 truncate">
+                  {request.assignedArtisan.firstName &&
+                  request.assignedArtisan.lastName
+                    ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
+                    : request.assignedArtisan.name}
+                </p>
               </div>
-            )}
-
-            {/* Name */}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-slate-600 font-medium mb-0.5">
-                Artisan
-              </p>
-              <p className="text-sm font-semibold text-slate-900 truncate">
-                {request.assignedArtisan.firstName &&
-                request.assignedArtisan.lastName
-                  ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
-                  : request.assignedArtisan.name}
-              </p>
             </div>
-          </div>
-        ) : (
-          <div className="py-2 px-3 bg-slate-50 rounded-lg">
-            <p className="text-sm text-slate-500 text-center">
-              En attente d&apos;assignation
-            </p>
-          </div>
-        )}
+          ) : request.status === ServiceRequestStatus.AWAITING_ASSIGNATION ? (
+            <div className="py-3 px-4 bg-slate-50 rounded-lg min-h-[65px] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <UserRoundSearch className="h-5 w-5 text-slate-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-slate-900">
+                  En attente d&apos;assignation
+                </p>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Un artisan sera assigné bientôt
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </Card>
   );

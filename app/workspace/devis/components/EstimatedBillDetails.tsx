@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { BillingEstimateStatus } from "@/lib/db/schema";
 import { getBillingEstimateStatusConfig, getCategoryConfig } from "@/lib/utils";
 import {
@@ -40,8 +41,9 @@ interface EstimatedBillDetailsProps {
   isLoading: boolean;
   error: any;
   onAccept?: () => Promise<void>;
-  onReject?: () => Promise<void>;
+  onReject?: (reason: string) => Promise<void>;
   isResponding?: boolean;
+  showHistory?: boolean;
 }
 
 export function EstimatedBillDetails({
@@ -52,9 +54,12 @@ export function EstimatedBillDetails({
   onAccept,
   onReject,
   isResponding = false,
+  showHistory = false,
 }: EstimatedBillDetailsProps) {
   const [showAcceptDialog, setShowAcceptDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionError, setRejectionError] = useState("");
 
   if (isLoading) {
     return (
@@ -116,9 +121,19 @@ export function EstimatedBillDetails({
   };
 
   const handleRejectClick = async () => {
+    // Validate rejection reason
+    if (!rejectionReason.trim() || rejectionReason.trim().length < 10) {
+      setRejectionError(
+        "Veuillez fournir une raison détaillée (minimum 10 caractères)"
+      );
+      return;
+    }
+
     if (onReject) {
-      await onReject();
+      await onReject(rejectionReason.trim());
       setShowRejectDialog(false);
+      setRejectionReason("");
+      setRejectionError("");
     }
   };
 
@@ -258,6 +273,27 @@ export function EstimatedBillDetails({
             </div>
           </div>
         </div>
+
+        {/* Client Response (for rejected/expired estimates) */}
+        {(estimate.status === BillingEstimateStatus.REJECTED ||
+          estimate.status === BillingEstimateStatus.EXPIRED) &&
+          estimate.clientResponse && (
+            <div className="rounded-lg border-2 border-red-200 bg-red-50 p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-red-900 mb-2">
+                    {estimate.status === BillingEstimateStatus.REJECTED
+                      ? "Raison du refus"
+                      : "Devis expiré"}
+                  </h3>
+                  <p className="text-sm text-red-800 whitespace-pre-wrap">
+                    {estimate.clientResponse}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
         {/* Bill From, Bill To, Project Details */}
         <div className="rounded-lg py-4 md:py-8 mb-4 md:mb-6">
@@ -519,18 +555,46 @@ export function EstimatedBillDetails({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Refuser le devis</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir refuser ce devis ? L'artisan sera
-                      notifié de votre décision.
+                      Veuillez indiquer la raison pour laquelle vous refusez ce
+                      devis. Cette information aidera l'administrateur à créer
+                      un nouveau devis adapté à vos besoins.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
+                  <div className="py-4">
+                    <Textarea
+                      placeholder="Expliquez pourquoi vous refusez ce devis (minimum 10 caractères)..."
+                      value={rejectionReason}
+                      onChange={(e) => {
+                        setRejectionReason(e.target.value);
+                        setRejectionError("");
+                      }}
+                      className="min-h-[120px]"
+                    />
+                    {rejectionError && (
+                      <p className="text-sm text-red-600 mt-2">
+                        {rejectionError}
+                      </p>
+                    )}
+                  </div>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogCancel
+                      onClick={() => {
+                        setRejectionReason("");
+                        setRejectionError("");
+                      }}
+                    >
+                      Annuler
+                    </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleRejectClick}
-                      disabled={isResponding}
-                      className="bg-rose-600 hover:bg-rose-700 text-white"
+                      disabled={
+                        isResponding ||
+                        !rejectionReason.trim() ||
+                        rejectionReason.trim().length < 10
+                      }
+                      className="bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
                     >
-                      {isResponding ? "En cours..." : "Refuser"}
+                      {isResponding ? "En cours..." : "Refuser le devis"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

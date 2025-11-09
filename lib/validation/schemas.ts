@@ -270,7 +270,30 @@ export const disputeFormSchema = z.object({
     .min(20, "La description doit contenir au moins 20 caractères")
     .max(2000, "La description ne peut pas dépasser 2000 caractères")
     .trim(),
-  photos: z.array(z.string()).max(10, "Maximum 10 photos").optional(),
+  photos: z
+    .array(
+      z
+        .instanceof(File)
+        .refine(
+          (file) => file.size <= 5 * 1024 * 1024,
+          "Photo trop lourde (max 5MB)"
+        )
+        .refine((file) => file.size > 0, "Fichier vide")
+        .refine(
+          (file) =>
+            [
+              "image/jpeg",
+              "image/jpg",
+              "image/png",
+              "image/gif",
+              "image/webp",
+            ].includes(file.type),
+          "Format non supporté (JPEG, PNG, GIF, WebP)"
+        )
+        .refine((file) => file.name.length <= 100, "Nom de fichier trop long")
+    )
+    .max(10, "Maximum 10 photos")
+    .optional(),
   // Future fields can be added here without breaking existing code:
   // desiredResolution: z.string().optional(),
   // requestedCompensation: z.number().optional(),
@@ -282,9 +305,33 @@ export type DisputeFormType = z.infer<typeof disputeFormSchema>;
 export const validationFormSchema = z.object({
   notes: z
     .string()
+    .min(20, "La description doit contenir au moins 20 caractères")
     .max(1000, "Les notes ne peuvent pas dépasser 1000 caractères")
-    .optional(),
-  photos: z.array(z.string()).max(10, "Maximum 10 photos").optional(),
+    .trim(),
+  photos: z
+    .array(
+      z
+        .instanceof(File)
+        .refine(
+          (file) => file.size <= 5 * 1024 * 1024,
+          "Photo trop lourde (max 5MB)"
+        )
+        .refine((file) => file.size > 0, "Fichier vide")
+        .refine(
+          (file) =>
+            [
+              "image/jpeg",
+              "image/jpg",
+              "image/png",
+              "image/gif",
+              "image/webp",
+            ].includes(file.type),
+          "Format non supporté (JPEG, PNG, GIF, WebP)"
+        )
+        .refine((file) => file.name.length <= 100, "Nom de fichier trop long")
+    )
+    .min(1, "Au moins une photo est requise")
+    .max(10, "Maximum 10 photos"),
   // Future fields:
   // rating: z.number().min(1).max(5).optional(),
   // completionTime: z.number().optional(),

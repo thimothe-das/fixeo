@@ -56,9 +56,9 @@ export default function EstimatedBill() {
     }
   };
 
-  const handleReject = async () => {
+  const handleReject = async (reason: string) => {
     if (estimate) {
-      await handleEstimateResponse(estimate.id, "reject");
+      await handleEstimateResponse(estimate.id, "reject", reason);
     }
   };
 
@@ -82,6 +82,7 @@ export default function EstimatedBill() {
       onAccept={handleAccept}
       onReject={handleReject}
       isResponding={isResponding}
+      showHistory={true}
     />
   );
 }

@@ -15,10 +15,8 @@ import {
 } from "@/components/ui/table";
 import {
   Building,
-  Calendar,
   CheckCircle,
   Eye,
-  Mail,
   MapPin,
   Phone,
   Shield,
@@ -252,12 +250,10 @@ export function Users({ setUserId }: { setUserId: (userId: string) => void }) {
                   <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>Nom</TableHead>
-                    <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Téléphone</TableHead>
                     <TableHead>Détails</TableHead>
                     <TableHead>Statut</TableHead>
-                    <TableHead>Créé le</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -270,10 +266,10 @@ export function Users({ setUserId }: { setUserId: (userId: string) => void }) {
                             <Skeleton className="h-5 w-12 bg-gray-200" />
                           </TableCell>
                           <TableCell>
-                            <Skeleton className="h-5 w-32 bg-gray-200" />
-                          </TableCell>
-                          <TableCell>
-                            <Skeleton className="h-5 w-40 bg-gray-200" />
+                            <div className="space-y-1">
+                              <Skeleton className="h-5 w-32 bg-gray-200" />
+                              <Skeleton className="h-4 w-40 bg-gray-200" />
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Skeleton className="h-6 w-24 rounded-full bg-gray-200" />
@@ -291,9 +287,6 @@ export function Users({ setUserId }: { setUserId: (userId: string) => void }) {
                             <Skeleton className="h-5 w-20 bg-gray-200" />
                           </TableCell>
                           <TableCell>
-                            <Skeleton className="h-5 w-24 bg-gray-200" />
-                          </TableCell>
-                          <TableCell>
                             <Skeleton className="h-8 w-8 rounded-md bg-gray-200" />
                           </TableCell>
                         </TableRow>
@@ -305,18 +298,16 @@ export function Users({ setUserId }: { setUserId: (userId: string) => void }) {
                           </TableCell>
 
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium">
-                                {getDisplayName(user)}
-                              </span>
-                            </div>
-                          </TableCell>
-
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Mail className="h-3 w-3 text-gray-400" />
-                              <span className="text-sm">{user.email}</span>
+                            <div className="flex items-start gap-2">
+                              <User className="h-4 w-4 text-gray-500 mt-0.5" />
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {getDisplayName(user)}
+                                </span>
+                                <span className="text-sm text-gray-500">
+                                  {user.email}
+                                </span>
+                              </div>
                             </div>
                           </TableCell>
 
@@ -419,15 +410,6 @@ export function Users({ setUserId }: { setUserId: (userId: string) => void }) {
                                   {user.professionalProfile.experience}
                                 </span>
                               )}
-                            </div>
-                          </TableCell>
-
-                          <TableCell>
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Calendar className="h-3 w-3 text-gray-400" />
-                              <span>
-                                {moment(user.createdAt).format("DD/MM/YYYY")}
-                              </span>
                             </div>
                           </TableCell>
 

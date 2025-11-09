@@ -42,6 +42,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 import { BillingEstimateForm } from "@/app/workspace/(admin)/BillingEstimateCreation";
+import { EstimateHistoryAccordion } from "@/app/workspace/devis/components/EstimateHistoryAccordion";
 import {
   AddressAutocomplete,
   AddressData,
@@ -295,6 +296,8 @@ export function Request({
   const [showEstimateModal, setShowEstimateModal] = useState(false);
   const [isCreatingEstimate, setIsCreatingEstimate] = useState(false);
   const [serviceTypeSearch, setServiceTypeSearch] = useState("");
+  const [showEstimateHistoryModal, setShowEstimateHistoryModal] =
+    useState(false);
 
   const requestId = params.id as string;
 
@@ -712,7 +715,24 @@ export function Request({
                 </span>
               )}
             </div>
-            <div className="ml-4">
+            <div className="ml-4 flex items-center gap-3">
+              <Button
+                onClick={() => setShowEstimateHistoryModal(true)}
+                variant="outline"
+                className="border-gray-300 hover:bg-gray-50"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Historique des devis
+                {request.billingEstimates &&
+                  request.billingEstimates.length > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-2 bg-fixeo-main-100 text-fixeo-main-700"
+                    >
+                      {request.billingEstimates.length}
+                    </Badge>
+                  )}
+              </Button>
               <Button
                 onClick={saveRequest}
                 disabled={saving || modifiedFields.size === 0}
@@ -1546,6 +1566,35 @@ export function Request({
               onCancel={() => setShowEstimateModal(false)}
               isLoading={isCreatingEstimate}
             />
+          </DialogContent>
+        </Dialog>
+
+        {/* Estimate History Modal */}
+        <Dialog
+          open={showEstimateHistoryModal}
+          onOpenChange={setShowEstimateHistoryModal}
+        >
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <div className="p-2 bg-fixeo-main-100 rounded-lg">
+                  <FileText className="h-6 w-6 text-fixeo-main-600" />
+                </div>
+                Historique des devis
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-6">
+              <EstimateHistoryAccordion
+                serviceRequestId={request.id}
+                role="admin"
+                currentEstimateId={
+                  request.billingEstimates &&
+                  request.billingEstimates.length > 0
+                    ? request.billingEstimates[0].id
+                    : undefined
+                }
+              />
+            </div>
           </DialogContent>
         </Dialog>
       </div>

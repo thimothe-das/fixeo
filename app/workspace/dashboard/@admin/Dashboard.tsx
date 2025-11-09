@@ -23,7 +23,6 @@ import {
 import {
   AlertCircle,
   BarChart3,
-  CheckCircle,
   Clock,
   Euro,
   FileText,
@@ -75,7 +74,7 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
   return (
     <div className="p-3 space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total</CardTitle>
@@ -108,7 +107,7 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
           </CardContent>
         </Card>
 
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               En attente d'acceptation
@@ -123,8 +122,8 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
               Devis en attente de réponse client
             </p>
           </CardContent>
-        </Card>
-
+        </Card> */}
+        {/* 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Terminées</CardTitle>
@@ -136,7 +135,7 @@ export function Dashboard({ stats, recentRequests }: DashboardProps) {
             </div>
             <p className="text-xs text-muted-foreground">Demandes terminées</p>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

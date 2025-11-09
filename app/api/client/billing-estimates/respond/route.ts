@@ -27,6 +27,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Enforce mandatory rejection reason
+    if (action === "reject" && (!response || response.trim().length === 0)) {
+      return NextResponse.json(
+        { error: "Une raison de refus est obligatoire" },
+        { status: 400 }
+      );
+    }
+
     // Verify the estimate belongs to the user's request
     const estimate = await db
       .select({

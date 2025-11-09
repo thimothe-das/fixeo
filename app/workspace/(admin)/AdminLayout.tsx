@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertCircle,
   BarChart3,
   Bell,
   Calculator,
@@ -59,6 +60,13 @@ const sidebarItems = [
     icon: FileText,
     id: "requests",
     route: "requests",
+    disabled: false,
+  },
+  {
+    title: "Litiges",
+    icon: AlertCircle,
+    id: "disputes",
+    route: "requests/disputes",
     disabled: false,
   },
   { title: "Utilisateurs", icon: Users, id: "users", route: "users" },

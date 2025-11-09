@@ -1,7 +1,7 @@
+import { Toaster } from "@/components/ui/toaster";
 import { getTeamForUser, getUser } from "@/lib/db/queries/common";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata, Viewport } from "next";
-import { Toaster } from "sonner";
 import { SWRConfig } from "swr";
 import Header from "./components/Header";
 import "./globals.css";

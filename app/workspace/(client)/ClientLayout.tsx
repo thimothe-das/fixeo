@@ -11,6 +11,7 @@ import {
   MoreHorizontal,
   Power,
   Settings,
+  ShieldQuestion,
   User,
 } from "lucide-react";
 import * as React from "react";
@@ -28,6 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -179,35 +181,50 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             </SidebarGroup>
           </SidebarContent>
 
-          <div className="mt-auto p-4 border-t border-gray-200">
-            <div className="flex items-center gap-3">
-              <Avatar>
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback>MD</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{user?.name}</p>
-                <p className="text-sm text-gray-600 truncate">{user?.email}</p>
+          <SidebarFooter className="mt-auto">
+            <div className="p-4 space-y-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start hover:bg-gray-100 text-gray-700 h-auto py-2.5"
+                onClick={() => router.push("/workspace/contact-admin")}
+              >
+                <ShieldQuestion className="h-4 w-4 mr-2 shrink-0" />
+                <span>Besoin d'aide ?</span>
+              </Button>
+
+              <Separator className="my-2" />
+
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                  <AvatarFallback>MD</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate text-sm">{user?.name}</p>
+                  <p className="text-xs text-gray-600 truncate">
+                    {user?.email}
+                  </p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem disabled>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Paramètres
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => signOut()}>
+                      <Power className="h-4 w-4 mr-2" />
+                      Déconnexion
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem disabled>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Paramètres
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => signOut()}>
-                    <Power className="h-4 w-4 mr-2" />
-                    Déconnexion
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
-          </div>
+          </SidebarFooter>
 
           <SidebarRail />
         </Sidebar>

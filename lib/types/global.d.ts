@@ -1,5 +1,7 @@
+import { Server as SocketIOServer } from "socket.io";
+
 declare global {
-  // Global types can be added here when needed
+  var io: SocketIOServer | undefined;
 }
 
 export { };

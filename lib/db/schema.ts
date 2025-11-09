@@ -257,6 +257,21 @@ export const conversations = pgTable("conversations", {
   readAt: timestamp("read_at"),
 });
 
+// Admin support conversations table for direct support messages
+export const adminSupportConversations = pgTable("admin_support_conversations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  senderId: integer("sender_id")
+    .notNull()
+    .references(() => users.id),
+  senderType: messageSenderTypeEnum("sender_type").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  readAt: timestamp("read_at"),
+});
+
 // Artisan refused requests table to track which artisans refused which requests
 export const artisanRefusedRequests = pgTable(
   "artisan_refused_requests",
@@ -395,6 +410,20 @@ export const conversationsRelations = relations(conversations, ({ one }) => ({
   }),
 }));
 
+export const adminSupportConversationsRelations = relations(
+  adminSupportConversations,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [adminSupportConversations.userId],
+      references: [users.id],
+    }),
+    sender: one(users, {
+      fields: [adminSupportConversations.senderId],
+      references: [users.id],
+    }),
+  })
+);
+
 export const artisanRefusedRequestsRelations = relations(
   artisanRefusedRequests,
   ({ one }) => ({
@@ -443,6 +472,8 @@ export type BillingEstimate = typeof billingEstimates.$inferSelect;
 export type NewBillingEstimate = typeof billingEstimates.$inferInsert;
 export type Conversation = typeof conversations.$inferSelect;
 export type NewConversation = typeof conversations.$inferInsert;
+export type AdminSupportConversation = typeof adminSupportConversations.$inferSelect;
+export type NewAdminSupportConversation = typeof adminSupportConversations.$inferInsert;
 export type ArtisanRefusedRequest = typeof artisanRefusedRequests.$inferSelect;
 export type NewArtisanRefusedRequest =
   typeof artisanRefusedRequests.$inferInsert;

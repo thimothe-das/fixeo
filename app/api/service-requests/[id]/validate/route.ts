@@ -17,7 +17,14 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { action, disputeReason, disputeDetails } = await request.json();
+    const { 
+      action, 
+      disputeReason, 
+      disputeDetails,
+      disputePhotos,
+      validationDescription,
+      validationPhotos 
+    } = await request.json();
     const resolvedParams = await params;
     const requestId = parseInt(resolvedParams.id);
     if (!requestId || !action || !["approve", "dispute"].includes(action)) {
@@ -25,6 +32,38 @@ export async function POST(
         { error: "Invalid request data" },
         { status: 400 }
       );
+    }
+
+    // Validate required fields for approval
+    if (action === "approve") {
+      if (!validationDescription || validationDescription.trim().length < 20) {
+        return NextResponse.json(
+          { error: "Description du travail effectué requise (minimum 20 caractères)" },
+          { status: 400 }
+        );
+      }
+      if (!validationPhotos || !Array.isArray(validationPhotos) || validationPhotos.length < 1) {
+        return NextResponse.json(
+          { error: "Au moins une photo est requise pour valider la mission" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate required fields for dispute
+    if (action === "dispute") {
+      if (!disputeReason || disputeReason.trim().length === 0) {
+        return NextResponse.json(
+          { error: "Type de problème requis" },
+          { status: 400 }
+        );
+      }
+      if (!disputeDetails || disputeDetails.trim().length < 10) {
+        return NextResponse.json(
+          { error: "Détails du problème requis (minimum 10 caractères)" },
+          { status: 400 }
+        );
+      }
     }
 
     // Get the service request and verify ownership
@@ -113,6 +152,9 @@ export async function POST(
       action,
       disputeReason,
       disputeDetails,
+      disputePhotos: disputePhotos?.length || 0,
+      validationDescription,
+      validationPhotos: validationPhotos?.length || 0,
       newStatus,
     });
 
@@ -123,6 +165,9 @@ export async function POST(
       {
         disputeReason,
         disputeDetails,
+        disputePhotos,
+        notes: validationDescription,
+        photos: validationPhotos,
         actorId: user.id,
         actorType: isClient
           ? "client"

@@ -7,6 +7,7 @@ import {
   clientProfiles,
   professionalProfiles,
   serviceRequests,
+  ServiceRequestStatus,
   serviceRequestStatusHistory,
   users,
 } from "@/lib/db/schema";
@@ -208,11 +209,12 @@ export async function PATCH(
       );
     }
 
-    // Get the service request to check ownership
+    // Get the service request to check ownership and status
     const [existingRequest] = await db
       .select({
         userId: serviceRequests.userId,
         assignedArtisanId: serviceRequests.assignedArtisanId,
+        status: serviceRequests.status,
       })
       .from(serviceRequests)
       .where(eq(serviceRequests.id, requestId))
@@ -237,15 +239,53 @@ export async function PATCH(
 
     // Parse the request body
     const body = await request.json();
-    const { photos } = body;
+    const { photos, location, description, title } = body;
 
-    // Update only the photos field
+    // Check if status allows editing (only for client editing location/description/title)
+    // Photos can be updated at any time, but location/description/title only in early stages
+    if ((location !== undefined || description !== undefined || title !== undefined) && 
+        existingRequest.userId === user.id) {
+      const allowedStatuses = [
+        ServiceRequestStatus.AWAITING_ESTIMATE,
+        ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION,
+      ];
+      
+      if (!allowedStatuses.includes(existingRequest.status as ServiceRequestStatus)) {
+        return NextResponse.json(
+          { error: "Cette demande ne peut plus être modifiée" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Build update object with only provided fields
+    const updateData: {
+      photos?: string;
+      location?: string;
+      description?: string;
+      title?: string;
+      updatedAt: Date;
+    } = {
+      updatedAt: new Date(),
+    };
+
+    if (photos !== undefined) {
+      updateData.photos = photos;
+    }
+    if (location !== undefined) {
+      updateData.location = location;
+    }
+    if (description !== undefined) {
+      updateData.description = description;
+    }
+    if (title !== undefined) {
+      updateData.title = title;
+    }
+
+    // Update the service request
     const [updatedRequest] = await db
       .update(serviceRequests)
-      .set({
-        photos,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(serviceRequests.id, requestId))
       .returning();
 

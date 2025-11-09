@@ -1,5 +1,7 @@
 "use client";
 
+import { ConversationChat } from "@/app/workspace/components/ConversationChat";
+import { EstimateHistoryAccordion } from "@/app/workspace/devis/components/EstimateHistoryAccordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,9 +29,8 @@ import {
   ChevronRight,
   Clock,
   FileText,
-  Flame,
-  MapPin,
   MessageSquare,
+  Pencil,
   Phone,
   Star,
   User,
@@ -40,6 +41,10 @@ import * as React from "react";
 import useSWR from "swr";
 import { ActionDialogs } from "./ActionDialogs";
 import { ChatModal } from "./ChatModal";
+import { DeletePhotoDialog } from "./DeletePhotoDialog";
+import { EditDescriptionDialog } from "./EditDescriptionDialog";
+import { EditLocationDialog } from "./EditLocationDialog";
+import { EditTitleDialog } from "./EditTitleDialog";
 import { HeroGallery } from "./HeroGallery";
 import { PhotoUploadDialog } from "./PhotoUploadDialog";
 import { ProgressDrawer } from "./ProgressDrawer";
@@ -104,6 +109,17 @@ export default function RequestDetailPage() {
   const [showBreakdown, setShowBreakdown] = React.useState(false);
   const [paymentVerificationState, setPaymentVerificationState] =
     React.useState<"idle" | "loading" | "success" | "error">("idle");
+  const [showEditLocation, setShowEditLocation] = React.useState(false);
+  const [showEditDescription, setShowEditDescription] = React.useState(false);
+  const [showEditTitle, setShowEditTitle] = React.useState(false);
+  const [showDeletePhoto, setShowDeletePhoto] = React.useState(false);
+  const [photoToDelete, setPhotoToDelete] = React.useState<{
+    url: string;
+    index: number;
+  } | null>(null);
+  const [isDeletingPhoto, setIsDeletingPhoto] = React.useState(false);
+  const [showEstimateHistoryModal, setShowEstimateHistoryModal] =
+    React.useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -292,6 +308,51 @@ export default function RequestDetailPage() {
   };
 
   // Helper functions
+  const canEditRequest = (): boolean => {
+    if (!request) return false;
+    return request.status === ServiceRequestStatus.AWAITING_ESTIMATE;
+  };
+
+  const handleDeletePhoto = (photoUrl: string, photoIndex: number) => {
+    setPhotoToDelete({ url: photoUrl, index: photoIndex });
+    setShowDeletePhoto(true);
+  };
+
+  const handleConfirmDeletePhoto = async () => {
+    if (!photoToDelete || !request) return;
+
+    setIsDeletingPhoto(true);
+    try {
+      const photos = request.photos ? JSON.parse(request.photos) : [];
+      const updatedPhotos = photos.filter(
+        (_: string, index: number) => index !== photoToDelete.index
+      );
+
+      const response = await fetch(`/api/service-requests/${requestId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          photos: JSON.stringify(updatedPhotos),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la suppression de la photo");
+      }
+
+      await mutate();
+      setShowDeletePhoto(false);
+      setPhotoToDelete(null);
+    } catch (error) {
+      console.error("Error deleting photo:", error);
+      alert("Erreur lors de la suppression de la photo");
+    } finally {
+      setIsDeletingPhoto(false);
+    }
+  };
+
   const formatPrice = (cents: number): string => {
     return `${(cents / 100).toFixed(0)} €`;
   };
@@ -387,23 +448,41 @@ export default function RequestDetailPage() {
         {/* Page Title */}
         <div className="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-6">
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl md:text-[26px] font-semibold text-[#222222] mb-2 break-words">
-              {request.title || "Demande de service"}
-            </h1>
+            <div className="flex gap-2 mb-2 items-center">
+              <h1 className="text-xl sm:text-2xl md:text-[26px] font-semibold text-[#222222] break-words">
+                {request.title || "Demande de service"}
+              </h1>
+              {canEditRequest() && (
+                <button
+                  onClick={() => setShowEditTitle(true)}
+                  className="flex-shrink-0 p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                  aria-label="Modifier le titre"
+                >
+                  <Pencil className="h-4 w-4 text-gray-600" />
+                </button>
+              )}
+            </div>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-[#717171]">
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
                 Créée {timeAgo}
               </span>
               <span className="hidden sm:inline mx-1">·</span>
-              <span className="truncate">{request.location}</span>
+              <span className="flex items-center gap-2 truncate">
+                <span className="truncate">{request.location}</span>
+                {canEditRequest() && (
+                  <button
+                    onClick={() => setShowEditLocation(true)}
+                    className="flex-shrink-0 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    aria-label="Modifier l'adresse"
+                  >
+                    <Pencil className="h-3.5 w-3.5 text-gray-600" />
+                  </button>
+                )}
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
-            <ProgressDrawer
-              currentStatus={request.status}
-              statusHistory={request.statusHistory}
-            />
+          <div className="flex flex-col items-end gap-2 sm:gap-3 w-full md:w-auto">
             <div
               className={`flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-sm font-semibold shadow-sm ${
                 statusConfig.colors?.bg || "bg-gray-100"
@@ -414,6 +493,30 @@ export default function RequestDetailPage() {
               {statusConfig.icon}
               {statusConfig.label}
             </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setShowEstimateHistoryModal(true)}
+                variant="outline"
+                className="border-gray-300 hover:bg-gray-50"
+                size="sm"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Historique des devis
+                {request.billingEstimates &&
+                  request.billingEstimates.length > 1 && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-2 bg-fixeo-main-100 text-fixeo-main-700"
+                    >
+                      {request.billingEstimates.length}
+                    </Badge>
+                  )}
+              </Button>
+              <ProgressDrawer
+                currentStatus={request.status}
+                statusHistory={request.statusHistory}
+              />
+            </div>
           </div>
         </div>
 
@@ -421,7 +524,120 @@ export default function RequestDetailPage() {
 
         {/* Two Card Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Artisan Card */}
+          <div className="border border-[#DDDDDD] rounded-xl shadow-sm p-6">
+            <h3 className="text-[18px] font-semibold text-[#222222] mb-4">
+              Devis estimatif
+            </h3>
+            {relevantEstimate ? (
+              <div className="space-y-4">
+                {/* Price Header with Badge */}
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl font-semibold text-[#222222]">
+                      {formatPrice(relevantEstimate.estimatedPrice)}
+                    </span>
+                    {getEstimateStatusBadge(relevantEstimate.status)}
+                  </div>
+                  {/* Dates as subtitles */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-[#717171]">
+                      <Calendar className="h-4 w-4" />
+                      <span>Créée le {formatDate(request.createdAt)}</span>
+                    </div>
+                    {request.updatedAt && (
+                      <div className="flex items-center gap-2 text-sm text-[#717171]">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          Mise à jour le {formatDate(request.updatedAt)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                {canAcceptRejectEstimate && (
+                  <>
+                    <Separator className="border-[#EBEBEB]" />
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => setShowAcceptDialog(true)}
+                        disabled={isLoading}
+                        className="flex-1 bg-fixeo-main-500 hover:bg-fixeo-main-600 text-white"
+                        size="lg"
+                      >
+                        Accepter le devis
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowRejectDialog(true)}
+                        disabled={isLoading}
+                        className="flex-1 border-[#DDDDDD]"
+                      >
+                        Rejeter
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {canValidateOrDispute && (
+                  <>
+                    <Separator className="border-[#EBEBEB]" />
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => setShowValidateDialog(true)}
+                        disabled={isLoading}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                        size="lg"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Valider l'intervention
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowDisputeDialog(true)}
+                        disabled={isLoading}
+                        className="flex-1 text-orange-600 border-orange-300 hover:bg-orange-50"
+                      >
+                        Signaler un problème
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                <>
+                  <Separator className="border-[#EBEBEB]" />
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      router.push(`/workspace/devis/${relevantEstimate.id}`)
+                    }
+                    className="w-full border-[#DDDDDD]"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Voir le devis complet
+                  </Button>
+                </>
+
+                {/* Info message */}
+                {canAcceptRejectEstimate && (
+                  <>
+                    <Separator className="border-[#EBEBEB]" />
+                    <p className="text-xs text-[#717171] text-center">
+                      Aucun montant ne vous sera débité pour le moment
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-[#717171] text-sm">
+                  En attente du devis estimatif
+                </p>
+              </div>
+            )}
+          </div>
           <div className="border border-[#DDDDDD] rounded-xl shadow-sm p-6 flex flex-col min-h-[300px]">
             <h3 className="text-[18px] font-semibold text-[#222222] mb-4">
               Votre artisan
@@ -507,124 +723,9 @@ export default function RequestDetailPage() {
               </div>
             )}
           </div>
-
-          {/* Billing Estimate Card */}
-          <div className="border border-[#DDDDDD] rounded-xl shadow-sm p-6">
-            <h3 className="text-[18px] font-semibold text-[#222222] mb-4">
-              Devis estimatif
-            </h3>
-            {relevantEstimate ? (
-              <div className="space-y-4">
-                {/* Price Header with Badge */}
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-2xl font-semibold text-[#222222]">
-                      {formatPrice(relevantEstimate.estimatedPrice)}
-                    </span>
-                    {getEstimateStatusBadge(relevantEstimate.status)}
-                  </div>
-                  {/* Dates as subtitles */}
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-[#717171]">
-                      <Calendar className="h-4 w-4" />
-                      <span>Créée le {formatDate(request.createdAt)}</span>
-                    </div>
-                    {request.updatedAt && (
-                      <div className="flex items-center gap-2 text-sm text-[#717171]">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          Mise à jour le {formatDate(request.updatedAt)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                {canAcceptRejectEstimate && (
-                  <>
-                    <Separator className="border-[#EBEBEB]" />
-                    <Button
-                      onClick={() => setShowAcceptDialog(true)}
-                      disabled={isLoading}
-                      className="w-full bg-fixeo-main-500 hover:bg-fixeo-main-600 text-white"
-                      size="lg"
-                    >
-                      Accepter le devis
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowRejectDialog(true)}
-                      disabled={isLoading}
-                      className="w-full border-[#DDDDDD]"
-                    >
-                      Rejeter
-                    </Button>
-                  </>
-                )}
-
-                {canValidateOrDispute && (
-                  <>
-                    <Separator className="border-[#EBEBEB]" />
-                    <Button
-                      onClick={() => setShowValidateDialog(true)}
-                      disabled={isLoading}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white"
-                      size="lg"
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Valider l'intervention
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowDisputeDialog(true)}
-                      disabled={isLoading}
-                      className="w-full text-orange-600 border-orange-300 hover:bg-orange-50"
-                    >
-                      Signaler un problème
-                    </Button>
-                  </>
-                )}
-
-                {/* View Full Estimate */}
-                {!canAcceptRejectEstimate && !canValidateOrDispute && (
-                  <>
-                    <Separator className="border-[#EBEBEB]" />
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        router.push(`/workspace/devis/${relevantEstimate.id}`)
-                      }
-                      className="w-full border-[#DDDDDD]"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Voir le devis complet
-                    </Button>
-                  </>
-                )}
-
-                {/* Info message */}
-                {canAcceptRejectEstimate && (
-                  <>
-                    <Separator className="border-[#EBEBEB]" />
-                    <p className="text-xs text-[#717171] text-center">
-                      Aucun montant ne vous sera débité pour le moment
-                    </p>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-[#717171] text-sm">
-                  En attente du devis estimatif
-                </p>
-              </div>
-            )}
-          </div>
         </div>
 
-        <div className="my-14">
+        {/* <div className="my-14">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">{categoryConfig.icon}</div>
@@ -663,16 +764,27 @@ export default function RequestDetailPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         <Separator className="border-[#EBEBEB] mb-12" />
 
         {/* Description Section */}
         <div className="mb-12">
-          <h3 className="text-[22px] font-semibold text-[#222222] mb-4">
-            Description de la demande
-          </h3>
-          <p className="text-[#222222] leading-relaxed whitespace-pre-wrap">
+          <div className="flex items-center justify-start mb-4">
+            <h3 className="text-[22px] font-semibold text-[#222222]">
+              Description de la demande
+            </h3>
+            {canEditRequest() && (
+              <button
+                onClick={() => setShowEditDescription(true)}
+                className="p-2 ml-2 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Modifier la description"
+              >
+                <Pencil className="h-4 w-4 text-gray-600" />
+              </button>
+            )}
+          </div>
+          <p className="text-[#222222] leading-relaxed whitespace-pre-wrap break-words">
             {displayDescription}
           </p>
           {shouldTruncate && (
@@ -698,8 +810,37 @@ export default function RequestDetailPage() {
               setCurrentPhotoIndex(0);
               setPhotoModalOpen(true);
             }}
+            canEdit={canEditRequest()}
+            onAddPhotos={() => setShowPhotoUpload(true)}
+            onDeletePhoto={handleDeletePhoto}
           />
         </div>
+
+        {/* Embedded Chat - Only shown when artisan is assigned */}
+        {request.assignedArtisan && (
+          <>
+            <Separator className="border-[#EBEBEB] mb-12" />
+            <div className="mb-12">
+              <h3 className="text-[22px] font-semibold text-[#222222] mb-6">
+                Conversation avec l'artisan
+              </h3>
+              <ConversationChat
+                requestId={requestId}
+                currentUserId={currentUserId}
+                currentUserRole="client"
+                otherUserName={
+                  request.assignedArtisan.firstName &&
+                  request.assignedArtisan.lastName
+                    ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
+                    : request.assignedArtisan.name || "Artisan"
+                }
+                otherUserRole="professional"
+                className="w-full"
+                showHeader={true}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Action Dialogs */}
@@ -915,11 +1056,71 @@ export default function RequestDetailPage() {
               </Button>
               <Button
                 onClick={() => window.location.reload()}
-                className="bg-fixeo-main-500 hover:bg-fixeo-main-600"
+                className="bg-fixeo-main-500 hover:bg-fixeo-main-600 text-white"
               >
                 Rafraîchir la page
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Location Dialog */}
+      <EditLocationDialog
+        open={showEditLocation}
+        onOpenChange={setShowEditLocation}
+        requestId={requestId}
+        currentLocation={request.location}
+        onSuccess={() => mutate()}
+      />
+
+      {/* Edit Title Dialog */}
+      <EditTitleDialog
+        open={showEditTitle}
+        onOpenChange={setShowEditTitle}
+        requestId={requestId}
+        currentTitle={request.title || ""}
+        onSuccess={() => mutate()}
+      />
+
+      {/* Edit Description Dialog */}
+      <EditDescriptionDialog
+        open={showEditDescription}
+        onOpenChange={setShowEditDescription}
+        requestId={requestId}
+        currentDescription={request.description}
+        onSuccess={() => mutate()}
+      />
+
+      {/* Delete Photo Dialog */}
+      <DeletePhotoDialog
+        open={showDeletePhoto}
+        onOpenChange={setShowDeletePhoto}
+        photoUrl={photoToDelete?.url || null}
+        onConfirm={handleConfirmDeletePhoto}
+        isDeleting={isDeletingPhoto}
+      />
+
+      {/* Estimate History Modal */}
+      <Dialog
+        open={showEstimateHistoryModal}
+        onOpenChange={setShowEstimateHistoryModal}
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+              <div className="p-2 bg-fixeo-main-100 rounded-lg">
+                <FileText className="h-6 w-6 text-fixeo-main-600" />
+              </div>
+              Historique des devis
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-6">
+            <EstimateHistoryAccordion
+              serviceRequestId={requestId}
+              role="client"
+              currentEstimateId={relevantEstimate?.id}
+            />
           </div>
         </DialogContent>
       </Dialog>

@@ -53,6 +53,7 @@ export const EXPERIENCE_OPTIONS = [
 ] as const;
 
 export const DOWN_PAYMENT_PERCENTAGE = 0.3;
+export const ADMIN_PHONE_NUMBER = "+33 1 23 45 67 89";
 
 export const getStatusConfig = (status: string, iconClassName: string) => {
   switch (status) {

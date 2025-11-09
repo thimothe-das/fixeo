@@ -21,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ServiceRequestStatus } from "@/lib/db/schema";
 import {
   getCategoryConfig,
   getPriorityConfig,
@@ -508,7 +509,8 @@ export function Requests({
                                   >
                                     <Eye className="h-4 w-4" />
                                   </Button>
-                                  {!request.estimatedPrice && (
+                                  {request.status ===
+                                    ServiceRequestStatus.AWAITING_ESTIMATE && (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <Button

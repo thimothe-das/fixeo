@@ -5,8 +5,8 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
 
   // Get all files with the key "photos"
-  const photoFiles = formData.getAll("photos");
-
+  const photoFiles = formData.getAll("files");
+  console.log(photoFiles);
   // Filter out any non-File entries and empty files
   const validFiles = photoFiles.filter(
     (file): file is File => file instanceof File && file.size > 0

@@ -1,11 +1,12 @@
 import { UserRole } from "@/lib/auth/roles";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { db } from "./drizzle";
 import {
   billingEstimates,
   BillingEstimateStatus,
   clientProfiles,
   conversations,
+  professionalProfiles,
   serviceRequestActions,
   serviceRequests,
   ServiceRequestStatus,
@@ -148,8 +149,12 @@ export async function updateBillingEstimateStatus(
     .where(eq(billingEstimates.id, estimateId))
     .returning();
 
-  // If accepted, update the service request status
-  if (status === BillingEstimateStatus.ACCEPTED && estimate) {
+  if (!estimate) {
+    return null;
+  }
+
+  // If accepted, update the service request status to awaiting artisan
+  if (status === BillingEstimateStatus.ACCEPTED) {
     await db
       .update(serviceRequests)
       .set({
@@ -165,6 +170,23 @@ export async function updateBillingEstimateStatus(
     });
   }
 
+  // If rejected or expired, update the service request status back to awaiting estimate
+  if (status === BillingEstimateStatus.REJECTED || status === BillingEstimateStatus.EXPIRED) {
+    await db
+      .update(serviceRequests)
+      .set({
+        status: ServiceRequestStatus.AWAITING_ESTIMATE, // Back to awaiting estimate
+        updatedAt: new Date(),
+      })
+      .where(eq(serviceRequests.id, estimate.serviceRequestId));
+
+    // Record status change in history
+    await db.insert(serviceRequestStatusHistory).values({
+      serviceRequestId: estimate.serviceRequestId,
+      status: ServiceRequestStatus.AWAITING_ESTIMATE,
+    });
+  }
+
   return estimate;
 }
 
@@ -174,6 +196,7 @@ export async function updateServiceRequestStatus(
   additionalData?: {
     disputeReason?: string;
     disputeDetails?: string;
+    disputePhotos?: string[];
     completionNotes?: string;
     completionPhotos?: string;
     issueType?: string;
@@ -206,6 +229,9 @@ export async function updateServiceRequestStatus(
     const additionalDataJson: any = {};
     if (additionalData.photos) {
       additionalDataJson.photos = additionalData.photos;
+    }
+    if (additionalData.disputePhotos) {
+      additionalDataJson.disputePhotos = additionalData.disputePhotos;
     }
     if (additionalData.completionPhotos) {
       additionalDataJson.completionPhotos = additionalData.completionPhotos;
@@ -431,7 +457,7 @@ export async function getServiceRequestByIdForAdmin(requestId: number) {
 }
 
 export async function getConversationsByRequestId(serviceRequestId: number) {
-  return await db
+  const results = await db
     .select({
       id: conversations.id,
       serviceRequestId: conversations.serviceRequestId,
@@ -445,11 +471,75 @@ export async function getConversationsByRequestId(serviceRequestId: number) {
         name: users.name,
         email: users.email,
       },
+      clientFirstName: clientProfiles.firstName,
+      clientLastName: clientProfiles.lastName,
+      professionalFirstName: professionalProfiles.firstName,
+      professionalLastName: professionalProfiles.lastName,
     })
     .from(conversations)
     .leftJoin(users, eq(conversations.senderId, users.id))
+    .leftJoin(clientProfiles, eq(users.id, clientProfiles.userId))
+    .leftJoin(professionalProfiles, eq(users.id, professionalProfiles.userId))
     .where(eq(conversations.serviceRequestId, serviceRequestId))
     .orderBy(conversations.createdAt);
+
+  // Transform results to match expected format
+  return results.map((row) => {
+    let senderName = row.sender?.name || "Unknown";
+    
+    // Prefer first/last name from profiles
+    if (row.clientFirstName && row.clientLastName) {
+      senderName = `${row.clientFirstName} ${row.clientLastName}`;
+    } else if (row.professionalFirstName && row.professionalLastName) {
+      senderName = `${row.professionalFirstName} ${row.professionalLastName}`;
+    }
+
+    return {
+      id: row.id,
+      content: row.message,
+      senderId: row.senderId,
+      senderName,
+      senderRole: row.senderType,
+      timestamp: row.createdAt.toISOString(),
+      isRead: !!row.readAt,
+    };
+  });
+}
+
+// Get unread message count for a service request
+export async function getUnreadMessageCount(
+  serviceRequestId: number,
+  userId: number
+) {
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.serviceRequestId, serviceRequestId),
+        isNull(conversations.readAt),
+        sql`${conversations.senderId} != ${userId}`
+      )
+    );
+
+  return result[0]?.count || 0;
+}
+
+// Mark messages as read
+export async function markMessagesAsRead(
+  serviceRequestId: number,
+  userId: number
+) {
+  await db
+    .update(conversations)
+    .set({ readAt: new Date() })
+    .where(
+      and(
+        eq(conversations.serviceRequestId, serviceRequestId),
+        isNull(conversations.readAt),
+        sql`${conversations.senderId} != ${userId}`
+      )
+    );
 }
 
 export async function createConversationMessage(messageData: {
@@ -556,4 +646,99 @@ export async function getServiceRequestActions(serviceRequestId: number) {
     .leftJoin(users, eq(serviceRequestActions.actorId, users.id))
     .where(eq(serviceRequestActions.serviceRequestId, serviceRequestId))
     .orderBy(desc(serviceRequestActions.timestamp));
+}
+
+export async function getDisputedRequests() {
+  const disputedStatuses = [
+    ServiceRequestStatus.DISPUTED_BY_CLIENT,
+    ServiceRequestStatus.DISPUTED_BY_ARTISAN,
+    ServiceRequestStatus.DISPUTED_BY_BOTH,
+  ];
+
+  // Get all disputed service requests
+  const requests = await db
+    .select({
+      id: serviceRequests.id,
+      title: serviceRequests.title,
+      serviceType: serviceRequests.serviceType,
+      urgency: serviceRequests.urgency,
+      description: serviceRequests.description,
+      location: serviceRequests.location,
+      status: serviceRequests.status,
+      createdAt: serviceRequests.createdAt,
+      updatedAt: serviceRequests.updatedAt,
+      userId: serviceRequests.userId,
+      assignedArtisanId: serviceRequests.assignedArtisanId,
+      client: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        firstName: clientProfiles.firstName,
+        lastName: clientProfiles.lastName,
+        phone: clientProfiles.phone,
+      },
+    })
+    .from(serviceRequests)
+    .leftJoin(users, eq(serviceRequests.userId, users.id))
+    .leftJoin(clientProfiles, eq(users.id, clientProfiles.userId))
+    .where(inArray(serviceRequests.status, disputedStatuses))
+    .orderBy(desc(serviceRequests.updatedAt));
+
+  // For each request, get the dispute actions
+  const requestsWithDisputes = await Promise.all(
+    requests.map(async (request) => {
+      const disputeActions = await db
+        .select({
+          id: serviceRequestActions.id,
+          timestamp: serviceRequestActions.timestamp,
+          actorId: serviceRequestActions.actorId,
+          actorType: serviceRequestActions.actorType,
+          disputeReason: serviceRequestActions.disputeReason,
+          disputeDetails: serviceRequestActions.disputeDetails,
+          createdAt: serviceRequestActions.createdAt,
+          actor: {
+            id: users.id,
+            name: users.name,
+            email: users.email,
+          },
+        })
+        .from(serviceRequestActions)
+        .leftJoin(users, eq(serviceRequestActions.actorId, users.id))
+        .where(
+          and(
+            eq(serviceRequestActions.serviceRequestId, request.id),
+            eq(serviceRequestActions.actionType, "dispute")
+          )
+        )
+        .orderBy(desc(serviceRequestActions.timestamp));
+
+      // Get assigned artisan info if available
+      let artisan = null;
+      if (request.assignedArtisanId) {
+        const artisanData = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            firstName: professionalProfiles.firstName,
+            lastName: professionalProfiles.lastName,
+            phone: professionalProfiles.phone,
+          })
+          .from(users)
+          .leftJoin(professionalProfiles, eq(users.id, professionalProfiles.userId))
+          .where(eq(users.id, request.assignedArtisanId))
+          .limit(1);
+
+        artisan = artisanData[0] || null;
+      }
+
+      return {
+        ...request,
+        artisan,
+        disputeActions,
+      };
+    })
+  );
+
+  return requestsWithDisputes;
 }

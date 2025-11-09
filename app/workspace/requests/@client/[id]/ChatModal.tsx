@@ -9,19 +9,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Send, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { useSocket } from "@/hooks/use-socket";
+import { useConversation, Message } from "@/hooks/use-conversation";
+import { Send, X, Wifi, WifiOff } from "lucide-react";
 import * as React from "react";
-import useSWR from "swr";
-
-interface Message {
-  id: number;
-  content: string;
-  senderId: number;
-  senderName: string;
-  senderRole: "client" | "professional" | "admin";
-  timestamp: string;
-  isRead: boolean;
-}
 
 interface ChatModalProps {
   open: boolean;
@@ -32,8 +24,6 @@ interface ChatModalProps {
   artisanAvatar?: string;
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 export function ChatModal({
   open,
   onOpenChange,
@@ -43,20 +33,34 @@ export function ChatModal({
   artisanAvatar,
 }: ChatModalProps) {
   const [newMessage, setNewMessage] = React.useState("");
-  const [isSending, setIsSending] = React.useState(false);
+  const [isTyping, setIsTyping] = React.useState(false);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-  //
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Initialize Socket connection (only when modal is open)
+  const { socket, isConnected, startTyping, stopTyping } = useSocket({
+    userId: currentUserId,
+    userRole: "client",
+    enabled: open && !!currentUserId,
+  });
+
+  // Manage conversation state
   const {
-    data: messages,
+    messages,
+    isLoading,
     error,
-    mutate,
-  } = useSWR<Message[]>(
-    open ? `/api/conversations/${serviceRequestId}` : null,
-    fetcher,
-    {
-      refreshInterval: open ? 3000 : 0, // Refresh every 3 seconds when modal is open
-    }
-  );
+    sendMessage,
+    isSending,
+    typingUsers,
+    onlineUsers,
+  } = useConversation({
+    requestId: serviceRequestId,
+    socket,
+    isConnected,
+    currentUserId,
+    enabled: open,
+  });
 
   // Auto-scroll to bottom when new messages arrive
   React.useEffect(() => {
@@ -65,36 +69,52 @@ export function ChatModal({
     }
   }, [messages, open]);
 
+  // Handle typing indicator
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewMessage(value);
+
+    if (value.length > 0 && !isTyping) {
+      setIsTyping(true);
+      startTyping(serviceRequestId);
+    }
+
+    // Reset typing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isTyping) {
+        setIsTyping(false);
+        stopTyping(serviceRequestId);
+      }
+    }, 1000);
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!newMessage.trim() || isSending) return;
 
-    setIsSending(true);
+    const messageToSend = newMessage.trim();
+    setNewMessage("");
+
+    // Clear typing state
+    if (isTyping) {
+      setIsTyping(false);
+      stopTyping(serviceRequestId);
+    }
 
     try {
-      const response = await fetch(`/api/conversations/${serviceRequestId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: newMessage.trim(),
-        }),
-      });
-
-      if (response.ok) {
-        setNewMessage("");
-        mutate();
-      } else {
-        const error = await response.json();
-        alert(`Erreur: ${error.error}`);
-      }
+      await sendMessage(messageToSend);
+      // Focus back on input
+      inputRef.current?.focus();
     } catch (error) {
       console.error("Error sending message:", error);
+      // Restore message on error
+      setNewMessage(messageToSend);
       alert("Erreur lors de l'envoi du message");
-    } finally {
-      setIsSending(false);
     }
   };
 
@@ -141,6 +161,9 @@ export function ChatModal({
     return groups;
   }, [messages]);
 
+  const isOtherUserOnline = onlineUsers.length > 0;
+  const isOtherUserTyping = typingUsers.length > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-[600px] p-0 gap-0 flex flex-col">
@@ -158,10 +181,31 @@ export function ChatModal({
                     .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
+              <div>
               <DialogTitle className="text-[18px] font-semibold text-[#222222]">
                 {artisanName}
               </DialogTitle>
+                <div className="flex items-center gap-2">
+                  {isOtherUserOnline ? (
+                    <>
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-xs text-gray-600">En ligne</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      <span className="text-xs text-gray-500">Hors ligne</span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
+            <div className="flex items-center gap-3">
+              {isConnected ? (
+                <Wifi className="h-4 w-4 text-green-600" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-gray-400" />
+              )}
             <Button
               variant="ghost"
               size="icon"
@@ -170,12 +214,17 @@ export function ChatModal({
             >
               <X className="h-4 w-4" />
             </Button>
+            </div>
           </div>
         </DialogHeader>
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 bg-white">
-          {error ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Spinner className="h-8 w-8" />
+            </div>
+          ) : error ? (
             <div className="flex items-center justify-center h-full">
               <p className="text-red-600 text-sm">
                 Erreur lors du chargement de la conversation
@@ -264,6 +313,27 @@ export function ChatModal({
                   </div>
                 </div>
               ))}
+
+              {/* Typing Indicator */}
+              {isOtherUserTyping && (
+                <div className="flex justify-start">
+                  <div className="flex items-center gap-2 bg-gray-100 rounded-2xl px-4 py-2.5">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
+                    </div>
+                    <span className="text-xs text-gray-600">{artisanName} est en train d'écrire...</span>
+                  </div>
+                </div>
+              )}
+
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -273,19 +343,20 @@ export function ChatModal({
         <div className="px-6 py-4 border-t border-[#EBEBEB] bg-white flex-shrink-0">
           <form onSubmit={handleSendMessage} className="flex gap-3">
             <Input
+              ref={inputRef}
               type="text"
               placeholder="Écrivez votre message..."
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              disabled={isSending}
+              onChange={handleInputChange}
+              disabled={isSending || !isConnected}
               className="flex-1 border-[#DDDDDD] focus:border-[#FF385C] focus:ring-[#FF385C]"
             />
             <Button
               type="submit"
-              disabled={!newMessage.trim() || isSending}
+              disabled={!newMessage.trim() || isSending || !isConnected}
               className="bg-[#FF385C] hover:bg-[#E31C5F] text-white px-6"
             >
-              <Send className="h-4 w-4" />
+              {isSending ? <Spinner className="h-4 w-4" /> : <Send className="h-4 w-4" />}
             </Button>
           </form>
         </div>

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db/drizzle";
 import { getBillingEstimatesByRequestId } from "@/lib/db/queries";
+import { expirePendingEstimates } from "@/lib/db/queries/billing-estimates";
 import { getUser } from "@/lib/db/queries/common";
 import { billingEstimates, serviceRequests } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -7,6 +8,9 @@ import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   try {
+    // First, expire any pending estimates that have passed their deadline
+    await expirePendingEstimates();
+
     const user = await getUser();
 
     if (!user) {

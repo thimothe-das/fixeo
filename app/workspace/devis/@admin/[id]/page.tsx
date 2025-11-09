@@ -32,6 +32,7 @@ export default function EstimatedBill() {
       estimate={estimate as any}
       isLoading={isLoading}
       error={requestsError}
+      showHistory={true}
     />
   );
 }

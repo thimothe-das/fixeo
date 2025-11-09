@@ -1,14 +1,23 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Images } from "lucide-react";
+import { Images, Plus, X } from "lucide-react";
 
 interface HeroGalleryProps {
   photos: string[];
   onShowAllPhotos: () => void;
+  canEdit?: boolean;
+  onAddPhotos?: () => void;
+  onDeletePhoto?: (photoUrl: string, index: number) => void;
 }
 
-export function HeroGallery({ photos, onShowAllPhotos }: HeroGalleryProps) {
+export function HeroGallery({ 
+  photos, 
+  onShowAllPhotos,
+  canEdit = false,
+  onAddPhotos,
+  onDeletePhoto,
+}: HeroGalleryProps) {
   if (!photos || photos.length === 0) {
     return (
       <div className="relative w-full h-[400px] bg-gray-100 flex items-center justify-center rounded-xl">
@@ -37,6 +46,18 @@ export function HeroGallery({ photos, onShowAllPhotos }: HeroGalleryProps) {
             alt="Photo principale"
             className="w-full h-full object-cover group-hover:brightness-90 transition-all"
           />
+          {canEdit && onDeletePhoto && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeletePhoto(mainPhoto, 0);
+              }}
+              className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-2 transition-all opacity-0 group-hover:opacity-100"
+              aria-label="Supprimer cette photo"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* Side Photos Grid - Right side (50%), 2x2 grid */}
@@ -54,6 +75,18 @@ export function HeroGallery({ photos, onShowAllPhotos }: HeroGalleryProps) {
                 alt={`Photo ${index + 2}`}
                 className="w-full h-full object-cover group-hover:brightness-90 transition-all"
               />
+              {canEdit && onDeletePhoto && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeletePhoto(photo, index + 1);
+                  }}
+                  className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-all opacity-0 group-hover:opacity-100"
+                  aria-label="Supprimer cette photo"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
             </div>
           ))}
           {/* Fill empty spots if less than 4 side photos */}
@@ -69,16 +102,32 @@ export function HeroGallery({ photos, onShowAllPhotos }: HeroGalleryProps) {
         </div>
       </div>
 
-      {/* Show All Photos Button */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="absolute bottom-4 right-4 bg-white hover:bg-gray-50 shadow-md border-gray-800 text-sm font-semibold"
-        onClick={onShowAllPhotos}
-      >
-        <Images className="h-4 w-4 mr-2" />
-        Afficher toutes les photos
-      </Button>
+      {/* Action Buttons */}
+      <div className="absolute bottom-4 right-4 flex gap-2">
+        {canEdit && onAddPhotos && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-white hover:bg-gray-50 shadow-md border-gray-800 text-sm font-semibold"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddPhotos();
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter des photos
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="bg-white hover:bg-gray-50 shadow-md border-gray-800 text-sm font-semibold"
+          onClick={onShowAllPhotos}
+        >
+          <Images className="h-4 w-4 mr-2" />
+          Afficher toutes les photos
+        </Button>
+      </div>
     </div>
   );
 }
