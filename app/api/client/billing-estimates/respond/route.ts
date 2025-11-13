@@ -5,6 +5,8 @@ import {
   BillingEstimateStatus,
   billingEstimates,
   serviceRequests,
+  ServiceRequestStatus,
+  serviceRequestStatusHistory,
 } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -41,9 +43,9 @@ export async function POST(request: Request) {
         id: billingEstimates.id,
         serviceRequestId: billingEstimates.serviceRequestId,
         status: billingEstimates.status,
-        serviceRequest: {
-          userId: serviceRequests.userId,
-        },
+        revisionNumber: billingEstimates.revisionNumber,
+        estimate: billingEstimates,
+        serviceRequest: serviceRequests,
       })
       .from(billingEstimates)
       .leftJoin(
@@ -71,26 +73,113 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update estimate status
-    const status =
-      action === "accept"
-        ? BillingEstimateStatus.ACCEPTED
-        : BillingEstimateStatus.REJECTED;
-    const updatedEstimate = await updateBillingEstimateStatus(
-      parseInt(estimateId),
-      status,
-      response
-    );
+    const isRevisedEstimate =
+      estimate[0].revisionNumber && estimate[0].revisionNumber > 1;
+    const hasAssignedArtisan = estimate[0].serviceRequest?.assignedArtisanId !== null;
+    const requiresDualAcceptance = isRevisedEstimate && hasAssignedArtisan;
 
-    // Send email notification (we'll implement this next)
+    let notificationStatus: "accepted" | "rejected" = action === "accept" ? "accepted" : "rejected";
+
+    // Handle client rejection
+    if (action === "reject") {
+      // Update estimate status to rejected
+      await db
+        .update(billingEstimates)
+        .set({
+          status: BillingEstimateStatus.REJECTED,
+          clientResponse: response,
+          updatedAt: new Date(),
+        })
+        .where(eq(billingEstimates.id, parseInt(estimateId)));
+
+      // ANY client rejection cancels the request
+      const updateData: any = {
+        status: ServiceRequestStatus.CANCELLED,
+        updatedAt: new Date(),
+      };
+
+      // If there's an assigned artisan, unassign them
+      if (hasAssignedArtisan) {
+        updateData.assignedArtisanId = null;
+      }
+
+      await db
+        .update(serviceRequests)
+        .set(updateData)
+        .where(eq(serviceRequests.id, estimate[0].serviceRequestId));
+
+      // Record status change in history
+      await db.insert(serviceRequestStatusHistory).values({
+        serviceRequestId: estimate[0].serviceRequestId,
+        status: ServiceRequestStatus.CANCELLED,
+      });
+
+      // TODO: Send notification to admin and artisan if assigned
+    }
+
+    // Handle client acceptance
+    if (action === "accept") {
+      if (requiresDualAcceptance) {
+        // Mark client as accepted with timestamp
+        await db
+          .update(billingEstimates)
+          .set({
+            clientAccepted: true,
+            clientResponseDate: new Date(),
+            clientResponse: response,
+            updatedAt: new Date(),
+          })
+          .where(eq(billingEstimates.id, parseInt(estimateId)));
+
+        // Check if artisan has also accepted
+        const artisanAccepted = estimate[0].estimate.artisanAccepted === true;
+
+        if (artisanAccepted) {
+          // Both parties accepted: set status to in_progress
+          await db
+            .update(billingEstimates)
+            .set({
+              status: BillingEstimateStatus.ACCEPTED,
+              updatedAt: new Date(),
+            })
+            .where(eq(billingEstimates.id, parseInt(estimateId)));
+
+          await db
+            .update(serviceRequests)
+            .set({
+              status: ServiceRequestStatus.IN_PROGRESS,
+              updatedAt: new Date(),
+            })
+            .where(eq(serviceRequests.id, estimate[0].serviceRequestId));
+
+          // Record status change in history
+          await db.insert(serviceRequestStatusHistory).values({
+            serviceRequestId: estimate[0].serviceRequestId,
+            status: ServiceRequestStatus.IN_PROGRESS,
+          });
+        } else {
+          // Client accepted but artisan hasn't: keep status as awaiting_dual_acceptance
+          // Status remains awaiting_dual_acceptance
+        }
+      } else {
+        // Non-dual acceptance flow: existing logic
+        await updateBillingEstimateStatus(
+          parseInt(estimateId),
+          BillingEstimateStatus.ACCEPTED,
+          response
+        );
+      }
+    }
+
+    // Send email notification
     await sendEstimateResponseNotification(
       estimate[0].serviceRequestId,
-      status,
+      notificationStatus,
       user,
       response
     );
 
-    return NextResponse.json(updatedEstimate);
+    return NextResponse.json({ success: true, message: "Response recorded successfully" });
   } catch (error) {
     console.error("Error responding to estimate:", error);
     return NextResponse.json(

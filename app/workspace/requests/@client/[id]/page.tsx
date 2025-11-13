@@ -1,5 +1,6 @@
 "use client";
 
+import { ArtisanValidationModal } from "@/app/workspace/components/ArtisanValidationModal";
 import { ConversationChat } from "@/app/workspace/components/ConversationChat";
 import { EstimateHistoryAccordion } from "@/app/workspace/devis/components/EstimateHistoryAccordion";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,6 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { BillingEstimateStatus, ServiceRequestStatus } from "@/lib/db/schema";
 import {
-  getBillingEstimateStatusConfig,
   getCategoryConfig,
   getPriorityConfig,
   getStatusConfig,
@@ -39,6 +39,8 @@ import moment from "moment";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import useSWR from "swr";
+import { ClientActionBanner } from "../../components/ClientActionBanner";
+import { DisputeDetailsModal } from "../../components/DisputeDetailsModal";
 import { ActionDialogs } from "./ActionDialogs";
 import { ChatModal } from "./ChatModal";
 import { DeletePhotoDialog } from "./DeletePhotoDialog";
@@ -80,6 +82,40 @@ type ServiceRequest = {
     createdAt: string;
     description?: string;
     breakdown?: string;
+    artisanAccepted?: boolean | null;
+    clientAccepted?: boolean | null;
+    artisanResponseDate?: string | null;
+    clientResponseDate?: string | null;
+    rejectedByArtisanId?: number | null;
+    artisanRejectionReason?: string | null;
+  }[];
+  validationActions?: {
+    id: number;
+    timestamp: Date;
+    validationNotes: string | null;
+    additionalData: string | null;
+    actorType: string;
+    actionType: string;
+    actor: {
+      id: number;
+      name: string | null;
+      email: string;
+    } | null;
+  }[];
+  disputeActions?: {
+    id: number;
+    timestamp: Date | string;
+    actorId: number;
+    actorType: string;
+    disputeReason: string;
+    disputeDetails: string;
+    additionalData: string | null;
+    createdAt: Date | string;
+    actor: {
+      id: number;
+      name: string | null;
+      email: string;
+    } | null;
   }[];
   priority?: "high" | "normal" | "low";
   category?: string;
@@ -119,6 +155,9 @@ export default function RequestDetailPage() {
   } | null>(null);
   const [isDeletingPhoto, setIsDeletingPhoto] = React.useState(false);
   const [showEstimateHistoryModal, setShowEstimateHistoryModal] =
+    React.useState(false);
+  const [showValidationModal, setShowValidationModal] = React.useState(false);
+  const [showDisputeDetailsModal, setShowDisputeDetailsModal] =
     React.useState(false);
 
   const router = useRouter();
@@ -366,16 +405,34 @@ export default function RequestDetailPage() {
     });
   };
 
-  const getEstimateStatusBadge = (status: string) => {
-    const config = getBillingEstimateStatusConfig(status);
-    return (
-      <Badge
-        variant="outline"
-        className={`${config.colors.bg} ${config.colors.text} border-${config.colors.color}`}
-      >
-        {config.label}
-      </Badge>
-    );
+  const getEstimateStatusBadge = (estimate: any) => {
+    if (
+      estimate.status === BillingEstimateStatus.REJECTED &&
+      estimate?.rejectedByArtisanId
+    ) {
+      return (
+        <Badge
+          variant="outline"
+          className={`bg-red-100 text-red-700 border-red-300`}
+        >
+          Rejeté par l'artisan
+        </Badge>
+      );
+    }
+
+    if (
+      estimate.status === BillingEstimateStatus.REJECTED &&
+      !estimate?.rejectedByArtisanId
+    ) {
+      return (
+        <Badge
+          variant="outline"
+          className={`bg-yellow-100 text-yellow-700 border-yellow-300`}
+        >
+          En attente de validation
+        </Badge>
+      );
+    }
   };
 
   if (error) {
@@ -434,8 +491,10 @@ export default function RequestDetailPage() {
 
   // Check action availability
   const canAcceptRejectEstimate =
-    request.status === ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION &&
-    relevantEstimate?.status === BillingEstimateStatus.PENDING;
+    (request.status === ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION &&
+      relevantEstimate?.status === BillingEstimateStatus.PENDING) ||
+    (request.status === ServiceRequestStatus.AWAITING_DUAL_ACCEPTANCE &&
+      !relevantEstimate?.clientAccepted);
 
   const canValidateOrDispute =
     request.status === ServiceRequestStatus.IN_PROGRESS ||
@@ -483,17 +542,7 @@ export default function RequestDetailPage() {
             </div>
           </div>
           <div className="flex flex-col items-end gap-2 sm:gap-3 w-full md:w-auto">
-            <div
-              className={`flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-sm font-semibold shadow-sm ${
-                statusConfig.colors?.bg || "bg-gray-100"
-              } ${statusConfig.colors?.text || "text-gray-700"} ${
-                statusConfig.colors?.ring || "ring-1 ring-gray-200"
-              }`}
-            >
-              {statusConfig.icon}
-              {statusConfig.label}
-            </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 onClick={() => setShowEstimateHistoryModal(true)}
                 variant="outline"
@@ -512,6 +561,18 @@ export default function RequestDetailPage() {
                     </Badge>
                   )}
               </Button>
+              {request.validationActions &&
+                request.validationActions.length > 0 && (
+                  <Button
+                    onClick={() => setShowValidationModal(true)}
+                    variant="outline"
+                    className="border-green-300 hover:bg-green-50"
+                    size="sm"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Validation artisan
+                  </Button>
+                )}
               <ProgressDrawer
                 currentStatus={request.status}
                 statusHistory={request.statusHistory}
@@ -521,6 +582,72 @@ export default function RequestDetailPage() {
         </div>
 
         <Separator className="border-[#EBEBEB] mb-8" />
+
+        {/* Dual Acceptance Status Banner */}
+        {request.status === ServiceRequestStatus.AWAITING_DUAL_ACCEPTANCE &&
+          relevantEstimate && (
+            <div className="mb-8">
+              <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6">
+                <h3 className="text-xl font-semibold text-purple-900 mb-4">
+                  Acceptation mutuelle requise
+                </h3>
+                <p className="text-sm text-purple-700 mb-4">
+                  Ce devis révisé nécessite l'acceptation à la fois de vous et
+                  de l'artisan pour continuer.
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-4 h-4 rounded-full ${
+                        relevantEstimate.clientAccepted
+                          ? "bg-green-500"
+                          : "bg-gray-300"
+                      }`}
+                    />
+                    <span className="text-sm font-medium text-purple-700">
+                      Vous (Client):{" "}
+                      {relevantEstimate.clientAccepted
+                        ? "✓ Accepté"
+                        : "En attente"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-4 h-4 rounded-full ${
+                        relevantEstimate.artisanAccepted
+                          ? "bg-green-500"
+                          : "bg-gray-300"
+                      }`}
+                    />
+                    <span className="text-sm font-medium text-purple-700">
+                      Artisan:{" "}
+                      {relevantEstimate.artisanAccepted
+                        ? "✓ Accepté"
+                        : "En attente"}
+                    </span>
+                  </div>
+                </div>
+                {relevantEstimate.clientAccepted &&
+                  !relevantEstimate.artisanAccepted && (
+                    <div className="mt-4 p-3 bg-purple-100 rounded-lg">
+                      <p className="text-sm text-purple-800">
+                        ✓ Votre acceptation a été enregistrée. En attente de la
+                        réponse de l'artisan.
+                      </p>
+                    </div>
+                  )}
+                {!relevantEstimate.clientAccepted &&
+                  relevantEstimate.artisanAccepted && (
+                    <div className="mt-4 p-3 bg-purple-100 rounded-lg">
+                      <p className="text-sm text-purple-800">
+                        L'artisan a accepté le devis. Veuillez accepter pour
+                        continuer.
+                      </p>
+                    </div>
+                  )}
+              </div>
+            </div>
+          )}
 
         {/* Two Card Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -536,7 +663,7 @@ export default function RequestDetailPage() {
                     <span className="text-2xl font-semibold text-[#222222]">
                       {formatPrice(relevantEstimate.estimatedPrice)}
                     </span>
-                    {getEstimateStatusBadge(relevantEstimate.status)}
+                    {getEstimateStatusBadge(relevantEstimate)}
                   </div>
                   {/* Dates as subtitles */}
                   <div className="space-y-1">
@@ -555,6 +682,22 @@ export default function RequestDetailPage() {
                   </div>
                 </div>
 
+                {/* Rejection Message */}
+                {request.status ===
+                  ServiceRequestStatus.AWAITING_ESTIMATE_REVISION &&
+                  relevantEstimate && (
+                    <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <div className="flex items-start gap-2">
+                        <Clock className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-yellow-800">
+                          {relevantEstimate.rejectedByArtisanId
+                            ? "Le devis a été contesté par l'artisan. Notre équipe prépare une révision."
+                            : "Le devis a été contesté. Notre équipe prépare une révision."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                 {/* Action Buttons */}
                 {canAcceptRejectEstimate && (
                   <>
@@ -563,7 +706,7 @@ export default function RequestDetailPage() {
                       <Button
                         onClick={() => setShowAcceptDialog(true)}
                         disabled={isLoading}
-                        className="flex-1 bg-fixeo-main-500 hover:bg-fixeo-main-600 text-white"
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                         size="lg"
                       >
                         Accepter le devis
@@ -572,7 +715,7 @@ export default function RequestDetailPage() {
                         variant="outline"
                         onClick={() => setShowRejectDialog(true)}
                         disabled={isLoading}
-                        className="flex-1 border-[#DDDDDD]"
+                        className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
                       >
                         Rejeter
                       </Button>
@@ -1124,6 +1267,38 @@ export default function RequestDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Artisan Validation Modal */}
+      <ArtisanValidationModal
+        open={showValidationModal}
+        onOpenChange={setShowValidationModal}
+        validationAction={request.validationActions?.[0] || null}
+        artisanName={
+          request.assignedArtisan?.firstName &&
+          request.assignedArtisan?.lastName
+            ? `${request.assignedArtisan.firstName} ${request.assignedArtisan.lastName}`
+            : request.assignedArtisan?.name || "Artisan"
+        }
+      />
+
+      {/* Dispute Details Modal */}
+      <DisputeDetailsModal
+        open={showDisputeDetailsModal}
+        onOpenChange={setShowDisputeDetailsModal}
+        disputeAction={request.disputeActions?.[0] || null}
+      />
+
+      {/* Client Action Banner */}
+      <ClientActionBanner
+        status={request.status}
+        onOpenAcceptDialog={() => setShowAcceptDialog(true)}
+        onOpenRejectDialog={() => setShowRejectDialog(true)}
+        onOpenValidation={() => setShowValidateDialog(true)}
+        onOpenDispute={() => setShowDisputeDialog(true)}
+        onViewDispute={() => setShowDisputeDetailsModal(true)}
+        clientAccepted={relevantEstimate?.clientAccepted ?? undefined}
+        artisanAccepted={relevantEstimate?.artisanAccepted ?? undefined}
+      />
     </div>
   );
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "billing_estimates" ADD COLUMN "artisan_rejection_photos" text;

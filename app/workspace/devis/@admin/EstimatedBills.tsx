@@ -65,19 +65,6 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
   });
 
   // Sort estimates: pending first, then by creation date
-  const sortedEstimates = filteredEstimates.sort((a, b) => {
-    if (
-      a.status === BillingEstimateStatus.PENDING &&
-      b.status !== BillingEstimateStatus.PENDING
-    )
-      return -1;
-    if (
-      a.status !== BillingEstimateStatus.PENDING &&
-      b.status === BillingEstimateStatus.PENDING
-    )
-      return 1;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
 
   const pendingCount = (estimates || []).filter(
     (e) => e.status === BillingEstimateStatus.PENDING
@@ -243,7 +230,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">
-            Liste des devis ({sortedEstimates.length})
+            Liste des devis ({estimates?.length})
           </h2>
         </div>
 
@@ -269,7 +256,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                 </div>
               ))}
             </div>
-          ) : sortedEstimates.length === 0 ? (
+          ) : estimates?.length === 0 ? (
             <div className="p-12 text-center">
               <Calculator className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -283,7 +270,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
-              {sortedEstimates.map((estimate) => {
+              {estimates?.map((estimate) => {
                 const isExpired =
                   estimate.validUntil &&
                   new Date(estimate.validUntil) < new Date();
@@ -291,7 +278,7 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                   estimate.status,
                   "h-3 w-3"
                 );
-
+                console.log(estimate);
                 return (
                   <div
                     key={estimate.id}
@@ -302,9 +289,9 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
                           <h3 className="font-medium text-gray-900">
-                            {estimate.serviceRequest?.serviceType}
+                            {estimate.serviceRequest?.title}
                           </h3>
                           <Badge
                             className={`${estimateStatusConfig.colors.bg} ${estimateStatusConfig.colors.text} border-${estimateStatusConfig.colors.color} border text-xs font-medium px-2 py-1`}
@@ -321,11 +308,71 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                                 Expiré
                               </Badge>
                             )}
+
+                          {/* Artisan Rejection Badge */}
+                          {estimate.artisanRejectionReason && (
+                            <Badge className="bg-amber-100 text-amber-700 border-amber-200 border text-xs font-medium px-2 py-1">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Refusé par artisan
+                            </Badge>
+                          )}
+
+                          {/* Dual Acceptance Badges */}
+                          {estimate.artisanAccepted === true &&
+                            estimate.clientAccepted === true && (
+                              <Badge className="bg-green-100 text-green-700 border-green-200 border text-xs font-medium px-2 py-1">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Accepté par les 2 parties
+                              </Badge>
+                            )}
+
+                          {/* Partial Acceptance Badges */}
+                          {estimate.artisanAccepted === true &&
+                            estimate.clientAccepted !== true && (
+                              <Badge className="bg-amber-100 text-amber-700 border-amber-200 border text-xs font-medium px-2 py-1">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Artisan a accepté
+                              </Badge>
+                            )}
+
+                          {estimate.clientAccepted === true &&
+                            estimate.artisanAccepted !== true && (
+                              <Badge className="bg-green-100 text-green-700 border-green-200 border text-xs font-medium px-2 py-1">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Client a accepté
+                              </Badge>
+                            )}
                         </div>
                         <p className="text-sm text-gray-600 mb-1">
                           {estimate.description}
                         </p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
+
+                        {/* Artisan Rejection Reason Detail */}
+                        {estimate.artisanRejectionReason && (
+                          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
+                            <div className="flex items-start gap-2">
+                              <AlertTriangle className="h-3 w-3 text-amber-600 mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <span className="font-semibold text-amber-900">
+                                  Raison du refus artisan:
+                                </span>
+                                <p className="text-amber-800 mt-1">
+                                  {estimate.artisanRejectionReason}
+                                </p>
+                                {estimate.rejectedAt && (
+                                  <p className="text-amber-700 mt-1">
+                                    Refusé le{" "}
+                                    {moment(estimate.rejectedAt).format(
+                                      "DD/MM/YYYY à HH:mm"
+                                    )}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
                           <span className="flex items-center gap-1">
                             <Building2 className="h-3 w-3" />
                             {estimate.serviceRequest?.location || "N/A"}
@@ -334,6 +381,26 @@ export function EstimatedBills({ onEstimateResponse }: EstimatedBillsProps) {
                             Créé le:{" "}
                             {moment(estimate.createdAt).format("DD/MM/YYYY")}
                           </span>
+
+                          {/* Show acceptance dates */}
+                          {estimate.clientResponseDate && (
+                            <span className="flex items-center gap-1 text-green-600">
+                              <CheckCircle className="h-3 w-3" />
+                              Client:{" "}
+                              {moment(estimate.clientResponseDate).format(
+                                "DD/MM/YYYY"
+                              )}
+                            </span>
+                          )}
+                          {estimate.artisanResponseDate && (
+                            <span className="flex items-center gap-1 text-amber-600">
+                              <CheckCircle className="h-3 w-3" />
+                              Artisan:{" "}
+                              {moment(estimate.artisanResponseDate).format(
+                                "DD/MM/YYYY"
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
 

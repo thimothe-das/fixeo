@@ -1,14 +1,19 @@
 "use client";
 
+import { ArtisanValidationModal } from "@/app/workspace/components/ArtisanValidationModal";
 import { ConversationChat } from "@/app/workspace/components/ConversationChat";
 import type { ServiceRequestForArtisan } from "@/app/workspace/components/types";
 import { ActionBanner } from "@/app/workspace/jobs/components/ActionBanner";
+import { ClientDisputeModal } from "@/app/workspace/jobs/components/ClientDisputeModal";
 import { DisputeDialog } from "@/app/workspace/jobs/components/DisputeDialog";
 import { MissionDetails } from "@/app/workspace/jobs/components/MissionDetails";
 import { MissionHeader } from "@/app/workspace/jobs/components/MissionHeader";
 import { MissionTimeline } from "@/app/workspace/jobs/components/MissionTimeline";
 import { PhotoLightbox } from "@/app/workspace/jobs/components/PhotoLightbox";
+import { QuoteRejectionDialog } from "@/app/workspace/jobs/components/QuoteRejectionDialog";
 import { ValidationDialog } from "@/app/workspace/jobs/components/ValidationDialog";
+import { DisputeDetailsModal } from "@/app/workspace/requests/components/DisputeDetailsModal";
+import { Button } from "@/components/ui/button";
 import { useMissionManagement } from "@/hooks/use-mission-management";
 import type {
   DisputeFormType,
@@ -31,7 +36,14 @@ export default function Job() {
   const [currentUserId, setCurrentUserId] = useState<number | undefined>();
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [showDisputeDialog, setShowDisputeDialog] = useState(false);
+  const [showQuoteRejectionDialog, setShowQuoteRejectionDialog] =
+    useState(false);
+  const [showViewValidationModal, setShowViewValidationModal] = useState(false);
+  const [showClientDisputeModal, setShowClientDisputeModal] = useState(false);
+  const [showArtisanDisputeModal, setShowArtisanDisputeModal] = useState(false);
   const [unreadMessageCount, setUnreadMessageCount] = useState(3); // Fake data
+  const [isAcceptingEstimate, setIsAcceptingEstimate] = useState(false);
+  const [isRejectingEstimate, setIsRejectingEstimate] = useState(false);
 
   const { startMission, handleValidation, handleDispute, isLoading } =
     useMissionManagement();
@@ -89,6 +101,12 @@ export default function Job() {
   }
 
   const photos = mission?.photos ? JSON.parse(mission.photos) : [];
+
+  // Check if artisan has already rejected an estimate for this request
+  const hasAlreadyRejectedEstimate =
+    mission.billingEstimates?.some(
+      (estimate) => estimate.rejectedByArtisanId === currentUserId
+    ) || false;
 
   const handleStartMission = async () => {
     try {
@@ -159,6 +177,86 @@ export default function Job() {
     }
   };
 
+  const handleAcceptRevisedEstimate = async () => {
+    if (!mission.billingEstimates || mission.billingEstimates.length === 0) {
+      alert("Aucun devis trouvé");
+      return;
+    }
+
+    setIsAcceptingEstimate(true);
+    try {
+      const response = await fetch(
+        `/api/artisan/billing-estimates/${mission.billingEstimates[0].id}/respond`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "accept",
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(data.message || "Devis accepté avec succès");
+        mutate();
+      } else {
+        const error = await response.json();
+        alert(`Erreur: ${error.error}`);
+      }
+    } catch (error) {
+      console.error("Error accepting estimate:", error);
+      alert("Erreur lors de l'acceptation du devis");
+    } finally {
+      setIsAcceptingEstimate(false);
+    }
+  };
+
+  const handleRejectRevisedEstimate = async () => {
+    if (!mission.billingEstimates || mission.billingEstimates.length === 0) {
+      alert("Aucun devis trouvé");
+      return;
+    }
+
+    const confirmed = confirm(
+      "Êtes-vous sûr de vouloir refuser ce devis révisé ? Cette action est irréversible."
+    );
+
+    if (!confirmed) return;
+
+    setIsRejectingEstimate(true);
+    try {
+      const response = await fetch(
+        `/api/artisan/billing-estimates/${mission.billingEstimates[0].id}/respond`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "refuse",
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(data.message || "Devis refusé");
+        mutate();
+      } else {
+        const error = await response.json();
+        alert(`Erreur: ${error.error}`);
+      }
+    } catch (error) {
+      console.error("Error rejecting estimate:", error);
+      alert("Erreur lors du refus du devis");
+    } finally {
+      setIsRejectingEstimate(false);
+    }
+  };
+
   const handleTabSwitch = (tab: "mission" | "chat") => {
     setActiveTab(tab);
     if (tab === "chat") {
@@ -168,11 +266,56 @@ export default function Job() {
 
   return (
     <>
+      {/* Artisan Dispute Banner */}
+      {(mission.status === "disputed_by_artisan" ||
+        mission.status === "disputed_by_both") &&
+        mission.disputeActions && (
+          <div className="bg-gradient-to-r from-red-100 to-rose-100 border-l-4 border-red-500 p-4 mx-4 mb-4 rounded-r-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-red-900">
+                    Vous avez ouvert un litige
+                  </h3>
+                  <p className="text-xs text-red-800 mt-0.5">
+                    Notre équipe examine votre demande
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="h-8 text-xs bg-red-600 text-white hover:bg-red-700"
+                onClick={() => setShowArtisanDisputeModal(true)}
+              >
+                Voir les détails
+              </Button>
+            </div>
+          </div>
+        )}
+
       <ActionBanner
         status={mission.status}
         onStartMission={handleStartMission}
         onOpenValidation={() => setShowValidationDialog(true)}
         onOpenDispute={() => setShowDisputeDialog(true)}
+        onOpenQuoteRejection={() => setShowQuoteRejectionDialog(true)}
+        onAcceptRevisedEstimate={handleAcceptRevisedEstimate}
+        onRejectRevisedEstimate={handleRejectRevisedEstimate}
+        onOpenClientDispute={() => setShowClientDisputeModal(true)}
+        onViewValidation={() => setShowViewValidationModal(true)}
+        artisanAccepted={
+          mission.billingEstimates?.[0]?.artisanAccepted ?? undefined
+        }
+        clientAccepted={
+          mission.billingEstimates?.[0]?.clientAccepted ?? undefined
+        }
+        hasAlreadyRejectedEstimate={hasAlreadyRejectedEstimate}
+        hasValidationActions={
+          mission.validationActions && mission.validationActions.length > 0
+        }
       />
 
       <div className="space-y-6 bg-gray-50 min-h-screen">
@@ -183,6 +326,55 @@ export default function Job() {
           onOpenDispute={() => setShowDisputeDialog(true)}
           onCallClient={handleCallClient}
         />
+
+        {/* Dual Acceptance Status Banner */}
+        {mission.status === "awaiting_dual_acceptance" &&
+          mission.billingEstimates &&
+          mission.billingEstimates.length > 0 && (
+            <div className="px-4">
+              <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-purple-900 mb-3">
+                  Acceptation mutuelle requise
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        mission.billingEstimates[0].clientAccepted
+                          ? "bg-green-500"
+                          : "bg-gray-300"
+                      }`}
+                    />
+                    <span className="text-sm text-purple-700">
+                      Client:{" "}
+                      {mission.billingEstimates[0].clientAccepted
+                        ? "✓ Accepté"
+                        : "En attente"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        mission.billingEstimates[0].artisanAccepted
+                          ? "bg-green-500"
+                          : "bg-gray-300"
+                      }`}
+                    />
+                    <span className="text-sm text-purple-700">
+                      Vous (Artisan):{" "}
+                      {mission.billingEstimates[0].artisanAccepted
+                        ? "✓ Accepté"
+                        : "En attente"}
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-3 text-xs text-purple-600">
+                  Le travail ne pourra commencer qu'après acceptation des deux
+                  parties.
+                </p>
+              </div>
+            </div>
+          )}
 
         {/* Tab Navigation */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -295,6 +487,60 @@ export default function Job() {
         mission={mission}
         onSubmit={handleDisputeSubmit}
         isSubmitting={isLoading}
+      />
+
+      {/* Quote Rejection Dialog */}
+      {mission.billingEstimates &&
+        mission.billingEstimates.length > 0 &&
+        mission.billingEstimates[0].id && (
+          <QuoteRejectionDialog
+            open={showQuoteRejectionDialog}
+            onOpenChange={setShowQuoteRejectionDialog}
+            estimateId={mission.billingEstimates[0].id}
+            estimatedPrice={mission.estimatedPrice || 0}
+            onSuccess={() => {
+              mutate();
+            }}
+          />
+        )}
+
+      {/* View Validation Modal */}
+      <ArtisanValidationModal
+        open={showViewValidationModal}
+        onOpenChange={setShowViewValidationModal}
+        validationAction={mission.validationActions?.[0] || null}
+        artisanName={
+          mission.assignedArtisan?.firstName &&
+          mission.assignedArtisan?.lastName
+            ? `${mission.assignedArtisan.firstName} ${mission.assignedArtisan.lastName}`
+            : mission.assignedArtisan?.name || "Vous"
+        }
+      />
+
+      {/* Client Dispute Modal */}
+      <ClientDisputeModal
+        open={showClientDisputeModal}
+        onOpenChange={setShowClientDisputeModal}
+        disputeActions={mission.disputeActions}
+        clientName={mission.clientName}
+      />
+
+      {/* Artisan Dispute Details Modal */}
+      <DisputeDetailsModal
+        open={showArtisanDisputeModal}
+        onOpenChange={setShowArtisanDisputeModal}
+        disputeAction={
+          mission.disputeActions?.filter(
+            (action) => action.actorType === "artisan"
+          )[0] || null
+        }
+        actorType="artisan"
+        actorName={
+          mission.assignedArtisan?.firstName &&
+          mission.assignedArtisan?.lastName
+            ? `${mission.assignedArtisan.firstName} ${mission.assignedArtisan.lastName}`
+            : mission.assignedArtisan?.name || "Vous"
+        }
       />
     </>
   );

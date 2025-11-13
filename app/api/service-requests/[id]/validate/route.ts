@@ -34,8 +34,22 @@ export async function POST(
       );
     }
 
-    // Validate required fields for approval
-    if (action === "approve") {
+    // Get the service request and verify ownership first
+    const serviceRequestData = await getServiceRequestWithUser(requestId);
+    if (!serviceRequestData) {
+      return NextResponse.json(
+        { error: "Service request not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify the user is either the client who created the request or the assigned artisan
+    const isClient = serviceRequestData.request.userId === user.id;
+    const isAssignedArtisan =
+      serviceRequestData.request.assignedArtisanId === user.id;
+
+    // Validate required fields for approval (only for artisan)
+    if (action === "approve" && isAssignedArtisan) {
       if (!validationDescription || validationDescription.trim().length < 20) {
         return NextResponse.json(
           { error: "Description du travail effectué requise (minimum 20 caractères)" },
@@ -65,20 +79,6 @@ export async function POST(
         );
       }
     }
-
-    // Get the service request and verify ownership
-    const serviceRequestData = await getServiceRequestWithUser(requestId);
-    if (!serviceRequestData) {
-      return NextResponse.json(
-        { error: "Service request not found" },
-        { status: 404 }
-      );
-    }
-
-    // Verify the user is either the client who created the request or the assigned artisan
-    const isClient = serviceRequestData.request.userId === user.id;
-    const isAssignedArtisan =
-      serviceRequestData.request.assignedArtisanId === user.id;
 
     if (!isClient && !isAssignedArtisan) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

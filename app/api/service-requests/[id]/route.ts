@@ -1,5 +1,6 @@
 import { UserRole } from "@/lib/auth/roles";
 import { db } from "@/lib/db/drizzle";
+import { getServiceRequestActions } from "@/lib/db/queries";
 import { getUser } from "@/lib/db/queries/common";
 import {
   billingEstimates,
@@ -115,6 +116,11 @@ export async function GET(
         createdAt: billingEstimates.createdAt,
         description: billingEstimates.description,
         breakdown: billingEstimates.breakdown,
+        artisanAccepted: billingEstimates.artisanAccepted,
+        clientAccepted: billingEstimates.clientAccepted,
+        artisanResponseDate: billingEstimates.artisanResponseDate,
+        clientResponseDate: billingEstimates.clientResponseDate,
+        rejectedByArtisanId: billingEstimates.rejectedByArtisanId,
       })
       .from(billingEstimates)
       .where(eq(billingEstimates.serviceRequestId, requestId))
@@ -139,6 +145,17 @@ export async function GET(
       }
     }
 
+    // Get validation actions for this request (both client and artisan validations)
+    const allActions = await getServiceRequestActions(requestId);
+    const validationActions = allActions.filter(
+      (action) => action.actionType === "validation"
+    );
+
+    // Get dispute actions for this request
+    const disputeActions = allActions.filter(
+      (action) => action.actionType === "dispute"
+    );
+
     // Construct client name from available information
     const clientName =
       request.client?.firstName && request.client?.lastName
@@ -152,6 +169,8 @@ export async function GET(
       clientPhone: request.client?.phone,
       billingEstimates: estimates,
       statusHistory,
+      validationActions,
+      disputeActions,
       // Add mock timeline data for now - in a real app this would come from activity logs
       timeline: {
         created: {
@@ -243,14 +262,22 @@ export async function PATCH(
 
     // Check if status allows editing (only for client editing location/description/title)
     // Photos can be updated at any time, but location/description/title only in early stages
-    if ((location !== undefined || description !== undefined || title !== undefined) && 
-        existingRequest.userId === user.id) {
+    if (
+      (location !== undefined ||
+        description !== undefined ||
+        title !== undefined) &&
+      existingRequest.userId === user.id
+    ) {
       const allowedStatuses = [
         ServiceRequestStatus.AWAITING_ESTIMATE,
         ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION,
       ];
-      
-      if (!allowedStatuses.includes(existingRequest.status as ServiceRequestStatus)) {
+
+      if (
+        !allowedStatuses.includes(
+          existingRequest.status as ServiceRequestStatus
+        )
+      ) {
         return NextResponse.json(
           { error: "Cette demande ne peut plus être modifiée" },
           { status: 400 }

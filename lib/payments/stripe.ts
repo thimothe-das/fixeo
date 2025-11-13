@@ -1,5 +1,5 @@
+import { db } from "@/lib/db/drizzle";
 import {
-  getBillingEstimatesByRequestId,
   updateBillingEstimateStatus,
   updateServiceRequestDownPaymentByGuestToken,
   updateServiceRequestDownPaymentSuccess,
@@ -9,7 +9,15 @@ import {
   updateTeamSubscription,
 } from "@/lib/db/queries/client";
 import { getUser } from "@/lib/db/queries/common";
-import { BillingEstimateStatus, Team } from "@/lib/db/schema";
+import {
+  billingEstimates,
+  BillingEstimateStatus,
+  serviceRequests,
+  ServiceRequestStatus,
+  serviceRequestStatusHistory,
+  Team,
+} from "@/lib/db/schema";
+import { desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
 
@@ -236,23 +244,90 @@ export async function handleSuccessfulPayment(
   try {
     // Update service request status after successful payment
     const requestId = parseInt(requestIdFromMetadata);
-    const billingEstimates = await getBillingEstimatesByRequestId(requestId);
-    const billingEstimate = billingEstimates?.[0];
+
+    // Fetch the billing estimate with all required fields
+    const [billingEstimate] = await db
+      .select()
+      .from(billingEstimates)
+      .where(eq(billingEstimates.serviceRequestId, requestId))
+      .orderBy(desc(billingEstimates.createdAt))
+      .limit(1);
+
     if (!billingEstimate) {
       throw new Error(
         `Billing estimate not found for request ID: ${requestId}`
       );
     }
 
-    // Update the service request status to awaiting_estimate
+    // Update the service request down payment status
     await updateServiceRequestDownPaymentSuccess(requestId, guestToken);
-    await updateBillingEstimateStatus(
-      billingEstimate.id,
-      BillingEstimateStatus.ACCEPTED
-    );
-    console.log(
-      `Updated service request ${requestId} status to awaiting_estimate after payment`
-    );
+
+    // Check if this is a dual acceptance scenario (revised estimate with assigned artisan)
+    const [serviceRequest] = await db
+      .select()
+      .from(serviceRequests)
+      .where(eq(serviceRequests.id, requestId))
+      .limit(1);
+
+    const isRevisedEstimate = (billingEstimate.revisionNumber || 1) > 1;
+    const hasAssignedArtisan = serviceRequest?.assignedArtisanId !== null;
+    const requiresDualAcceptance = isRevisedEstimate && hasAssignedArtisan;
+
+    if (requiresDualAcceptance) {
+      // Dual acceptance flow: mark client as accepted with timestamp
+      await db
+        .update(billingEstimates)
+        .set({
+          clientAccepted: true,
+          clientResponseDate: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(billingEstimates.id, billingEstimate.id));
+
+      // Check if artisan has also accepted
+      if (billingEstimate.artisanAccepted === true) {
+        // Both parties accepted: set status to in_progress
+        await db
+          .update(billingEstimates)
+          .set({
+            status: BillingEstimateStatus.ACCEPTED,
+            updatedAt: new Date(),
+          })
+          .where(eq(billingEstimates.id, billingEstimate.id));
+
+        await db
+          .update(serviceRequests)
+          .set({
+            status: ServiceRequestStatus.IN_PROGRESS,
+            updatedAt: new Date(),
+          })
+          .where(eq(serviceRequests.id, requestId));
+
+        // Record status change in history
+        await db.insert(serviceRequestStatusHistory).values({
+          serviceRequestId: requestId,
+          status: ServiceRequestStatus.IN_PROGRESS,
+        });
+
+        console.log(
+          `Updated service request ${requestId} status to in_progress after both parties accepted`
+        );
+      } else {
+        // Client accepted but artisan hasn't: keep status as awaiting_dual_acceptance
+        console.log(
+          `Client paid and accepted for request ${requestId}. Waiting for artisan acceptance.`
+        );
+      }
+    } else {
+      // Non-dual acceptance flow: use existing logic
+      await updateBillingEstimateStatus(
+        billingEstimate.id,
+        BillingEstimateStatus.ACCEPTED
+      );
+      console.log(
+        `Updated service request ${requestId} status to awaiting_assignation after payment`
+      );
+    }
 
     // Update down payment status if guest token exists (this also happens in checkout API, but webhook is more reliable)
     if (guestToken) {

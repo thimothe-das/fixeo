@@ -69,6 +69,13 @@ export async function getServiceRequestsForArtisan(userId: number) {
         description: billingEstimates.description,
         breakdown: billingEstimates.breakdown,
         createdAt: billingEstimates.createdAt,
+        artisanRejectionReason: billingEstimates.artisanRejectionReason,
+        rejectedByArtisanId: billingEstimates.rejectedByArtisanId,
+        rejectedAt: billingEstimates.rejectedAt,
+        artisanAccepted: billingEstimates.artisanAccepted,
+        clientAccepted: billingEstimates.clientAccepted,
+        artisanResponseDate: billingEstimates.artisanResponseDate,
+        clientResponseDate: billingEstimates.clientResponseDate,
       },
     })
     .from(serviceRequests)
@@ -225,6 +232,13 @@ export async function getBillingEstimateByIdForArtisan(
       validUntil: billingEstimates.validUntil,
       status: billingEstimates.status,
       clientResponse: billingEstimates.clientResponse,
+      clientAccepted: billingEstimates.clientAccepted,
+      artisanAccepted: billingEstimates.artisanAccepted,
+      artisanRejectionReason: billingEstimates.artisanRejectionReason,
+      rejectedByArtisanId: billingEstimates.rejectedByArtisanId,
+      rejectedAt: billingEstimates.rejectedAt,
+      artisanResponseDate: billingEstimates.artisanResponseDate,
+      clientResponseDate: billingEstimates.clientResponseDate,
       createdAt: billingEstimates.createdAt,
       updatedAt: billingEstimates.updatedAt,
       admin: {

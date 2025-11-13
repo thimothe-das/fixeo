@@ -65,25 +65,60 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if there's already a pending estimate for this request
-    const existingPendingEstimate = await db
+    // Get service request to check status
+    const [serviceRequest] = await db
       .select()
-      .from(billingEstimates)
-      .where(
-        and(
-          eq(billingEstimates.serviceRequestId, parseInt(serviceRequestId)),
-          eq(billingEstimates.status, BillingEstimateStatus.PENDING)
-        )
-      )
+      .from(serviceRequests)
+      .where(eq(serviceRequests.id, parseInt(serviceRequestId)))
       .limit(1);
 
-    if (existingPendingEstimate.length > 0) {
+    if (!serviceRequest) {
       return NextResponse.json(
-        { 
-          error: "Il existe déjà un devis en attente pour cette demande. Veuillez attendre que le client réponde avant d'en créer un nouveau." 
-        },
-        { status: 400 }
+        { error: "Demande de service non trouvée" },
+        { status: 404 }
       );
+    }
+
+    const isRevision =
+      serviceRequest.status === "awaiting_estimate_revision";
+
+    // Check if there's already a pending estimate for this request (only if not a revision)
+    if (!isRevision) {
+      const existingPendingEstimate = await db
+        .select()
+        .from(billingEstimates)
+        .where(
+          and(
+            eq(billingEstimates.serviceRequestId, parseInt(serviceRequestId)),
+            eq(billingEstimates.status, BillingEstimateStatus.PENDING)
+          )
+        )
+        .limit(1);
+
+      if (existingPendingEstimate.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              "Il existe déjà un devis en attente pour cette demande. Veuillez attendre que le client réponde avant d'en créer un nouveau.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Get the latest estimate to determine revision number
+    let revisionNumber = 1;
+    if (isRevision) {
+      const latestEstimate = await db
+        .select()
+        .from(billingEstimates)
+        .where(eq(billingEstimates.serviceRequestId, parseInt(serviceRequestId)))
+        .orderBy(billingEstimates.createdAt)
+        .limit(1);
+
+      if (latestEstimate.length > 0) {
+        revisionNumber = (latestEstimate[0].revisionNumber || 1) + 1;
+      }
     }
 
     // Auto-set validUntil to 48 hours from now if not provided
@@ -96,27 +131,18 @@ export async function POST(request: Request) {
       description,
       breakdown: breakdown ? JSON.stringify(breakdown) : undefined,
       validUntil: validUntil ? new Date(validUntil) : defaultValidUntil,
+      revisionNumber,
     };
 
     const estimate = await createBillingEstimate(estimateData);
 
-    // Get service request details for email notification
-    const serviceRequest = await db
-      .select({
-        serviceType: serviceRequests.serviceType,
-        clientEmail: serviceRequests.clientEmail,
-      })
-      .from(serviceRequests)
-      .where(eq(serviceRequests.id, estimateData.serviceRequestId))
-      .limit(1);
-
     // Send email notification to client
-    if (serviceRequest.length > 0 && serviceRequest[0].clientEmail) {
+    if (serviceRequest.clientEmail) {
       try {
         await sendEstimateCreatedNotification(
-          serviceRequest[0].clientEmail,
+          serviceRequest.clientEmail,
           "Client name not available",
-          serviceRequest[0].serviceType,
+          serviceRequest.serviceType,
           estimateData.estimatedPrice,
           estimate.id
         );

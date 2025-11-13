@@ -1,5 +1,5 @@
 import { UserRole } from "@/lib/auth/roles";
-import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "./drizzle";
 import {
   billingEstimates,
@@ -28,6 +28,8 @@ export async function getBillingEstimatesByRequestId(serviceRequestId: number) {
       validUntil: billingEstimates.validUntil,
       status: billingEstimates.status,
       clientResponse: billingEstimates.clientResponse,
+      clientAccepted: billingEstimates.clientAccepted,
+      artisanAccepted: billingEstimates.artisanAccepted,
       createdAt: billingEstimates.createdAt,
       updatedAt: billingEstimates.updatedAt,
       admin: {
@@ -54,6 +56,13 @@ export async function getAllBillingEstimates() {
       validUntil: billingEstimates.validUntil,
       status: billingEstimates.status,
       clientResponse: billingEstimates.clientResponse,
+      clientAccepted: billingEstimates.clientAccepted,
+      artisanAccepted: billingEstimates.artisanAccepted,
+      artisanRejectionReason: billingEstimates.artisanRejectionReason,
+      rejectedByArtisanId: billingEstimates.rejectedByArtisanId,
+      rejectedAt: billingEstimates.rejectedAt,
+      artisanResponseDate: billingEstimates.artisanResponseDate,
+      clientResponseDate: billingEstimates.clientResponseDate,
       createdAt: billingEstimates.createdAt,
       updatedAt: billingEstimates.updatedAt,
       admin: {
@@ -61,10 +70,23 @@ export async function getAllBillingEstimates() {
         name: users.name,
         email: users.email,
       },
+      serviceRequest: {
+        id: serviceRequests.id,
+        serviceType: serviceRequests.serviceType,
+        description: serviceRequests.description,
+        location: serviceRequests.location,
+        status: serviceRequests.status,
+        title: serviceRequests.title,
+        createdAt: serviceRequests.createdAt,
+      },
     })
     .from(billingEstimates)
     .leftJoin(users, eq(billingEstimates.adminId, users.id))
-    .orderBy(desc(billingEstimates.createdAt));
+    .leftJoin(
+      serviceRequests,
+      eq(billingEstimates.serviceRequestId, serviceRequests.id)
+    )
+    .orderBy(desc(billingEstimates.updatedAt));
 }
 
 export async function getBillingEstimateById(
@@ -82,6 +104,13 @@ export async function getBillingEstimateById(
       validUntil: billingEstimates.validUntil,
       status: billingEstimates.status,
       clientResponse: billingEstimates.clientResponse,
+      clientAccepted: billingEstimates.clientAccepted,
+      artisanAccepted: billingEstimates.artisanAccepted,
+      artisanRejectionReason: billingEstimates.artisanRejectionReason,
+      rejectedByArtisanId: billingEstimates.rejectedByArtisanId,
+      rejectedAt: billingEstimates.rejectedAt,
+      artisanResponseDate: billingEstimates.artisanResponseDate,
+      clientResponseDate: billingEstimates.clientResponseDate,
       createdAt: billingEstimates.createdAt,
       updatedAt: billingEstimates.updatedAt,
       admin: {
@@ -171,7 +200,10 @@ export async function updateBillingEstimateStatus(
   }
 
   // If rejected or expired, update the service request status back to awaiting estimate
-  if (status === BillingEstimateStatus.REJECTED || status === BillingEstimateStatus.EXPIRED) {
+  if (
+    status === BillingEstimateStatus.REJECTED ||
+    status === BillingEstimateStatus.EXPIRED
+  ) {
     await db
       .update(serviceRequests)
       .set({
@@ -348,6 +380,8 @@ export async function getBillingEstimatesForArtisan(artisanId: number) {
       validUntil: billingEstimates.validUntil,
       status: billingEstimates.status,
       clientResponse: billingEstimates.clientResponse,
+      clientAccepted: billingEstimates.clientAccepted,
+      artisanAccepted: billingEstimates.artisanAccepted,
       createdAt: billingEstimates.createdAt,
       updatedAt: billingEstimates.updatedAt,
       admin: {
@@ -447,12 +481,27 @@ export async function getServiceRequestByIdForAdmin(requestId: number) {
   // Get conversations
   const conversationsData = await getConversationsByRequestId(requestId);
 
+  // Get validation actions (artisan validations)
+  const allActions = await getServiceRequestActions(requestId);
+  const validationActions = allActions.filter(
+    (action) => 
+      action.actionType === "validation" && 
+      action.actorType === "artisan"
+  );
+
+  // Get dispute actions for this request
+  const disputeActions = allActions.filter(
+    (action) => action.actionType === "dispute"
+  );
+
   return {
     ...request,
     client,
     assignedArtisan,
     billingEstimates: estimates,
     conversations: conversationsData,
+    validationActions,
+    disputeActions,
   };
 }
 
@@ -486,7 +535,7 @@ export async function getConversationsByRequestId(serviceRequestId: number) {
   // Transform results to match expected format
   return results.map((row) => {
     let senderName = row.sender?.name || "Unknown";
-    
+
     // Prefer first/last name from profiles
     if (row.clientFirstName && row.clientLastName) {
       senderName = `${row.clientFirstName} ${row.clientLastName}`;
@@ -725,7 +774,10 @@ export async function getDisputedRequests() {
             phone: professionalProfiles.phone,
           })
           .from(users)
-          .leftJoin(professionalProfiles, eq(users.id, professionalProfiles.userId))
+          .leftJoin(
+            professionalProfiles,
+            eq(users.id, professionalProfiles.userId)
+          )
           .where(eq(users.id, request.assignedArtisanId))
           .limit(1);
 

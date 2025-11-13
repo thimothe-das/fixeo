@@ -356,11 +356,11 @@ export function Requests({
                               </TableCell>
 
                               <TableCell>
-                                <div className="max-w-[200px]">
+                                <div className="max-w-[300px]">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <span className="text-sm truncate cursor-help block">
-                                        {truncateText(request.title, 20)}
+                                        {request.title}
                                       </span>
                                     </TooltipTrigger>
                                     <TooltipContent className="text-white">

@@ -14,6 +14,8 @@ import {
 export const serviceRequestStatusEnum = pgEnum("service_request_status", [
   "awaiting_estimate", // Awaiting for estimate by admin
   "awaiting_estimate_acceptation", // After estimate is added, waiting for client acceptance
+  "awaiting_estimate_revision", // Artisan rejected estimate, waiting for admin to revise
+  "awaiting_dual_acceptance", // Revised estimate waiting for both client and artisan acceptance
   "awaiting_assignation", // After estimate accepted by client, waiting for artisan assignment
   "in_progress", // When work begins
   "client_validated", // Client has validated the work
@@ -238,6 +240,14 @@ export const billingEstimates = pgTable("billing_estimates", {
   validUntil: timestamp("valid_until"),
   status: billingEstimateStatusEnum("status").notNull().default("pending"),
   clientResponse: text("client_response"), // Client's message when accepting/rejecting
+  artisanRejectionReason: text("artisan_rejection_reason"), // Reason why artisan rejected the quote
+  rejectedByArtisanId: integer("rejected_by_artisan_id").references(() => users.id), // Track which artisan rejected it
+  rejectedAt: timestamp("rejected_at"), // When artisan rejected it
+  revisionNumber: integer("revision_number").notNull().default(1), // Track how many times estimate was revised
+  artisanAccepted: boolean("artisan_accepted"), // Artisan acceptance for revised estimates (dual acceptance)
+  clientAccepted: boolean("client_accepted"), // Client acceptance for revised estimates (dual acceptance)
+  artisanResponseDate: timestamp("artisan_response_date"), // When artisan responded to revised estimate
+  clientResponseDate: timestamp("client_response_date"), // When client responded to revised estimate
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -511,6 +521,8 @@ export enum ActivityType {
 export enum ServiceRequestStatus {
   AWAITING_ESTIMATE = "awaiting_estimate",
   AWAITING_ESTIMATE_ACCEPTATION = "awaiting_estimate_acceptation",
+  AWAITING_ESTIMATE_REVISION = "awaiting_estimate_revision",
+  AWAITING_DUAL_ACCEPTANCE = "awaiting_dual_acceptance",
   AWAITING_ASSIGNATION = "awaiting_assignation",
   IN_PROGRESS = "in_progress",
   CLIENT_VALIDATED = "client_validated",

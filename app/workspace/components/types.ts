@@ -42,6 +42,11 @@ export type ServiceRequestForArtisan = {
     createdAt: string;
     description: string;
     breakdown: string | null;
+    artisanAccepted?: boolean | null;
+    clientAccepted?: boolean | null;
+    artisanResponseDate?: string | null;
+    clientResponseDate?: string | null;
+    rejectedByArtisanId?: number | null;
   }>;
   timeline?: {
     created?: {
@@ -64,6 +69,34 @@ export type ServiceRequestForArtisan = {
     createdAt: string;
   }>;
   requirements?: string[];
+  validationActions?: {
+    id: number;
+    timestamp: Date;
+    validationNotes: string | null;
+    additionalData: string | null;
+    actorType: string;
+    actionType: string;
+    actor: {
+      id: number;
+      name: string | null;
+      email: string;
+    } | null;
+  }[];
+  disputeActions?: {
+    id: number;
+    timestamp: Date | string;
+    actorId: number;
+    actorType: string;
+    disputeReason: string;
+    disputeDetails: string;
+    additionalData: string | null;
+    createdAt: Date | string;
+    actor: {
+      id: number;
+      name: string | null;
+      email: string;
+    } | null;
+  }[];
 };
 
 export type ArtisanStats = {
@@ -113,6 +146,13 @@ export type BillingEstimateForAdmin = {
   validUntil?: string;
   status: "pending" | "accepted" | "rejected" | "expired";
   clientResponse?: string;
+  artisanRejectionReason?: string | null;
+  rejectedByArtisanId?: number | null;
+  rejectedAt?: string | null;
+  artisanAccepted?: boolean | null;
+  clientAccepted?: boolean | null;
+  artisanResponseDate?: string | null;
+  clientResponseDate?: string | null;
   createdAt: string;
   updatedAt: string;
   admin?: {
@@ -131,6 +171,13 @@ export type BillingEstimateForClient = {
   validUntil?: string;
   status: "pending" | "accepted" | "rejected" | "expired";
   clientResponse?: string;
+  artisanRejectionReason?: string | null;
+  rejectedByArtisanId?: number | null;
+  rejectedAt?: string | null;
+  artisanAccepted?: boolean | null;
+  clientAccepted?: boolean | null;
+  artisanResponseDate?: string | null;
+  clientResponseDate?: string | null;
   createdAt: string;
   updatedAt: string;
   serviceRequest?: {
@@ -212,4 +259,19 @@ export type MissionAction = {
 // Update ServiceRequestForArtisan to include action history
 export type ServiceRequestWithActions = ServiceRequestForArtisan & {
   actions?: MissionAction[];
+};
+
+// Validation Action type for reusability
+export type ValidationAction = {
+  id: number;
+  timestamp: Date;
+  validationNotes: string | null;
+  additionalData: string | null;
+  actorType: string;
+  actionType: string;
+  actor: {
+    id: number;
+    name: string | null;
+    email: string;
+  } | null;
 };

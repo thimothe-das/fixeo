@@ -7,6 +7,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BillingEstimateStatus } from "@/lib/db/schema";
 import { getBillingEstimateStatusConfig } from "@/lib/utils";
 import {
@@ -15,10 +16,12 @@ import {
   CheckCircle,
   Clock,
   Euro,
+  Eye,
   FileText,
   XCircle,
 } from "lucide-react";
 import moment from "moment";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface Estimate {
@@ -27,6 +30,13 @@ interface Estimate {
   description: string;
   status: "pending" | "accepted" | "rejected" | "expired";
   clientResponse?: string | null;
+  artisanRejectionReason?: string | null;
+  artisanAccepted?: boolean | null;
+  clientAccepted?: boolean | null;
+  artisanResponseDate?: string | null;
+  clientResponseDate?: string | null;
+  rejectedByArtisanId?: number | null;
+  rejectedAt?: string | null;
   createdAt: string;
   validUntil?: string | null;
   updatedAt: string;
@@ -43,6 +53,7 @@ export function EstimateHistoryAccordion({
   role,
   currentEstimateId,
 }: EstimateHistoryAccordionProps) {
+  const router = useRouter();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -215,6 +226,53 @@ export function EstimateHistoryAccordion({
                   </div>
                 )}
 
+                {/* Artisan Rejection */}
+                {estimate.artisanRejectionReason && (
+                  <div className="border-l-4 border-amber-500 pl-4">
+                    <div className="flex items-start gap-3">
+                      <XCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-amber-900 mb-2">
+                          Refus de l'artisan
+                        </h4>
+                        <p className="text-sm text-amber-800 whitespace-pre-wrap leading-relaxed">
+                          {estimate.artisanRejectionReason}
+                        </p>
+                        {estimate.rejectedAt && (
+                          <div className="flex items-center gap-1 mt-2 text-xs text-amber-700">
+                            <Calendar className="h-3.5 w-3.5" />
+                            Refusé le {moment(estimate.rejectedAt).format("DD/MM/YYYY à HH:mm")}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Artisan Acceptance (for dual acceptance flow) */}
+                {estimate.artisanAccepted === true && (
+                  <div className="border-l-4 border-amber-500 pl-4">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-amber-900 mb-1">
+                          Acceptation de l'artisan
+                        </h4>
+                        <p className="text-sm text-amber-700">
+                          Ce devis a été accepté par l'artisan.
+                        </p>
+                        {estimate.artisanResponseDate && (
+                          <div className="flex items-center gap-1 mt-2 text-xs text-amber-700">
+                            <Calendar className="h-3.5 w-3.5" />
+                            Accepté le {moment(estimate.artisanResponseDate).format("DD/MM/YYYY à HH:mm")}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Client Rejection */}
                 {estimate.status === BillingEstimateStatus.REJECTED &&
                   estimate.clientResponse && (
                     <div className="border-l-4 border-red-500 pl-4">
@@ -222,11 +280,17 @@ export function EstimateHistoryAccordion({
                         <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <h4 className="text-sm font-semibold text-red-900 mb-2">
-                            Raison du refus
+                            Refus du client
                           </h4>
                           <p className="text-sm text-red-800 whitespace-pre-wrap leading-relaxed">
                             {estimate.clientResponse}
                           </p>
+                          {estimate.clientResponseDate && (
+                            <div className="flex items-center gap-1 mt-2 text-xs text-red-700">
+                              <Calendar className="h-3.5 w-3.5" />
+                              Refusé le {moment(estimate.clientResponseDate).format("DD/MM/YYYY à HH:mm")}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -251,7 +315,36 @@ export function EstimateHistoryAccordion({
                   </div>
                 )}
 
-                {estimate.status === BillingEstimateStatus.ACCEPTED && (
+                {/* Client Acceptance (for dual acceptance flow) */}
+                {estimate.clientAccepted === true && (
+                  <div className="border-l-4 border-green-500 pl-4">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-green-900 mb-1">
+                          Acceptation du client
+                        </h4>
+                        <p className="text-sm text-green-700">
+                          Ce devis a été accepté par le client.
+                        </p>
+                        {estimate.clientResponse && (
+                          <p className="text-sm text-green-800 whitespace-pre-wrap leading-relaxed mt-2">
+                            {estimate.clientResponse}
+                          </p>
+                        )}
+                        {estimate.clientResponseDate && (
+                          <div className="flex items-center gap-1 mt-2 text-xs text-green-700">
+                            <Calendar className="h-3.5 w-3.5" />
+                            Accepté le {moment(estimate.clientResponseDate).format("DD/MM/YYYY à HH:mm")}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Global Acceptance Status (when status is ACCEPTED) */}
+                {estimate.status === BillingEstimateStatus.ACCEPTED && !estimate.clientAccepted && (
                   <div className="border-l-4 border-green-500 pl-4">
                     <div className="flex items-start gap-3">
                       <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
@@ -262,12 +355,152 @@ export function EstimateHistoryAccordion({
                         <p className="text-sm text-green-700">
                           Ce devis a été accepté par le client.
                         </p>
+                        {estimate.clientResponse && (
+                          <p className="text-sm text-green-800 whitespace-pre-wrap leading-relaxed mt-2">
+                            {estimate.clientResponse}
+                          </p>
+                        )}
+                        {estimate.clientResponseDate && (
+                          <div className="flex items-center gap-1 mt-2 text-xs text-green-700">
+                            <Calendar className="h-3.5 w-3.5" />
+                            Accepté le {moment(estimate.clientResponseDate).format("DD/MM/YYYY à HH:mm")}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                {/* Dual Acceptance Summary */}
+                {estimate.artisanAccepted === true && estimate.clientAccepted === true && (
+                  <div className="border-2 border-green-500 rounded-lg p-4 bg-green-50">
+                    <div className="flex items-start gap-3 mb-3">
+                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="text-base font-bold text-green-900 mb-1">
+                          Devis accepté par les deux parties
+                        </h4>
+                        <p className="text-sm text-green-700">
+                          Ce devis révisé a été accepté par le client et l'artisan.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                      {/* Client acceptance details */}
+                      <div className="bg-white rounded-md p-3 border border-green-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="font-semibold text-sm text-gray-900">Client</span>
+                        </div>
+                        {estimate.clientResponseDate && (
+                          <div className="flex items-center gap-1 text-xs text-gray-600">
+                            <Calendar className="h-3 w-3" />
+                            {moment(estimate.clientResponseDate).format("DD/MM/YYYY à HH:mm")}
+                          </div>
+                        )}
+                      </div>
+                      {/* Artisan acceptance details */}
+                      <div className="bg-white rounded-md p-3 border border-amber-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle className="h-4 w-4 text-amber-600" />
+                          <span className="font-semibold text-sm text-gray-900">Artisan</span>
+                        </div>
+                        {estimate.artisanResponseDate && (
+                          <div className="flex items-center gap-1 text-xs text-gray-600">
+                            <Calendar className="h-3 w-3" />
+                            {moment(estimate.artisanResponseDate).format("DD/MM/YYYY à HH:mm")}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Partial Acceptance Warning (one party accepted, waiting for other) */}
+                {((estimate.artisanAccepted === true && estimate.clientAccepted !== true) ||
+                  (estimate.clientAccepted === true && estimate.artisanAccepted !== true)) && (
+                  <div className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
+                    <div className="flex items-start gap-3">
+                      <Clock className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="text-base font-semibold text-blue-900 mb-2">
+                          En attente d'acceptation
+                        </h4>
+                        <p className="text-sm text-blue-700 mb-3">
+                          {estimate.artisanAccepted === true && !estimate.clientAccepted
+                            ? "L'artisan a accepté ce devis. En attente de l'acceptation du client."
+                            : "Le client a accepté ce devis. En attente de l'acceptation de l'artisan."}
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {/* Client status */}
+                          <div className={`bg-white rounded-md p-3 border ${estimate.clientAccepted ? 'border-green-200' : 'border-gray-200'}`}>
+                            <div className="flex items-center gap-2 mb-2">
+                              {estimate.clientAccepted ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Clock className="h-4 w-4 text-gray-400" />
+                              )}
+                              <span className="font-semibold text-sm text-gray-900">Client</span>
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {estimate.clientAccepted ? (
+                                estimate.clientResponseDate ? (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {moment(estimate.clientResponseDate).format("DD/MM/YYYY à HH:mm")}
+                                  </div>
+                                ) : (
+                                  "Accepté"
+                                )
+                              ) : (
+                                "En attente"
+                              )}
+                            </div>
+                          </div>
+                          {/* Artisan status */}
+                          <div className={`bg-white rounded-md p-3 border ${estimate.artisanAccepted ? 'border-amber-200' : 'border-gray-200'}`}>
+                            <div className="flex items-center gap-2 mb-2">
+                              {estimate.artisanAccepted ? (
+                                <CheckCircle className="h-4 w-4 text-amber-600" />
+                              ) : (
+                                <Clock className="h-4 w-4 text-gray-400" />
+                              )}
+                              <span className="font-semibold text-sm text-gray-900">Artisan</span>
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {estimate.artisanAccepted ? (
+                                estimate.artisanResponseDate ? (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {moment(estimate.artisanResponseDate).format("DD/MM/YYYY à HH:mm")}
+                                  </div>
+                                ) : (
+                                  "Accepté"
+                                )
+                              ) : (
+                                "En attente"
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Navigation Button to Full Devis Page */}
+                <div className="pt-4 border-t border-gray-200">
+                  <Button
+                    onClick={() => router.push(`/workspace/devis/${estimate.id}`)}
+                    className="w-full flex items-center justify-center gap-2 h-11"
+                    variant="outline"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Voir le devis complet
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-gray-200 mt-3">
                   <div className="text-xs text-gray-500">
                     Dernière mise à jour:{" "}
                     {moment(estimate.updatedAt).format("DD/MM/YYYY à HH:mm")}

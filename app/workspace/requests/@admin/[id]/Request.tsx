@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   MapPin,
   MessageSquare,
+  MoreVertical,
   Play,
   Plus,
   Save,
@@ -37,12 +38,22 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 import { BillingEstimateForm } from "@/app/workspace/(admin)/BillingEstimateCreation";
+import { ArtisanValidationModal } from "@/app/workspace/components/ArtisanValidationModal";
 import { EstimateHistoryAccordion } from "@/app/workspace/devis/components/EstimateHistoryAccordion";
+import { AdminActionBanner } from "@/app/workspace/requests/components/AdminActionBanner";
+import { ClientValidationModal } from "@/app/workspace/requests/components/ClientValidationModal";
+import { DisputeDetailsModal } from "@/app/workspace/requests/components/DisputeDetailsModal";
 import {
   AddressAutocomplete,
   AddressData,
@@ -108,6 +119,34 @@ interface ServiceRequestDetail {
   };
   billingEstimates?: any[];
   conversations?: ConversationMessage[];
+  validationActions?: {
+    id: number;
+    timestamp: Date;
+    validationNotes: string | null;
+    additionalData: string | null;
+    actorType: string;
+    actionType: string;
+    actor: {
+      id: number;
+      name: string | null;
+      email: string;
+    } | null;
+  }[];
+  disputeActions?: {
+    id: number;
+    timestamp: Date | string;
+    actorId: number;
+    actorType: string;
+    disputeReason: string;
+    disputeDetails: string;
+    additionalData: string | null;
+    createdAt: Date | string;
+    actor: {
+      id: number;
+      name: string | null;
+      email: string;
+    } | null;
+  }[];
 }
 
 interface ConversationMessage {
@@ -142,6 +181,8 @@ const getRequestProgress = (
       label: "En attente de devis",
       completed: [
         "awaiting_estimate",
+        "awaiting_estimate_acceptation",
+        "awaiting_estimate_revision",
         "awaiting_assignation",
         "in_progress",
         "client_validated",
@@ -190,6 +231,15 @@ const getRequestProgress = (
       date: status === "completed" ? updatedAt : undefined,
     },
   ];
+
+  if (status === "awaiting_estimate_revision") {
+    steps.push({
+      key: "awaiting_estimate_revision",
+      label: "Révision du devis requise",
+      completed: true,
+      date: updatedAt,
+    });
+  }
 
   if (status.includes("disputed")) {
     steps.push({
@@ -295,11 +345,21 @@ export function Request({
   const [showConversationPanel, setShowConversationPanel] = useState(false);
   const [showEstimateModal, setShowEstimateModal] = useState(false);
   const [isCreatingEstimate, setIsCreatingEstimate] = useState(false);
-  const [serviceTypeSearch, setServiceTypeSearch] = useState("");
   const [showEstimateHistoryModal, setShowEstimateHistoryModal] =
     useState(false);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [showClientValidationModal, setShowClientValidationModal] =
+    useState(false);
+  const [showArtisanDisputeModal, setShowArtisanDisputeModal] = useState(false);
+  const [showClientDisputeModal, setShowClientDisputeModal] = useState(false);
+  const [showServiceSelectionModal, setShowServiceSelectionModal] =
+    useState(false);
+  const [tempSelectedServices, setTempSelectedServices] = useState<string[]>(
+    []
+  );
+  const [modalServiceSearch, setModalServiceSearch] = useState("");
 
-  const requestId = params.id as string;
+  const requestId = params?.id as string;
 
   const fetchRequest = async () => {
     try {
@@ -433,6 +493,22 @@ export function Request({
     fetchRequest();
   }, [requestId]);
 
+  // Helper functions for multi-service type handling
+  const parseServiceTypes = (
+    serviceTypeString: string | undefined
+  ): string[] => {
+    if (!serviceTypeString) return [];
+    return serviceTypeString.split(",").filter((s) => s.trim().length > 0);
+  };
+
+  const serializeServiceTypes = (serviceTypes: string[]): string => {
+    return serviceTypes.join(",");
+  };
+
+  const getSelectedServices = (): string[] => {
+    return parseServiceTypes(formData.serviceType);
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({
       ...prev,
@@ -450,6 +526,36 @@ export function Request({
         return newSet;
       });
     }
+  };
+
+  const handleRemoveService = (serviceToRemove: string) => {
+    const currentServices = getSelectedServices();
+    const updatedServices = currentServices.filter(
+      (service) => service !== serviceToRemove
+    );
+    handleInputChange("serviceType", serializeServiceTypes(updatedServices));
+  };
+
+  const handleOpenServiceModal = () => {
+    setTempSelectedServices(getSelectedServices());
+    setModalServiceSearch("");
+    setShowServiceSelectionModal(true);
+  };
+
+  const handleConfirmServiceSelection = () => {
+    handleInputChange(
+      "serviceType",
+      serializeServiceTypes(tempSelectedServices)
+    );
+    setShowServiceSelectionModal(false);
+  };
+
+  const handleToggleServiceInModal = (service: string) => {
+    setTempSelectedServices((prev) =>
+      prev.includes(service)
+        ? prev.filter((s) => s !== service)
+        : [...prev, service]
+    );
   };
 
   const handleAddressChange = (
@@ -530,6 +636,16 @@ export function Request({
   const urgencyConfig = getPriorityConfig(request?.urgency, "h-4 w-4");
   const serviceTypeConfig = getCategoryConfig(request?.serviceType, "h-4 w-4");
 
+  // Extract client and artisan validations
+  const clientValidation = request?.validationActions?.find(
+    (action) =>
+      action.actorType === "client" && action.actionType === "validation"
+  );
+  const artisanValidation = request?.validationActions?.find(
+    (action) =>
+      action.actorType === "artisan" && action.actionType === "validation"
+  );
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -603,7 +719,7 @@ export function Request({
                   >
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <h2 className="text-2xl font-bold text-gray-900 truncate max-w-md">
+                        <h2 className="text-2xl font-bold text-gray-900 truncate max-w-xl">
                           {formData.title || `Requête #${request.id}`}
                         </h2>
                       </TooltipTrigger>
@@ -650,12 +766,6 @@ export function Request({
                     </div>
                   </div>
                 )}
-                <Badge
-                  className={`${statusConfig.colors.color} text-sm ${statusConfig.colors.bg} ${statusConfig.colors.text}`}
-                >
-                  {statusConfig.icon}
-                  {statusConfig.label}
-                </Badge>
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-500">
                 <Tooltip>
@@ -678,6 +788,13 @@ export function Request({
                       {urgencyConfig.icon}
                       {urgencyConfig.label}
                     </span>
+                    <span className="text-gray-400">•</span>
+                    <Badge
+                      className={`${statusConfig.colors.color} text-sm ${statusConfig.colors.bg} ${statusConfig.colors.text} gap-2`}
+                    >
+                      {statusConfig.icon}
+                      {statusConfig.label}
+                    </Badge>
                   </>
                 )}
               </div>
@@ -686,17 +803,37 @@ export function Request({
           <div className="flex items-center gap-8">
             <div
               onClick={() =>
-                request.estimatedPrice
-                  ? router.push(`/workspace/devis/${request.id}`)
+                request.estimatedPrice &&
+                request.billingEstimates &&
+                request.billingEstimates.length > 0
+                  ? router.push(
+                      `/workspace/devis/${request.billingEstimates[0].id}`
+                    )
                   : setShowEstimateModal(true)
               }
               className="flex flex-col items-start hover:bg-blue-50 rounded-md px-3 py-2 transition-colors group "
             >
               <div
-                className="flex items-center gap-2 cursor-pointer transition-colors group text-blue-600 hover:text-blue-700"
+                className={cn(
+                  "flex items-center gap-2 cursor-pointer transition-colors group",
+                  request.status === "cancelled"
+                    ? "text-gray-400 hover:text-gray-500"
+                    : request.status === "awaiting_estimate_revision"
+                    ? "text-red-600 hover:text-red-700"
+                    : "text-blue-600 hover:text-blue-700"
+                )}
                 title="Cliquez pour créer/modifier le devis"
               >
-                <span className="text-2xl font-bold transition-colors hover:text-blue-700">
+                <span
+                  className={cn(
+                    "text-2xl font-bold transition-colors",
+                    request.status === "cancelled"
+                      ? "line-through text-gray-400 hover:text-gray-500"
+                      : request.status === "awaiting_estimate_revision"
+                      ? "line-through hover:text-red-700"
+                      : "hover:text-blue-700"
+                  )}
+                >
                   {formatCurrency(request.estimatedPrice || null)}
                 </span>
                 {(!request.billingEstimates ||
@@ -705,9 +842,24 @@ export function Request({
                 )}
               </div>
               {request.estimatedPrice ? (
-                <div className="flex items-center gap-1 text-blue-700 hover:text-blue-800 cursor-pointer">
+                <div
+                  className={cn(
+                    "flex items-center gap-1 cursor-pointer",
+                    request.status === "cancelled"
+                      ? "text-gray-500 hover:text-gray-600"
+                      : request.status === "awaiting_estimate_revision"
+                      ? "text-red-600 hover:text-red-700"
+                      : "text-blue-700 hover:text-blue-800"
+                  )}
+                >
                   <Calculator className="h-3 w-3" />
-                  <span className="text-xs font-medium">Voir devis</span>
+                  <span className="text-xs font-medium">
+                    {request.status === "cancelled"
+                      ? "Voir devis"
+                      : request.status === "awaiting_estimate_revision"
+                      ? "Voir devis contesté"
+                      : "Voir devis"}
+                  </span>
                 </div>
               ) : (
                 <span className="text-xs text-gray-500 mt-1 cursor-pointer hover:text-blue-700">
@@ -716,23 +868,6 @@ export function Request({
               )}
             </div>
             <div className="ml-4 flex items-center gap-3">
-              <Button
-                onClick={() => setShowEstimateHistoryModal(true)}
-                variant="outline"
-                className="border-gray-300 hover:bg-gray-50"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Historique des devis
-                {request.billingEstimates &&
-                  request.billingEstimates.length > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className="ml-2 bg-fixeo-main-100 text-fixeo-main-700"
-                    >
-                      {request.billingEstimates.length}
-                    </Badge>
-                  )}
-              </Button>
               <Button
                 onClick={saveRequest}
                 disabled={saving || modifiedFields.size === 0}
@@ -749,6 +884,31 @@ export function Request({
                   ? `Sauvegarder (${modifiedFields.size} modif.)`
                   : "Sauvegarder"}
               </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-10 w-10">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => setShowEstimateHistoryModal(true)}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Historique des devis
+                    {request.billingEstimates &&
+                      request.billingEstimates.length > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className="ml-2 bg-fixeo-main-100 text-fixeo-main-700"
+                        >
+                          {request.billingEstimates.length}
+                        </Badge>
+                      )}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -775,138 +935,165 @@ export function Request({
           </div>
 
           <div className="space-y-6 pt-10 mx-4">
+            {/* Admin Action Banner for Validations and Disputes */}
+            <AdminActionBanner
+              status={request.status}
+              validationActions={request.validationActions}
+              disputeActions={request.disputeActions}
+              billingEstimates={request.billingEstimates}
+              clientName={request.client?.name}
+              artisanName={request.assignedArtisan?.name}
+              onOpenClientValidation={() => setShowClientValidationModal(true)}
+              onOpenArtisanValidation={() => setShowValidationModal(true)}
+              onViewArtisanDispute={() => setShowArtisanDisputeModal(true)}
+              onViewClientDispute={() => setShowClientDisputeModal(true)}
+              onCreateRevisedEstimate={() => setShowEstimateModal(true)}
+            />
+
+            {/* Artisan Rejection Alert */}
+            {request.status === "awaiting_estimate_revision" &&
+              request.billingEstimates &&
+              request.billingEstimates.length > 0 &&
+              request.billingEstimates[0].artisanRejectionReason && (
+                <div className="bg-orange-50 border-l-4 border-orange-400 p-6 rounded-r-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-6 w-6 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-orange-900 mb-2">
+                        Révision du devis requise
+                      </h3>
+                      <p className="text-sm text-orange-800 mb-3">
+                        L'artisan a rejeté le devis actuel. Raison :
+                      </p>
+                      <div className="bg-white rounded-lg p-4 border border-orange-200">
+                        <p className="text-gray-800">
+                          {request.billingEstimates[0].artisanRejectionReason}
+                        </p>
+                      </div>
+                      {request.billingEstimates[0].rejectedByArtisanId && (
+                        <p className="text-xs text-orange-700 mt-2">
+                          Rejeté le{" "}
+                          {new Date(
+                            request.billingEstimates[0].rejectedAt!
+                          ).toLocaleDateString("fr-FR", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
             <div className="grid lg:grid-cols-3 gap-25">
               <div className="lg:col-span-2 space-y-9">
                 <div className="space-y-9">
                   <div className="space-y-6">
-                    <div className="space-y-6">
-                      <div className="flex items-center gap-4">
-                        <div className="relative flex-1">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search className="h-4 w-4 text-gray-400" />
-                          </div>
-                          <Input
-                            type="text"
-                            placeholder="Rechercher un service (ex: plomberie, électricité...)"
-                            value={serviceTypeSearch}
-                            onChange={(e) =>
-                              setServiceTypeSearch(e.target.value)
-                            }
-                            className="pl-10 h-11 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Service Type Selection - New Multi-Select UI */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Label className="text-sm font-medium text-gray-600">
+                            Types de service
+                          </Label>
                           <Tooltip>
                             <TooltipTrigger>
-                              <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+                              <HelpCircle className="h-4 w-4 text-gray-400" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="text-white max-w-xs">
-                                Sélectionnez la catégorie qui correspond le
-                                mieux au type d'intervention demandée. Utilisez
-                                la sélection rapide ou la barre de recherche
-                                pour filtrer.
+                                Sélectionnez un ou plusieurs types de service
+                                pour cette demande. Cliquez sur le bouton "+"
+                                pour ajouter des services.
                               </p>
                             </TooltipContent>
                           </Tooltip>
                           {modifiedFields.has("serviceType") && (
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                              <Edit3 className="h-3 w-3" />
-                              <span>Modifié</span>
+                            <div className="flex items-center gap-1">
+                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                              <span className="text-xs text-blue-600 font-medium">
+                                Modifié
+                              </span>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {/* Service Pill Tags Grid */}
-                      <div className="flex flex-wrap gap-3">
-                        {services
-                          .filter((type) => {
-                            const categoryConfig = getCategoryConfig(type, "");
-                            return (
-                              serviceTypeSearch === "" ||
-                              categoryConfig.type
-                                .toLowerCase()
-                                .includes(serviceTypeSearch.toLowerCase()) ||
-                              type
-                                .toLowerCase()
-                                .includes(serviceTypeSearch.toLowerCase())
-                            );
-                          })
-                          .map((type) => {
-                            const categoryConfig = getCategoryConfig(
-                              type,
-                              "h-4 w-4"
-                            );
-                            const isSelected = formData.serviceType === type;
-                            return (
-                              <button
-                                key={type}
-                                type="button"
-                                onClick={() =>
-                                  handleInputChange("serviceType", type)
-                                }
-                                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full border-2 font-medium text-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-md ${
-                                  isSelected
-                                    ? `${categoryConfig.colors.bg} ${
-                                        categoryConfig.colors.accent
-                                      } border-current shadow-md scale-[1.02] ring-2 ring-offset-1 ${categoryConfig.colors.accent.replace(
-                                        "border-",
-                                        "ring-"
-                                      )}`
-                                    : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                                }`}
-                              >
-                                {React.cloneElement(categoryConfig.icon, {
-                                  className: `h-4 w-4 transition-colors ${
-                                    isSelected
-                                      ? categoryConfig.colors.text
-                                      : "text-gray-600"
-                                  }`,
-                                })}
-                                <span
-                                  className={`transition-colors ${
-                                    isSelected
-                                      ? categoryConfig.colors.text
-                                      : "text-gray-700"
-                                  }`}
-                                >
+                      {/* Selected Services Thumbnails */}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                        {getSelectedServices().map((serviceType) => {
+                          const categoryConfig = getCategoryConfig(
+                            serviceType,
+                            "h-5 w-5"
+                          );
+                          return (
+                            <div
+                              key={serviceType}
+                              className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-gray-300 transition-all hover:shadow-md"
+                            >
+                              {/* Background Image */}
+                              <div
+                                className="absolute inset-0 bg-cover bg-center"
+                                style={{
+                                  backgroundImage: `url(${categoryConfig.defaultPhoto})`,
+                                }}
+                              />
+
+                              {/* Overlay */}
+                              <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors" />
+
+                              {/* Content */}
+                              <div className="relative h-full flex flex-col items-center justify-center gap-1 p-2">
+                                <div className="text-white">
+                                  {React.cloneElement(categoryConfig.icon, {
+                                    className: "h-5 w-5",
+                                  })}
+                                </div>
+                                <span className="text-white font-medium text-xs text-center leading-tight">
                                   {categoryConfig.type}
                                 </span>
-                                {isSelected && (
-                                  <Check className="h-3 w-3 text-current ml-1" />
-                                )}
+                              </div>
+
+                              {/* Remove Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveService(serviceType)}
+                                className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                aria-label="Supprimer ce service"
+                              >
+                                <X className="h-3 w-3" />
                               </button>
-                            );
-                          })}
+                            </div>
+                          );
+                        })}
+
+                        {/* Add Service Button */}
+                        <button
+                          type="button"
+                          onClick={handleOpenServiceModal}
+                          className="aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-fixeo-main-500 hover:bg-fixeo-main-50 transition-all duration-200 flex flex-col items-center justify-center gap-2 p-2 group"
+                        >
+                          <Plus className="h-6 w-6 text-gray-400 group-hover:text-fixeo-main-600 transition-colors" />
+                          <span className="text-xs text-gray-500 group-hover:text-fixeo-main-600 font-medium transition-colors">
+                            Ajouter
+                          </span>
+                        </button>
                       </div>
 
-                      {/* No results message */}
-                      {services.filter((type) => {
-                        const categoryConfig = getCategoryConfig(type, "");
-                        return (
-                          serviceTypeSearch === "" ||
-                          categoryConfig.type
-                            .toLowerCase()
-                            .includes(serviceTypeSearch.toLowerCase()) ||
-                          type
-                            .toLowerCase()
-                            .includes(serviceTypeSearch.toLowerCase())
-                        );
-                      }).length === 0 && (
-                        <div className="text-center py-8">
-                          <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                          <p className="text-gray-500">
-                            Aucun service trouvé pour "{serviceTypeSearch}"
+                      {/* Empty State */}
+                      {getSelectedServices().length === 0 && (
+                        <div className="text-center py-6 px-4 bg-gray-50 rounded-lg border border-gray-200">
+                          <Wrench className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                          <p className="text-gray-600 text-sm">
+                            Aucun service sélectionné
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => setServiceTypeSearch("")}
-                            className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
-                          >
-                            Effacer la recherche
-                          </button>
+                          <p className="text-gray-500 text-xs mt-1">
+                            Cliquez sur le bouton "+" pour ajouter des services
+                          </p>
                         </div>
                       )}
                     </div>
@@ -1002,41 +1189,25 @@ export function Request({
                 </div>
 
                 {/* Address Information */}
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">
                     Localisation
                   </h2>
 
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="text-sm font-medium">
-                        Adresse complète
-                      </Label>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <HelpCircle className="h-4 w-4 text-gray-400" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-white">
-                            Utilisez l'autocomplétion pour sélectionner
-                            l'adresse exacte et améliorer la précision
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                      {modifiedFields.has("location") && (
-                        <div className="flex items-center gap-1 text-xs text-blue-600">
-                          <Edit3 className="h-3 w-3" />
-                          <span>Modifié</span>
-                        </div>
-                      )}
-                    </div>
-                    <AddressAutocomplete
-                      placeholder="Tapez l'adresse de l'intervention..."
-                      value={formData.location || ""}
-                      onChange={handleAddressChange}
-                      name="location"
-                    />
+                  <div className="flex items-center gap-2 mb-2">
+                    {modifiedFields.has("location") && (
+                      <div className="flex items-center gap-1 text-xs text-blue-600">
+                        <Edit3 className="h-3 w-3" />
+                        <span>Modifié</span>
+                      </div>
+                    )}
                   </div>
+                  <AddressAutocomplete
+                    placeholder="Tapez l'adresse de l'intervention..."
+                    value={formData.location || ""}
+                    onChange={handleAddressChange}
+                    name="location"
+                  />
 
                   {/* OpenStreetMap */}
                   {(formData.locationCoordinates || formData.location) && (
@@ -1520,15 +1691,6 @@ export function Request({
                   </Button>
                 </>
               )}
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 bg-black/20 hover:bg-black/40 text-white"
-                onClick={() => setPhotoModalOpen(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
             </div>
 
             {/* Photo thumbnails */}
@@ -1594,6 +1756,184 @@ export function Request({
                     : undefined
                 }
               />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Artisan Validation Modal */}
+        <ArtisanValidationModal
+          open={showValidationModal}
+          onOpenChange={setShowValidationModal}
+          validationAction={artisanValidation || null}
+          artisanName={request.assignedArtisan?.name || "Artisan"}
+        />
+
+        {/* Client Validation Modal */}
+        <ClientValidationModal
+          open={showClientValidationModal}
+          onOpenChange={setShowClientValidationModal}
+          validationAction={clientValidation || null}
+          clientName={request.client?.name || "Client"}
+        />
+
+        {/* Artisan Dispute Details Modal */}
+        <DisputeDetailsModal
+          open={showArtisanDisputeModal}
+          onOpenChange={setShowArtisanDisputeModal}
+          disputeAction={
+            request.disputeActions?.filter(
+              (action) => action.actorType === "artisan"
+            )[0] || null
+          }
+          actorType="artisan"
+          actorName={request.assignedArtisan?.name}
+        />
+
+        {/* Client Dispute Details Modal */}
+        <DisputeDetailsModal
+          open={showClientDisputeModal}
+          onOpenChange={setShowClientDisputeModal}
+          disputeAction={
+            request.disputeActions?.filter(
+              (action) => action.actorType === "client"
+            )[0] || null
+          }
+          actorType="client"
+          actorName={request.client?.name}
+        />
+
+        {/* Service Selection Modal */}
+        <Dialog
+          open={showServiceSelectionModal}
+          onOpenChange={setShowServiceSelectionModal}
+        >
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <div className="p-2 bg-fixeo-main-100 rounded-lg">
+                  <Wrench className="h-6 w-6 text-fixeo-main-600" />
+                </div>
+                Sélectionner les services
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="mt-6 space-y-6">
+              {/* Search Bar */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <Input
+                  type="text"
+                  placeholder="Rechercher un service..."
+                  value={modalServiceSearch}
+                  onChange={(e) => setModalServiceSearch(e.target.value)}
+                  className="pl-10 h-12 bg-white border-gray-300 focus:border-fixeo-main-500 focus:ring-fixeo-main-500"
+                />
+              </div>
+
+              {/* Service Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {services
+                  .filter((type) => {
+                    const categoryConfig = getCategoryConfig(type, "");
+                    return (
+                      modalServiceSearch === "" ||
+                      categoryConfig.type
+                        .toLowerCase()
+                        .includes(modalServiceSearch.toLowerCase())
+                    );
+                  })
+                  .map((type) => {
+                    const categoryConfig = getCategoryConfig(type, "h-6 w-6");
+                    const isSelected = tempSelectedServices.includes(type);
+
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => handleToggleServiceInModal(type)}
+                        className={`relative h-32 rounded-lg overflow-hidden border-2 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg ${
+                          isSelected
+                            ? "border-fixeo-main-500 ring-2 ring-fixeo-main-200"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        {/* Background Image */}
+                        <div
+                          className="absolute inset-0 bg-cover bg-center"
+                          style={{
+                            backgroundImage: `url(${categoryConfig.defaultPhoto})`,
+                          }}
+                        />
+
+                        {/* Overlay */}
+                        <div
+                          className={`absolute inset-0 transition-colors ${
+                            isSelected
+                              ? "bg-fixeo-main-600/70"
+                              : "bg-black/40 hover:bg-black/50"
+                          }`}
+                        />
+
+                        {/* Content */}
+                        <div className="relative h-full flex flex-col items-center justify-center gap-2 p-3">
+                          <div className="text-white">
+                            {React.cloneElement(categoryConfig.icon, {
+                              className: "h-8 w-8",
+                            })}
+                          </div>
+                          <span className="text-white font-semibold text-sm text-center">
+                            {categoryConfig.type}
+                          </span>
+                        </div>
+
+                        {/* Selection Indicator */}
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-white rounded-full p-1">
+                            <Check className="h-4 w-4 text-fixeo-main-600" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+              </div>
+
+              {/* No Results */}
+              {services.filter((type) => {
+                const categoryConfig = getCategoryConfig(type, "");
+                return (
+                  modalServiceSearch === "" ||
+                  categoryConfig.type
+                    .toLowerCase()
+                    .includes(modalServiceSearch.toLowerCase())
+                );
+              }).length === 0 && (
+                <div className="text-center py-12">
+                  <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg">
+                    Aucun service trouvé pour "{modalServiceSearch}"
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowServiceSelectionModal(false)}
+                  className="flex-1"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={handleConfirmServiceSelection}
+                  className="flex-1 bg-fixeo-main-600 hover:bg-fixeo-main-700"
+                  disabled={tempSelectedServices.length === 0}
+                >
+                  Valider ({tempSelectedServices.length})
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

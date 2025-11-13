@@ -120,6 +120,27 @@
       "when": 1760116602892,
       "tag": "0016_solid_black_widow",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1762691710373,
+      "tag": "0017_soft_natasha_romanoff",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1762817704250,
+      "tag": "0018_sweet_richard_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1763031928866,
+      "tag": "0019_woozy_sally_floyd",
+      "breakpoints": true
     }
   ]
 }

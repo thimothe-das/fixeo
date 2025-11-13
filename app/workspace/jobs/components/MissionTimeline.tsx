@@ -33,6 +33,11 @@ export function MissionTimeline({
     return undefined;
   };
 
+  // Check if estimate was ever rejected (for timeline)
+  const hasEstimateRevision =
+    status === ServiceRequestStatus.AWAITING_ESTIMATE_REVISION ||
+    getDateForStatus("awaiting_estimate_revision");
+
   const steps = [
     {
       step: "Mission disponible",
@@ -48,6 +53,19 @@ export function MissionTimeline({
       date: getDateForStatus("in_progress"),
       icon: <UserCheck className="h-4 w-4" />,
     },
+    // Only show revision step if estimate was rejected
+    ...(hasEstimateRevision
+      ? [
+          {
+            step: "Révision du devis",
+            completed:
+              status !== ServiceRequestStatus.AWAITING_ESTIMATE_REVISION,
+            date: getDateForStatus("awaiting_estimate_revision"),
+            icon: <FileCheck className="h-4 w-4 text-orange-500" />,
+            isRevision: true,
+          },
+        ]
+      : []),
     {
       step: "Intervention en cours",
       completed: [
@@ -132,20 +150,31 @@ export function MissionTimeline({
                     <span>En attente de votre acceptation</span>
                   </div>
                 )}
-              {index === 3 && status === ServiceRequestStatus.IN_PROGRESS && (
-                <div className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full flex items-center gap-2">
-                  <Hourglass className="h-4 w-4" />
-                  <span>En attente de votre validation</span>
-                </div>
-              )}
-              {index === 3 &&
+              {(step as any).isRevision &&
+                status === ServiceRequestStatus.AWAITING_ESTIMATE_REVISION && (
+                  <div className="mt-2 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full flex items-center gap-2">
+                    <Hourglass className="h-4 w-4" />
+                    <span>Révision du devis en cours</span>
+                  </div>
+                )}
+              {((hasEstimateRevision && index === 3) ||
+                (!hasEstimateRevision && index === 2)) &&
+                status === ServiceRequestStatus.IN_PROGRESS && (
+                  <div className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full flex items-center gap-2">
+                    <Hourglass className="h-4 w-4" />
+                    <span>En attente de votre validation</span>
+                  </div>
+                )}
+              {((hasEstimateRevision && index === 3) ||
+                (!hasEstimateRevision && index === 2)) &&
                 status === ServiceRequestStatus.CLIENT_VALIDATED && (
                   <div className="mt-2 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full flex items-center gap-2">
                     <Hourglass className="h-4 w-4" />
                     <span>En attente de votre confirmation</span>
                   </div>
                 )}
-              {index === 3 &&
+              {((hasEstimateRevision && index === 3) ||
+                (!hasEstimateRevision && index === 2)) &&
                 status === ServiceRequestStatus.ARTISAN_VALIDATED && (
                   <div className="mt-2 px-3 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full flex items-center gap-2">
                     <Hourglass className="h-4 w-4" />

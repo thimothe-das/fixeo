@@ -72,6 +72,21 @@ export const getStatusConfig = (status: string, iconClassName: string) => {
           borderTop: "border-t-amber-200",
         },
       };
+    case ServiceRequestStatus.AWAITING_DUAL_ACCEPTANCE:
+      return {
+        icon: (
+          <UserCheck className={cn("text-purple-500 h-5 w-5", iconClassName)} />
+        ),
+        label: "En attente d'acceptation mutuelle",
+        colors: {
+          color: "purple-500",
+          bg: "bg-purple-100 hover:bg-purple-100",
+          text: "text-purple-700",
+          ring: "ring 1 ring-purple-200",
+          accent: "border-purple-500",
+          borderTop: "border-t-purple-200",
+        },
+      };
     case ServiceRequestStatus.AWAITING_PAYMENT:
       return {
         icon: (
@@ -93,6 +108,20 @@ export const getStatusConfig = (status: string, iconClassName: string) => {
         color:
           "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100",
         label: "En attente de devis",
+        borderTop: "border-t-slate-200",
+        icon: <Clock className={cn("text-gray-500 h-5 w-5", iconClassName)} />,
+        colors: {
+          color: "slate-500",
+          bg: "bg-slate-100 hover:bg-slate-100",
+          text: "text-slate-500",
+          ring: "ring 1 ring-slate-200",
+          accent: "border-slate-500",
+          borderTop: "border-t-slate-200",
+        },
+      };
+    case ServiceRequestStatus.AWAITING_ESTIMATE_REVISION:
+      return {
+        label: "Révision du devis en cours",
         borderTop: "border-t-slate-200",
         icon: <Clock className={cn("text-gray-500 h-5 w-5", iconClassName)} />,
         colors: {

@@ -10,7 +10,7 @@ import {
   handleNewMessageNotification,
   requestNotificationPermission,
 } from "@/lib/utils/notifications";
-import { AlertCircle, Send, Wifi, WifiOff } from "lucide-react";
+import { AlertCircle, Send } from "lucide-react";
 import * as React from "react";
 
 interface ConversationChatProps {
@@ -250,7 +250,7 @@ export function ConversationChat({
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               {isConnected ? (
                 <div className="flex items-center gap-2 text-green-600 text-sm">
                   <Wifi className="h-4 w-4" />
@@ -262,7 +262,7 @@ export function ConversationChat({
                   <span>Déconnecté</span>
                 </div>
               )}
-            </div>
+            </div> */}
           </div>
         </div>
       )}

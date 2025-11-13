@@ -71,7 +71,7 @@ export async function getAllServiceRequestsPaginated(
       and(eq(serviceRequests.userId, users.id), isNull(users.deletedAt))
     )
     .leftJoin(clientProfiles, eq(users.id, clientProfiles.userId))
-    .orderBy(desc(serviceRequests.createdAt))
+    .orderBy(desc(serviceRequests.updatedAt))
     .limit(pageSize)
     .offset(offset);
 
@@ -549,17 +549,44 @@ export async function createBillingEstimate(estimateData: {
   description: string;
   breakdown?: string;
   validUntil?: Date;
+  revisionNumber?: number;
 }) {
+  // Get the service request to check if it has an assigned artisan
+  const [serviceRequest] = await db
+    .select()
+    .from(serviceRequests)
+    .where(eq(serviceRequests.id, estimateData.serviceRequestId))
+    .limit(1);
+
+  const isRevisedEstimate = (estimateData.revisionNumber || 1) > 1;
+  const hasAssignedArtisan = serviceRequest?.assignedArtisanId !== null;
+  const requiresDualAcceptance = isRevisedEstimate && hasAssignedArtisan;
+
+  // Prepare estimate values with dual acceptance fields for revised estimates
+  const estimateValues: any = {
+    ...estimateData,
+  };
+
+  if (requiresDualAcceptance) {
+    estimateValues.artisanAccepted = false;
+    estimateValues.clientAccepted = false;
+  }
+
   const [estimate] = await db
     .insert(billingEstimates)
-    .values(estimateData)
+    .values(estimateValues)
     .returning();
 
-  // Update service request status to 'pending' (awaiting client response)
+  // Determine the status based on whether dual acceptance is required
+  const newStatus = requiresDualAcceptance
+    ? ServiceRequestStatus.AWAITING_DUAL_ACCEPTANCE
+    : ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION;
+
+  // Update service request status
   await db
     .update(serviceRequests)
     .set({
-      status: ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION,
+      status: newStatus,
       estimatedPrice: estimateData.estimatedPrice,
       updatedAt: new Date(),
     })
@@ -568,7 +595,7 @@ export async function createBillingEstimate(estimateData: {
   // Record status change in history
   await db.insert(serviceRequestStatusHistory).values({
     serviceRequestId: estimateData.serviceRequestId,
-    status: ServiceRequestStatus.AWAITING_ESTIMATE_ACCEPTATION,
+    status: newStatus,
   });
 
   return estimate;

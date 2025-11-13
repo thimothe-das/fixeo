@@ -88,6 +88,13 @@ export async function getServiceRequestsForClient(userId: number) {
           estimatedPrice: billingEstimates.estimatedPrice,
           status: billingEstimates.status,
           validUntil: billingEstimates.validUntil,
+          clientAccepted: billingEstimates.clientAccepted,
+          artisanAccepted: billingEstimates.artisanAccepted,
+          artisanRejectionReason: billingEstimates.artisanRejectionReason,
+          rejectedByArtisanId: billingEstimates.rejectedByArtisanId,
+          rejectedAt: billingEstimates.rejectedAt,
+          artisanResponseDate: billingEstimates.artisanResponseDate,
+          clientResponseDate: billingEstimates.clientResponseDate,
           createdAt: billingEstimates.createdAt,
         })
         .from(billingEstimates)
