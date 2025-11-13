@@ -2,16 +2,15 @@ import { isAdmin, isClient, isProfessional, ROLES } from "@/lib/auth/roles";
 import { getUser } from "@/lib/db/queries/common";
 import { redirect } from "next/navigation";
 import { AdminLayout } from "../(admin)/AdminLayout";
-import { ArtisanLayout } from "../(artisan)/ArtisanLayout";
 import { ClientLayout } from "../(client)/ClientLayout";
 
 export default async function Layout({
-  client, // content from app/dashboard/@client
-  artisan, // content from app/dashboard/@artisan
-  admin, // content from app/dashboard/@admin
+  children,
+  client, // content from app/workspace/requests/@client
+  admin, // content from app/workspace/requests/@admin
 }: {
+  children?: React.ReactNode;
   client: React.ReactNode;
-  artisan: React.ReactNode;
   admin: React.ReactNode;
 }) {
   const user = await getUser();
@@ -20,7 +19,7 @@ export default async function Layout({
     redirect("/sign-in?redirect=/workspace");
   }
 
-  // Check if user has PROFESSIONAL role (artisan)
+  // Check if user has required role
   if (!user) return redirect("/sign-in?error=access-denied");
   if (
     !isProfessional(user.role) &&
@@ -30,14 +29,18 @@ export default async function Layout({
     redirect("/");
   }
 
+  // Artisans don't have a parallel route view for requests, redirect to jobs
+  if (user?.role === ROLES.PROFESSIONAL) {
+    redirect("/workspace/jobs");
+  }
+
   if (user?.role === ROLES.CLIENT) {
     return <ClientLayout>{client}</ClientLayout>;
   }
-  if (user?.role === ROLES.PROFESSIONAL) {
-    return <ArtisanLayout>{artisan}</ArtisanLayout>;
-  }
+
   if (user?.role === ROLES.ADMIN) {
     return <AdminLayout>{admin}</AdminLayout>;
   }
+
   return null;
 }
