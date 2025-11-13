@@ -19,8 +19,8 @@ export default function Payment() {
   const [showPaymentFailedModal, setShowPaymentFailedModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
-  const requestId = searchParams.get("requestId");
-  const pathname = usePathname();
+  const requestId = searchParams?.get("requestId");
+  const pathname = usePathname() || "";
 
   const fetchPaymentStatus = async (requestId: string | null) => {
     if (!requestId) {
@@ -53,7 +53,7 @@ export default function Payment() {
   };
 
   useEffect(() => {
-    handlePaymentRequestIdVerification(requestId);
+    handlePaymentRequestIdVerification(requestId || null);
   }, [requestId]);
 
   const handlePaymentSuccessConfirm = () => {

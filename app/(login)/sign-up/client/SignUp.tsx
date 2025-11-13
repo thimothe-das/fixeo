@@ -30,8 +30,8 @@ export function SignUp({ role = null }: { role?: UserRole }) {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect");
-  const priceId = searchParams.get("priceId");
+  const redirect = searchParams?.get("redirect");
+  const priceId = searchParams?.get("priceId");
 
   const {
     handleSubmit,

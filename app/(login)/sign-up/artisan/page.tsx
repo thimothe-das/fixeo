@@ -91,9 +91,9 @@ function SignUpArtisanForm() {
   console.log(errors);
   const password = watch("password");
 
-  const redirect = searchParams.get("redirect");
-  const priceId = searchParams.get("priceId");
-  const inviteId = searchParams.get("inviteId");
+  const redirect = searchParams?.get("redirect");
+  const priceId = searchParams?.get("priceId");
+  const inviteId = searchParams?.get("inviteId");
 
   const validatePasswordMatch = (
     confirmPassword: string,

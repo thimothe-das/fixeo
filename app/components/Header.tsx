@@ -128,8 +128,8 @@ function UserMenu() {
 }
 
 export default function Header() {
-  const pathname = usePathname();
-  if (pathname.includes("/workspace")) {
+  const pathname = usePathname() || "";
+  if (pathname?.includes("/workspace")) {
     return null;
   }
   return (

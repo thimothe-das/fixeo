@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface UsePaymentSuccessOptions {
   onPaymentSuccess?: (requestId?: string) => void;
@@ -15,7 +15,7 @@ export function usePaymentSuccess(options: UsePaymentSuccessOptions = {}) {
     maxPolls = 30, // Poll for max 30 seconds
     pollInterval = 1000, // Poll every second
   } = options;
-  
+
   const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
   const [requestId, setRequestId] = useState<string | null>(null);
   const router = useRouter();
@@ -23,17 +23,17 @@ export function usePaymentSuccess(options: UsePaymentSuccessOptions = {}) {
 
   useEffect(() => {
     // Check if there's a requestId in URL params (after redirect from payment)
-    const urlRequestId = searchParams.get('requestId');
-    
+    const urlRequestId = searchParams?.get("requestId");
+
     if (urlRequestId) {
       // Clean up URL by removing the requestId parameter
       const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('requestId');
+      newUrl.searchParams.delete("requestId");
       router.replace(newUrl.pathname + newUrl.search);
-      
+
       // Set the request ID for polling
       setRequestId(urlRequestId);
-      
+
       // Start polling for payment success
       startPaymentPolling(urlRequestId);
     }
@@ -45,14 +45,14 @@ export function usePaymentSuccess(options: UsePaymentSuccessOptions = {}) {
 
     const pollPaymentStatus = async () => {
       try {
-        const guestToken = localStorage.getItem('guestToken');
+        const guestToken = localStorage.getItem("guestToken");
         const params = new URLSearchParams();
 
         if (guestToken) {
-          params.set('guestToken', guestToken);
+          params.set("guestToken", guestToken);
         }
         if (requestIdToUse) {
-          params.set('requestId', requestIdToUse);
+          params.set("requestId", requestIdToUse);
         }
 
         const response = await fetch(`/api/payments/status?${params}`);
@@ -61,7 +61,7 @@ export function usePaymentSuccess(options: UsePaymentSuccessOptions = {}) {
           if (data.paymentCompleted) {
             setShowPaymentSuccessModal(true);
             clearInterval(intervalId);
-            
+
             // Call the callback if provided
             if (onPaymentSuccess) {
               onPaymentSuccess(requestIdToUse);
@@ -75,7 +75,7 @@ export function usePaymentSuccess(options: UsePaymentSuccessOptions = {}) {
           clearInterval(intervalId);
         }
       } catch (error) {
-        console.error('Error polling payment status:', error);
+        console.error("Error polling payment status:", error);
         clearInterval(intervalId);
       }
     };

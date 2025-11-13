@@ -17,8 +17,8 @@ type UserRole = "client" | "professional" | null;
 
 export function SignIn({ role = null }: { role?: UserRole }) {
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect");
-  const priceId = searchParams.get("priceId");
+  const redirect = searchParams?.get("redirect");
+  const priceId = searchParams?.get("priceId");
   const [serverError, setServerError] = useState<string>("");
   const router = useRouter();
   const {

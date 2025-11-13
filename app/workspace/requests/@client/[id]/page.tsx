@@ -125,7 +125,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function RequestDetailPage() {
   const params = useParams();
-  const requestId = parseInt(params.id as string);
+  const requestId = parseInt((params?.id as string) || "");
 
   // State management
   const [showAcceptDialog, setShowAcceptDialog] = React.useState(false);
@@ -188,7 +188,7 @@ export default function RequestDetailPage() {
 
   // Payment verification after redirect from Stripe
   React.useEffect(() => {
-    const checkPayment = searchParams.get("check_payment");
+    const checkPayment = searchParams?.get("check_payment");
 
     if (checkPayment === "1") {
       // Clean URL parameter immediately

@@ -7,7 +7,7 @@ import { EstimatedBillDetails } from "../../components/EstimatedBillDetails";
 
 export default function EstimatedBill() {
   const params = useParams();
-  const estimateId = parseInt(params.id as string);
+  const estimateId = parseInt((params?.id as string) || "");
   const [isResponding, setIsResponding] = useState(false);
 
   const {
