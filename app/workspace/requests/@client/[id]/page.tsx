@@ -1,7 +1,6 @@
 "use client";
 
 import { ArtisanValidationModal } from "@/app/workspace/components/ArtisanValidationModal";
-import { ConversationChat } from "@/app/workspace/components/ConversationChat";
 import { EstimateHistoryAccordion } from "@/app/workspace/devis/components/EstimateHistoryAccordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +49,7 @@ import { EditTitleDialog } from "./EditTitleDialog";
 import { HeroGallery } from "./HeroGallery";
 import { PhotoUploadDialog } from "./PhotoUploadDialog";
 import { ProgressDrawer } from "./ProgressDrawer";
+import { ProgressIndicator } from "./ProgressIndicator";
 
 type ServiceRequest = {
   id: number;
@@ -502,6 +502,13 @@ export default function RequestDetailPage() {
 
   return (
     <div className="min-h-screen">
+      {/* Progress Indicator */}
+      <ProgressIndicator
+        currentStatus={request.status}
+        statusHistory={request.statusHistory}
+        billingEstimateStatus={relevantEstimate?.status}
+      />
+
       {/* Main Container - Airbnb width */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-10 py-6 bg-white rounded-lg shadow-sm mt-6">
         {/* Page Title */}
@@ -960,7 +967,7 @@ export default function RequestDetailPage() {
         </div>
 
         {/* Embedded Chat - Only shown when artisan is assigned */}
-        {request.assignedArtisan && (
+        {/* {request.assignedArtisan && (
           <>
             <Separator className="border-[#EBEBEB] mb-12" />
             <div className="mb-12">
@@ -983,7 +990,7 @@ export default function RequestDetailPage() {
               />
             </div>
           </>
-        )}
+        )} */}
       </div>
 
       {/* Action Dialogs */}

@@ -296,28 +296,6 @@ export default function Job() {
           </div>
         )}
 
-      <ActionBanner
-        status={mission.status}
-        onStartMission={handleStartMission}
-        onOpenValidation={() => setShowValidationDialog(true)}
-        onOpenDispute={() => setShowDisputeDialog(true)}
-        onOpenQuoteRejection={() => setShowQuoteRejectionDialog(true)}
-        onAcceptRevisedEstimate={handleAcceptRevisedEstimate}
-        onRejectRevisedEstimate={handleRejectRevisedEstimate}
-        onOpenClientDispute={() => setShowClientDisputeModal(true)}
-        onViewValidation={() => setShowViewValidationModal(true)}
-        artisanAccepted={
-          mission.billingEstimates?.[0]?.artisanAccepted ?? undefined
-        }
-        clientAccepted={
-          mission.billingEstimates?.[0]?.clientAccepted ?? undefined
-        }
-        hasAlreadyRejectedEstimate={hasAlreadyRejectedEstimate}
-        hasValidationActions={
-          mission.validationActions && mission.validationActions.length > 0
-        }
-      />
-
       <div className="space-y-6 bg-gray-50 min-h-screen">
         <MissionHeader
           mission={mission}
@@ -462,6 +440,28 @@ export default function Job() {
           </div>
         </div>
       </div>
+
+      <ActionBanner
+        status={mission.status}
+        onStartMission={handleStartMission}
+        onOpenValidation={() => setShowValidationDialog(true)}
+        onOpenDispute={() => setShowDisputeDialog(true)}
+        onOpenQuoteRejection={() => setShowQuoteRejectionDialog(true)}
+        onAcceptRevisedEstimate={handleAcceptRevisedEstimate}
+        onRejectRevisedEstimate={handleRejectRevisedEstimate}
+        onOpenClientDispute={() => setShowClientDisputeModal(true)}
+        onViewValidation={() => setShowViewValidationModal(true)}
+        artisanAccepted={
+          mission.billingEstimates?.[0]?.artisanAccepted ?? undefined
+        }
+        clientAccepted={
+          mission.billingEstimates?.[0]?.clientAccepted ?? undefined
+        }
+        hasAlreadyRejectedEstimate={hasAlreadyRejectedEstimate}
+        hasValidationActions={
+          mission.validationActions && mission.validationActions.length > 0
+        }
+      />
 
       {/* Photo Lightbox */}
       <PhotoLightbox

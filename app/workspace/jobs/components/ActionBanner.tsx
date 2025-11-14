@@ -174,7 +174,8 @@ export function ActionBanner({
         if (hasValidationActions && onViewValidation) {
           return {
             type: "success",
-            message: "Validation envoyée - Cliquez pour voir vos détails de validation",
+            message:
+              "Validation envoyée - Cliquez pour voir vos détails de validation",
             buttons: (
               <Button
                 size="sm"
@@ -227,7 +228,7 @@ export function ActionBanner({
 
   return (
     <div
-      className={`w-full border-t p-4 fixed bottom-0 right-0 z-50 shadow-lg ${bgClass} ${borderClass}`}
+      className={`w-full border-t border-b p-4 sticky bottom-0 z-10 shadow-lg ${bgClass} ${borderClass}`}
     >
       <div className="flex items-center px-6 gap-4 justify-between">
         <div className="flex items-center gap-2">
