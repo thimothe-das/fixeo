@@ -44,7 +44,7 @@
     "lucide-react": "^0.511.0",
     "moment": "^2.30.1",
     "multer": "^2.0.2",
-    "next": "15.4.0-canary.47",
+    "next": "15.4.8",
     "postcss": "^8.5.3",
     "postgres": "^3.4.5",
     "radix-ui": "^1.4.2",
