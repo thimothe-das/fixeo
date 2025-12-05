@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useSidebar } from "@/components/ui/sidebar";
 import { ServiceRequestStatus } from "@/lib/db/schema";
 import { CheckCircle, Megaphone } from "lucide-react";
 
@@ -30,7 +31,8 @@ export function ClientActionBanner({
       case ServiceRequestStatus.AWAITING_ESTIMATE:
         return {
           type: "info",
-          message: "Votre demande a été reçue. Notre équipe prépare un devis estimatif",
+          message:
+            "Votre demande a été reçue. Notre équipe prépare un devis estimatif",
           buttons: null,
           backgroundColor: "bg-gradient-to-r from-blue-100 to-sky-100",
           borderColor: "border-blue-200",
@@ -40,7 +42,8 @@ export function ClientActionBanner({
       case ServiceRequestStatus.AWAITING_ASSIGNATION:
         return {
           type: "info",
-          message: "✓ Acompte reçu. Nous recherchons un artisan qualifié pour votre intervention",
+          message:
+            "✓ Acompte reçu. Nous recherchons un artisan qualifié pour votre intervention",
           buttons: null,
           backgroundColor: "bg-gradient-to-r from-blue-100 to-sky-100",
           borderColor: "border-blue-200",
@@ -76,7 +79,8 @@ export function ClientActionBanner({
         if (clientAccepted === false) {
           return {
             type: "info",
-            message: "Devis révisé : Votre acceptation est requise pour continuer",
+            message:
+              "Devis révisé : Votre acceptation est requise pour continuer",
             buttons: (
               <>
                 <Button
@@ -106,7 +110,8 @@ export function ClientActionBanner({
         if (clientAccepted === true && artisanAccepted === false) {
           return {
             type: "info",
-            message: "✓ Votre acceptation a été enregistrée. En attente de la réponse de l'artisan",
+            message:
+              "✓ Votre acceptation a été enregistrée. En attente de la réponse de l'artisan",
             buttons: null,
             backgroundColor: "bg-gradient-to-r from-blue-100 to-sky-100",
             borderColor: "border-blue-200",
@@ -143,7 +148,8 @@ export function ClientActionBanner({
       case ServiceRequestStatus.ARTISAN_VALIDATED:
         return {
           type: "warning",
-          message: "L'artisan a validé l'intervention. Merci de confirmer ou signaler un problème",
+          message:
+            "L'artisan a validé l'intervention. Merci de confirmer ou signaler un problème",
           buttons: (
             <>
               <Button
@@ -168,7 +174,8 @@ export function ClientActionBanner({
       case ServiceRequestStatus.CLIENT_VALIDATED:
         return {
           type: "info",
-          message: "✓ Vous avez validé l'intervention. En attente de la validation de l'artisan",
+          message:
+            "✓ Vous avez validé l'intervention. En attente de la validation de l'artisan",
           buttons: null,
           backgroundColor: "bg-gradient-to-r from-blue-100 to-sky-100",
           borderColor: "border-blue-200",
@@ -178,7 +185,8 @@ export function ClientActionBanner({
       case ServiceRequestStatus.DISPUTED_BY_ARTISAN:
         return {
           type: "alert",
-          message: "L'artisan a ouvert un litige - Notre équipe examine la situation",
+          message:
+            "L'artisan a ouvert un litige - Notre équipe examine la situation",
           buttons: (
             <Button
               size="sm"
@@ -196,7 +204,8 @@ export function ClientActionBanner({
       case ServiceRequestStatus.DISPUTED_BY_BOTH:
         return {
           type: "alert",
-          message: "Les deux parties ont ouvert un litige - Notre équipe examine la situation",
+          message:
+            "Les deux parties ont ouvert un litige - Notre équipe examine la situation",
           buttons: (
             <Button
               size="sm"
@@ -242,7 +251,8 @@ export function ClientActionBanner({
       case ServiceRequestStatus.COMPLETED:
         return {
           type: "success",
-          message: "✓ Mission terminée avec succès ! Les deux parties ont validé l'intervention",
+          message:
+            "✓ Mission terminée avec succès ! Les deux parties ont validé l'intervention",
           buttons: null,
           backgroundColor: "bg-gradient-to-r from-green-100 to-emerald-100",
           borderColor: "border-green-200",
@@ -255,16 +265,25 @@ export function ClientActionBanner({
   };
 
   const actionBanner = getActionBanner();
+  const { open, isMobile } = useSidebar();
 
   if (!actionBanner) return null;
 
-  const bgClass = actionBanner.backgroundColor || "bg-gradient-to-r from-orange-100 to-yellow-100";
+  const bgClass =
+    actionBanner.backgroundColor ||
+    "bg-gradient-to-r from-orange-100 to-yellow-100";
   const borderClass = actionBanner.borderColor || "border-orange-200";
   const iconColorClass = actionBanner.iconColor || "text-orange-600";
   const textColorClass = actionBanner.textColor || "text-orange-800";
 
+  // Calculate left offset based on sidebar state
+  const leftOffset = isMobile ? "0" : open ? "16rem" : "3rem";
+
   return (
-    <div className={`w-full border-t p-4 fixed bottom-0 right-0 z-50 shadow-lg ${bgClass} ${borderClass}`}>
+    <div
+      className={`border-t p-4 fixed bottom-0 right-0 z-50 shadow-lg ${bgClass} ${borderClass}`}
+      style={{ left: leftOffset }}
+    >
       <div className="flex items-center px-6 gap-4 justify-between">
         <div className="flex items-center gap-2">
           <Megaphone className={`h-4 w-4 ${iconColorClass} shrink-0`} />

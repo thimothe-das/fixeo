@@ -6,10 +6,12 @@ import {
   Bell,
   Calculator,
   CreditCard,
+  Database,
   FileText,
   Home,
   MoreHorizontal,
   Power,
+  RefreshCw,
   Settings,
   Shield,
   User,
@@ -20,6 +22,16 @@ import { Suspense } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +58,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 import { signOut } from "@/app/(login)/actions";
 import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const sidebarItems = [
   {
@@ -114,6 +127,37 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [activeSection, setActiveSection] = React.useState("dashboard");
   const pathname = usePathname();
+  const [showResetDialog, setShowResetDialog] = React.useState(false);
+  const [isResetting, setIsResetting] = React.useState(false);
+
+  const handleResetDatabase = async () => {
+    setIsResetting(true);
+    toast.loading("Réinitialisation de la base de données...");
+
+    try {
+      const response = await fetch("/api/admin/reset-db", {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Échec de la réinitialisation");
+      }
+
+      toast.success("Base de données réinitialisée avec succès!");
+      setTimeout(() => {
+        router.refresh();
+      }, 1000);
+    } catch (error) {
+      toast.error(
+        `Erreur: ${error instanceof Error ? error.message : "Échec de la réinitialisation"}`
+      );
+    } finally {
+      setIsResetting(false);
+      setShowResetDialog(false);
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -206,6 +250,20 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 </h1>
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowResetDialog(true)}
+                  disabled={isResetting}
+                  className="gap-2"
+                >
+                  {isResetting ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Database className="h-4 w-4" />
+                  )}
+                  Reset DB
+                </Button>
                 <Button variant="ghost" size="sm" disabled>
                   <Bell className="h-4 w-4" />
                 </Button>
@@ -223,6 +281,40 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </main>
         </SidebarInset>
       </div>
+
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Réinitialiser la base de données ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action va supprimer toutes les données actuelles et
+              réinitialiser la base de données avec les données de test. Cette
+              opération ne peut pas être annulée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isResetting}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetDatabase}
+              disabled={isResetting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isResetting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Réinitialisation...
+                </>
+              ) : (
+                "Réinitialiser"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 }
