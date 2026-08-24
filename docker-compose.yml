@@ -1,6 +1,10 @@
 services:
   postgres:
-    image: postgres:16.4-alpine
+    # Majeure epinglee, correctifs suivis : 16.4-alpine etait fige depuis
+    # 2024-08-08 (746 j, 7 CVE critiques corrigeables). Ne pas repasser sur une
+    # version exacte, elle regelerait. Ne pas passer a 17 non plus : changement
+    # de majeure = pg_upgrade.
+    image: postgres:16-alpine
     container_name: postgres_fixeo
     env_file:
       - .env
