@@ -16,3 +16,18 @@ services:
       - "5436:5432"
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
+
+    # Plafonds. Mesure du 2026-08-25 : ce conteneur tournait sans aucune limite
+    # sur une VM de 9,7 Go, alors qu'il consomme 18 Mo au repos. Une base sans
+    # plafond, c'est le voisin qui tombe quand une requete derape.
+    # 512 Mo est large ici ; a relever si des jeux de donnees reels arrivent.
+    # Pas de cap_drop : l'entrypoint de l'image postgres demarre en root pour
+    # chowner puis bascule sur uid 70 via gosu, ce qui exige SETUID/SETGID/CHOWN.
+    # Le gain serait nul de toute facon, PID 1 tourne deja avec CapEff a zero.
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 128M
