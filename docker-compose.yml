@@ -29,5 +29,10 @@ services:
         limits:
           cpus: "1.0"
           memory: 512M
+          # Sous `deploy.resources.limits` et pas en `pids_limit:` racine :
+          # Compose refuse les deux a la fois (« can't set distinct values »),
+          # meme piege que mealie et bank-scraper. 256 est large : postgres
+          # plafonne deja ses processus par max_connections.
+          pids: 256
         reservations:
           memory: 128M
