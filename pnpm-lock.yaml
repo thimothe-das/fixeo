@@ -96,7 +96,7 @@ importers:
         version: 0.43.1(gel@2.1.0)(postgres@3.4.5)
       geist:
         specifier: ^1.4.2
-        version: 1.4.2(next@15.6.0-canary.58(react-dom@19.1.0(react@19.1.0))(react@19.1.0))
+        version: 1.4.2(next@15.6.0-canary.61(react-dom@19.1.0(react@19.1.0))(react@19.1.0))
       jose:
         specifier: ^6.0.11
         version: 6.0.11
@@ -110,8 +110,8 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2
       next:
-        specifier: 15.6.0-canary.58
-        version: 15.6.0-canary.58(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        specifier: 15.6.0-canary.61
+        version: 15.6.0-canary.61(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       postcss:
         specifier: ^8.5.3
         version: 8.5.3
@@ -807,8 +807,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@next/env@15.6.0-canary.58':
-    resolution: {integrity: sha512-JyYhiCaCYgLfs3a195cncgUfyATTvtIpK2L9wpka4JdJ/Cn58LxO2WRQysmWYXWjuCTgE9n4vjWDAJcWmRisiw==}
+  '@next/env@15.6.0-canary.61':
+    resolution: {integrity: sha512-8SOJYA/qr5Y3APMAun3N3CT5uZ3xZXUlxrH32X7eDoo4nADvpGfkW/ncjAAqUNf1nuFy4GVpxcZBwm5TyCHpHQ==}
 
   '@next/eslint-plugin-next@15.5.2':
     resolution: {integrity: sha512-lkLrRVxcftuOsJNhWatf1P2hNVfh98k/omQHrCEPPriUypR6RcS13IvLdIrEvkm9AH2Nu2YpR5vLqBuy6twH3Q==}
@@ -2655,8 +2655,8 @@ packages:
     resolution: {integrity: sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==}
     engines: {node: '>= 0.6'}
 
-  next@15.6.0-canary.58:
-    resolution: {integrity: sha512-crPQo+AxBCmmBFMpDLbFg1uH+ArvrPNkvsviM60wrlzmhNuQyIOQ0tHL7Y10BVlxqtM7esMDQnepKT1XJBqYBQ==}
+  next@15.6.0-canary.61:
+    resolution: {integrity: sha512-dJzKldf/ZKKUPc1bHMfDuJMZo9UHAsRDVaTcs1haeMiMgEbyBqyoHYjkJFWnxtLmZIvPrZIo3hsuPXY9fvfSuw==}
     engines: {node: '>=20.9.0'}
     hasBin: true
     peerDependencies:
@@ -3824,7 +3824,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@next/env@15.6.0-canary.58': {}
+  '@next/env@15.6.0-canary.61': {}
 
   '@next/eslint-plugin-next@15.5.2':
     dependencies:
@@ -5569,9 +5569,9 @@ snapshots:
 
   function-bind@1.1.2: {}
 
-  geist@1.4.2(next@15.6.0-canary.58(react-dom@19.1.0(react@19.1.0))(react@19.1.0)):
+  geist@1.4.2(next@15.6.0-canary.61(react-dom@19.1.0(react@19.1.0))(react@19.1.0)):
     dependencies:
-      next: 15.6.0-canary.58(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      next: 15.6.0-canary.61(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
   gel@2.1.0:
     dependencies:
@@ -5750,9 +5750,9 @@ snapshots:
 
   negotiator@0.6.3: {}
 
-  next@15.6.0-canary.58(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+  next@15.6.0-canary.61(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
-      '@next/env': 15.6.0-canary.58
+      '@next/env': 15.6.0-canary.61
       '@swc/helpers': 0.5.15
       caniuse-lite: 1.0.30001718
       postcss: 8.4.31
