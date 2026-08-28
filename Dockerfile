@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # Image de fixeo.
 #
 # Cette application etait construite par nixpacks dans Coolify, sur VM-100.
@@ -49,7 +50,31 @@ ENV POSTGRES_URL="postgresql://build:build@127.0.0.1:5432/build" \
     AWS_S3_BUCKET_NAME="construction" \
     AWS_ACCESS_KEY_ID="construction" \
     AWS_SECRET_ACCESS_KEY="construction"
-RUN pnpm build
+
+# LA SEULE VALEUR FACTICE QUI NE SUFFIT PAS : STRIPE_SECRET_KEY.
+#
+# Les autres servent seulement a ce que les clients s'instancient. Celle-ci
+# doit REELLEMENT joindre Stripe, parce que `app/(dashboard)/pricing/page.tsx`
+# porte `export const revalidate = 3600` : la page est prerendue au build avec
+# les vrais tarifs, puis rafraichie a l'heure en production. C'est de l'ISR, et
+# c'est voulu par le gabarit dont ce depot derive.
+#
+# La cle arrive donc par un SECRET DE CONSTRUCTION BuildKit : monte en tmpfs
+# pour la duree de ce seul `RUN`, jamais ecrit dans un calque, absent de
+# `docker history`. Ce n'est pas la meme chose qu'un `ENV`, qui resterait dans
+# l'image.
+#
+# ELLE DOIT ETRE UNE CLE RESTREINTE, en lecture seule sur Products et Prices.
+# Motif : `thimothe-das/fixeo` est un depot PUBLIC. Une cle secrete complete
+# dans ses secrets Actions serait un objet d'une autre nature ; une cle qui ne
+# sait que lire la liste des tarifs, que la page affiche publiquement, n'ajoute
+# rien a ce qui est deja visible.
+#
+# Le repli garde la construction possible sans le secret — elle echouera sur
+# /pricing, mais avec le message de Stripe et non un « command not found ».
+RUN --mount=type=secret,id=stripe \
+    STRIPE_SECRET_KEY="$(cat /run/secrets/stripe 2>/dev/null || echo "$STRIPE_SECRET_KEY")" \
+    pnpm build
 
 # --- 3. execution -------------------------------------------------------------
 FROM node:22-alpine AS run

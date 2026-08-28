@@ -43,6 +43,17 @@ jobs:
           target: run
           platforms: linux/amd64
           push: true
+          # Secret de CONSTRUCTION, pas variable d'environnement : monte en
+          # tmpfs le temps du `RUN`, jamais ecrit dans un calque, absent de
+          # `docker history`.
+          #
+          # `/pricing` porte `revalidate = 3600` : elle est prerendue au build
+          # avec les vrais tarifs. La cle doit donc reellement joindre Stripe.
+          # Elle est RESTREINTE en lecture sur Products et Prices — ce depot
+          # est public, et une cle qui ne sait que lire des tarifs affiches
+          # publiquement n'ajoute rien a ce qui est deja visible.
+          secrets: |
+            stripe=${{ secrets.STRIPE_RESTRICTED_KEY }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/fixeo:main
             ghcr.io/${{ github.repository_owner }}/fixeo:main-${{ github.sha }}
@@ -63,6 +74,12 @@ jobs:
           # et `build`, qui sont l'essentiel du temps de construction.
           cache-from: type=gha,scope=fixeo
           cache-to: type=gha,mode=max,scope=fixeo
+          # Le meme secret, parce que `migrate` derive de l'etage `build`. Sans
+          # lui, un cache manquant ferait rejouer `pnpm build` sans la cle et
+          # cette cible echouerait alors que la premiere a reussi — un echec
+          # intermittent, donc le plus couteux a diagnostiquer.
+          secrets: |
+            stripe=${{ secrets.STRIPE_RESTRICTED_KEY }}
 
       - run: |
           echo "### Images publiees" >> "$GITHUB_STEP_SUMMARY"
