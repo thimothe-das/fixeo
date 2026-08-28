@@ -25,12 +25,30 @@ RUN corepack enable
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# `next build` a besoin d'une POSTGRES_URL syntaxiquement valide : le code de
-# l'application importe le client drizzle au chargement des modules, et
-# drizzle refuse une chaine vide. Cette valeur ne joint aucune base et n'est
-# jamais utilisee — le build ne fait aucune requete. La vraie vient du Secret,
-# a l'execution.
-ENV POSTGRES_URL="postgresql://build:build@127.0.0.1:5432/build"
+# VALEURS FACTICES DE CONSTRUCTION, ET POURQUOI IL EN FAUT.
+#
+# `next build` ne compile pas seulement : il COLLECTE les donnees de page, ce
+# qui execute le code de chaque route au niveau module. Or cette application
+# instancie ses clients a ce niveau — drizzle refuse une chaine vide, et
+# Stripe leve « Neither apiKey nor config.authenticator provided ». Le build
+# echoue donc sans ces variables, alors qu'il n'emet aucune requete.
+#
+# Sous Coolify le probleme n'existait pas : nixpacks recevait les vraies
+# valeurs au build comme a l'execution. Les separer est un progres, pas une
+# regression — les vrais secrets ne sont plus presents pendant la
+# construction, donc ils ne peuvent plus se retrouver dans un calque d'image.
+#
+# Aucune de ces valeurs ne joint quoi que ce soit. Les vraies viennent du
+# Secret chiffre, a l'execution.
+ENV POSTGRES_URL="postgresql://build:build@127.0.0.1:5432/build" \
+    STRIPE_SECRET_KEY="sk_test_construction_sans_effet" \
+    STRIPE_WEBHOOK_SECRET="whsec_construction_sans_effet" \
+    AUTH_SECRET="construction_sans_effet" \
+    BASE_URL="http://localhost:3001" \
+    AWS_REGION="eu-west-3" \
+    AWS_S3_BUCKET_NAME="construction" \
+    AWS_ACCESS_KEY_ID="construction" \
+    AWS_SECRET_ACCESS_KEY="construction"
 RUN pnpm build
 
 # --- 3. execution -------------------------------------------------------------
